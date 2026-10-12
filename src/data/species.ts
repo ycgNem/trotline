@@ -32,22 +32,22 @@ export interface SpeciesDef {
 
 export const SPECIES: Record<SpeciesId, SpeciesDef> = {
   puffer: {
-    id: 'puffer', name: 'Pufferfish', real: 'least puffer', band: 'surface', size: 'small',
+    id: 'puffer', name: 'Pufferfish', real: 'least puffer', band: 'bottom', size: 'small',
     rates: { shallows: 2.0 }, habitat: { near: 1.3, open: 0.8 }, sell: 8,
     note: 'Bait thief of the shallows, thickest round the dock and the reeds. Poisonous to eat.',
-    derivation: 'DESIGN.md §3: 2.0/min in the shallows, x1.3 by structure and x0.8 on open sand (they pick bait off pilings and grass); sells for 8',
+    derivation: 'DESIGN.md §3: 2.0/min in the shallows, x1.3 by structure and x0.8 on open sand (least puffers pick bait off pilings and grass near the bottom); sells for 8',
   },
   ray: {
     id: 'ray', name: 'Electric ray', real: 'lesser electric ray', band: 'bottom', size: 'medium',
-    rates: { shallows: 1.5, point: 1.5 }, habitat: { near: 0.5, open: 1.3 }, sell: 15,
-    note: 'Lies buried on open sand and takes a worm off the bottom. Shocks what comes close.',
-    derivation: 'DESIGN.md §3: 1.5/min, x1.3 on open sand and x0.5 by structure (it buries in sand); the point is all open sand, rays only; sells 15 to the aquarium buyer (the best defender sells best, so selling one costs you)',
+    rates: { shallows: 0.8, point: 2.5 }, habitat: { near: 0.5, open: 1 }, sell: 15,
+    note: 'A surf and pass fish: common on the point\'s sand, a stray in the bay. Shocks what comes close.',
+    derivation: 'DESIGN.md §3: lesser electric rays live on high-salinity sand by passes and surf: 2.5/min at the point, 0.8 in the brackish bay (about a third), x0.5 by structure; sells 15 to the aquarium buyer (the best defender sells best)',
   },
   turtle: {
-    id: 'turtle', name: 'Terrapin', real: 'Mississippi diamondback terrapin', band: 'surface', size: 'large',
+    id: 'turtle', name: 'Terrapin', real: 'Mississippi diamondback terrapin', band: 'surface', size: 'medium',
     rates: { shallows: 0.5 }, habitat: { near: 1, open: 0, reedsOnly: true }, sell: 12,
-    note: 'Works the marsh edge: cast beside the reeds. Heavy, so it needs the surf rod\'s line.',
-    derivation: 'DESIGN.md §3: 0.5/min, only within a tile of reeds (terrapins live on the marsh edge), large (tier-2 line); sells 12',
+    note: 'Works the marsh edge: cast beside the reeds.',
+    derivation: 'DESIGN.md §3: 0.5/min, only within a tile of reeds (terrapins live on the marsh edge); medium (it needs the right place, not a heavy line); sells 12',
   },
 };
 

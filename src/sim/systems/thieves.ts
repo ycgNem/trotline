@@ -1,17 +1,45 @@
 // Thieves (DESIGN.md §5, §6): walk the shore road to the smokehouse; leave it for a lure that
-// tempts them; stop at a terrapin and worry it, one at a time while the rest wait behind; claw at
-// a fish within a tile of where they stand; take crates and leave another way (walkers south
-// into the woods, gulls north over the water), so a crate comes back only if the thief is
-// stopped before it gets away. Damage, poison and bounty live here too.
+// tempts them; raccoons stop at a terrapin and worry it, one at a time while the rest wait
+// behind; walkers claw at a fish within reach (further while they stand waiting: they wade);
+// take crates and leave another way (walkers south into the woods, gulls north over the water),
+// so a crate comes back only if the thief is stopped before it gets away. Damage, poison and
+// bounty live here too.
 import type { Game, Thief, Defender } from '../Game';
 import { THIEVES } from '../../data/thieves';
 import { DEFENDERS, TURTLE } from '../../data/defenders';
 
 const ARRIVE = 0.05;
-/** A line at a lure or a terrapin: the first place stands this far back along the road, each
- * next one this much further (DESIGN.md §11: animals in a line must not overlap) */
-export const LINE_FIRST = 0.7;
-export const LINE_STEP = 0.6;
+/** The half tile a terrapin takes up on the road, in front of the animal worrying it. */
+const SHELL = 0.5;
+
+/**
+ * How far back along the road each animal in a line stands: `first` for the one at the front,
+ * then each next one half its length plus half the length of the one ahead further back, so a
+ * line reads as animals, not a heap (DESIGN.md §11).
+ */
+export function lineOffsets(g: Game, ids: number[], first: (len: number) => number): number[] {
+  const out: number[] = [];
+  let d = 0, prev = 0;
+  ids.forEach((id, i) => {
+    const t = g.thieves.find((q) => q.id === id);
+    const len = t ? THIEVES[t.kind].len : 1;
+    d = i === 0 ? first(len) : d + (prev + len) / 2;
+    out.push(d);
+    prev = len;
+  });
+  return out;
+}
+
+/** Where a newcomer of length `len` would stand at the back of a line. */
+function backOf(g: Game, ids: number[], first: (len: number) => number, len: number): number {
+  if (!ids.length) return first(len);
+  const offs = lineOffsets(g, ids, first);
+  const last = g.thieves.find((q) => q.id === ids[ids.length - 1]);
+  return offs[offs.length - 1] + ((last ? THIEVES[last.kind].len : 1) + len) / 2;
+}
+
+const atWorm = () => 0;
+const atShell = (len: number) => SHELL + len / 2;
 
 export function tickThieves(g: Game, dt: number) {
   for (const t of g.thieves) {
@@ -60,7 +88,12 @@ export function tickThieves(g: Game, dt: number) {
         walkExit(g, t, d.speed * dt);
         break;
     }
-    if (d.grab > 0 && alive(t) && t.mode !== 'exit') grab(g, t, d.grab * dt);
+    // claws: reaching from the road as it walks, further while it stands in a line (it wades);
+    // not while it eats, worries a shell or makes off with crates
+    const walking = t.mode === 'road' || t.mode === 'toLure', waiting = t.mode === 'queue' || t.mode === 'wait';
+    const reach = walking ? d.reach : waiting ? d.wade : 0;
+    const dps = walking ? d.grab : waiting ? d.wadeDps : 0;
+    if (dps > 0 && reach > 0 && alive(t)) grab(g, t, dps * dt, reach);
     else t.grabbing = 0;
   }
 }
@@ -107,7 +140,9 @@ function atLure(g: Game, t: Thief, dt: number) {
   let tx = lx, ty = ly;
   if (l.eater !== t.id) {
     if (!l.queue.includes(t.id)) l.queue.push(t.id);
-    const p = g.world.pathBack(l.roadI, LINE_FIRST + LINE_STEP * l.queue.indexOf(t.id));
+    // the eater stands on the worm; the line goes back from it
+    const line = l.eater ? [l.eater, ...l.queue] : l.queue;
+    const p = g.world.pathBack(l.roadI, lineOffsets(g, line, atWorm)[line.indexOf(t.id)]);
     tx = p.x;
     ty = p.y;
   }
@@ -125,22 +160,23 @@ function atLure(g: Game, t: Thief, dt: number) {
   g.events.push({ type: 'eat', tick: g.tick, id: t.kind, x: t.x, y: t.y });
 }
 
-/** The places in a terrapin's line taken so far (the worrier and the ones waiting). */
-function lineLength(tur: Defender) {
-  return (tur.worrier ? 1 : 0) + tur.queue.length;
+/** The animals in a terrapin's line: the one worrying it, then the ones waiting. */
+function shellLine(tur: Defender) {
+  return tur.worrier ? [tur.worrier, ...tur.queue] : tur.queue;
 }
 
-/** A walker reaching the end of the line at a terrapin ahead of it joins the line. */
+/** A raccoon reaching the end of the line at a terrapin ahead of it joins the line (a bear shoves past). */
 function stopAtTurtle(g: Game, t: Thief): boolean {
   const w = g.world;
-  if (t.pathI >= w.path.length) return false;
+  if (t.pathI >= w.path.length || !TURTLE.worry[t.kind]) return false;
   const toNext = Math.hypot(w.pathPt(t.pathI).x - t.x, w.pathPt(t.pathI).y - t.y);
+  const len = THIEVES[t.kind].len;
   let best: Defender | null = null, bestLeft = 1e9;
   for (const q of g.defenders) {
     if (q.hp <= 0 || DEFENDERS[q.species].kind !== 'shell' || q.roadI < t.pathI || t.fed.includes(q.id)) continue;
     // road left to walk to the terrapin's centre, against how far back the next place stands
     const left = toNext + (q.roadI - t.pathI);
-    if (left <= LINE_FIRST + LINE_STEP * lineLength(q) + ARRIVE && left < bestLeft) { best = q; bestLeft = left; }
+    if (left <= backOf(g, shellLine(q), atShell, len) + ARRIVE && left < bestLeft) { best = q; bestLeft = left; }
   }
   if (!best) return false;
   t.mode = 'wait';
@@ -157,16 +193,16 @@ function startWorry(g: Game, t: Thief, tur: Defender) {
   g.events.push({ type: 'worry', tick: g.tick, id: t.kind, x: tur.x + 0.5, y: tur.y + 0.5 });
 }
 
-/** In a terrapin's line: step up to its place; the one at the front worries the shell (a bear's jaws crack it). */
+/** In a terrapin's line: step up to its place; the one at the front worries the shell, gnawing at it. */
 function atTurtle(g: Game, t: Thief, dt: number) {
   const tur = g.defenders.find((q) => q.id === t.turtle);
-  if (!tur || tur.hp <= 0) { leaveTurtle(t); return; }
+  if (!tur || tur.hp <= 0) { leaveTurtle(g, t); return; }
   if (tur.worrier === 0 && tur.queue[0] === t.id) {
     tur.queue.shift();
     startWorry(g, t, tur);
   }
-  const place = tur.worrier === t.id ? 0 : 1 + tur.queue.indexOf(t.id);
-  const p = g.world.pathBack(tur.roadI, LINE_FIRST + LINE_STEP * place);
+  const line = shellLine(tur);
+  const p = g.world.pathBack(tur.roadI, lineOffsets(g, line, atShell)[line.indexOf(t.id)]);
   const dist = Math.hypot(p.x - t.x, p.y - t.y);
   if (dist > ARRIVE) {
     moveToward(t, p.x, p.y, Math.min(THIEVES[t.kind].speed * dt, dist));
@@ -180,29 +216,28 @@ function atTurtle(g: Game, t: Thief, dt: number) {
   if (t.mode !== 'worry') return;
   t.worryLeft -= dt;
   tur.acted = 0;
-  const crack = TURTLE.crack[t.kind] ?? 0;
-  if (crack > 0) {
-    tur.hp -= crack * dt;
-    // a shell worn to a sliver is cracked (worry and crack are matched, so don't let rounding save it)
+  const gnaw = TURTLE.gnaw[t.kind] ?? 0;
+  if (gnaw > 0) {
+    tur.hp -= gnaw * dt;
     if (tur.hp < 0.01) tur.hp = 0;
   }
   if (t.worryLeft <= 0) {
     // it gives up on the shell and walks on past it
     t.fed.push(tur.id);
     tur.worrier = 0;
-    leaveTurtle(t);
+    leaveTurtle(g, t);
   }
 }
 
-function leaveTurtle(t: Thief) {
-  t.mode = 'road';
+function leaveTurtle(g: Game, t: Thief) {
   t.turtle = 0;
   t.worryLeft = 0;
+  resumeRoad(g, t);
 }
 
-/** A walker within a tile of a fish in the water claws at it as it passes or stands there. */
-function grab(g: Game, t: Thief, dmg: number) {
-  let best: Defender | null = null, bd = 1 + 1e-6;
+/** A walker claws at the nearest fish in the water within `reach` tiles (Chebyshev). */
+function grab(g: Game, t: Thief, dmg: number, reach: number) {
+  let best: Defender | null = null, bd = reach + 1e-6;
   for (const d of g.defenders) {
     const def = DEFENDERS[d.species];
     // a pufferfish isn't clawed at: it is snatched whole (the defenders system)
@@ -263,9 +298,14 @@ function moveToward(t: Thief, tx: number, ty: number, step: number) {
 
 /** Back on the road from a lure: at the road tile nearest, carrying on toward the smokehouse. */
 function rejoin(g: Game, t: Thief) {
-  t.mode = 'road';
   t.lure = 0;
   t.eatLeft = 0;
+  resumeRoad(g, t);
+}
+
+/** Walk on from where it stands: toward the next road tile ahead, never back to one behind. */
+function resumeRoad(g: Game, t: Thief) {
+  t.mode = 'road';
   const w = g.world;
   let i = w.nearestPathIndex(t.x, t.y);
   // already past that tile's centre: don't step back to it

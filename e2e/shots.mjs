@@ -30,7 +30,7 @@ await shot('01-title');
 
 // a run with seed 10, fishing open sand off the dock (puffers and rays)
 await run(() => { const a = window.__app; a.newRun(10); a.freeze(); a.act({ k: 'cast', x: 14, y: 7 }); });
-await until('g.liveWell.some(Boolean)');
+await until('g.caught.puffer + g.caught.ray + g.caught.turtle > 0');
 await shot('02-first-catch-card');
 await run(() => window.__app.dismissLesson());
 await until('g.liveWell.filter(Boolean).length >= 2 || g.phaseTime < 8');
@@ -71,40 +71,25 @@ await shot('07-eating-and-queue');
 await until("g.phase === 'build'");
 await shot('08-after-wave-1');
 
-// the bear: a fresh run set up for wave 4 with a terrapin and two rays around bend 1
+// raccoons line up at a terrapin (their real prey), one worrying it, the rest waiting, a ray in reach
 await run(() => {
   const a = window.__app;
   a.newRun(11);
   a.freeze();
   const g = a.game;
-  g.wave = 3;
+  g.wave = 1;
   g.rodTier = 2;
+  g.liveWell.fill(null);
   for (const [s, x, y] of [['turtle', 20, 12], ['ray', 17, 10]]) { g.liveWell[0] = s; g.act({ k: 'deploy', slot: 0, x, y }); }
   g.act({ k: 'cast', x: 14, y: 7 });
   g.act({ k: 'call' });
-  g.step();
-  g.spawnQueue = ['bear', 'raccoon', 'raccoon', 'raccoon'];
   for (const l of ['firstCatch', 'firstDeploy', 'firstLure']) a.seen.add(l);
 });
 await frames(page, 2);
-await run(() => window.__app.dismissLesson());
-await until("g.thieves.some((t) => t.kind === 'bear' && t.mode === 'worry')", 60 * 60);
-// raccoons outrun the bear and pass the terrapin first, so walk three in behind it for the picture
-await run(() => {
-  const a = window.__app, g = a.game;
-  g.spawnQueue = ['raccoon', 'raccoon', 'raccoon'];
-  a.step(60 * 4);
-  const tur = g.defenders.find((d) => d.species === 'turtle');
-  g.thieves.filter((t) => t.kind === 'raccoon' && t.mode === 'road').forEach((t, i) => {
-    const p = g.world.pathPt(tur.roadI - 2 - i);
-    t.x = p.x; t.y = p.y; t.pathI = tur.roadI - 1 - i;
-  });
-  a.step(60 * 2);
-  a.toast = null;
-});
-// past the bear's hit flash, so it isn't drawn white
-await until("g.thieves.some((t) => t.kind === 'bear' && t.hitT > 0.15)", 60);
-await shot('09-bear-worries-terrapin');
+await run(() => { window.__app.dismissLesson(); window.__app.toast = null; });
+await until("g.thieves.some((t) => t.mode === 'worry') && g.thieves.filter((t) => t.mode === 'wait').length >= 2", 60 * 60);
+await run(() => { window.__app.step(30); window.__app.toast = null; });
+await shot('09-raccoons-line-up-at-terrapin');
 
 // a pufferfish snatched: a raccoon stands retching with it in its mouth
 await run(() => {

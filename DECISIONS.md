@@ -103,3 +103,91 @@ timing call with close outcomes (selling fish until the bed is bought: 37/40 win
 crates; deploying everything: 36/40 and 14.6; selling until the rod: 5/40). Close is good;
 it is not yet a *strong* decision. The next lever, if play says it's still flat, is Milestone 3's
 second bait and boats, not more tuning here.
+
+## The critic's second review, implemented (2026-10-12)
+
+The critic played the build above, measured it with the bots (one change at a time over 40
+seeds) and returned 11 ranked findings. Its headline: selling was still never right (rays
+never died, so a deployed fish was stock that only grew), wave 1 was the hardest wave, the
+ray's charge didn't bind (140, 200 and infinite charge all won 36-37/40), and the pace tests
+could not tell a good bot from a bad one. All 11 are in; three were changed from what the
+critic proposed, said below. This **supersedes** the charge and the late-wave sizes of the
+first review. DESIGN.md §2-§7, §10 and §11 are rewritten to match.
+
+- **Fish wear out** (finding 1). Rest is 0.1 HP/s, during the build only (was 1 HP/s, a full
+  heal every build). Walkers claw at reach 1 while they walk (5/s). Thieves standing in a line
+  at a lure or a terrapin *wade*: raccoons 2 tiles at 1/s, bears 1 tile at 5/s. Busy and
+  leaving thieves don't claw. Why: a fish on the board must be able to be lost, or selling
+  never pays. **Changed from the critic's proposal** (any stopped thief clawing at 5/s within
+  2 tiles): measured, a lure beside a ray then killed the ray in ~4 s and the luring lesson
+  fell from a 2.6-leak cut to 0.7. A raccoon feeling around in the water is slower than one
+  swiping as it passes; 1/s keeps the lure the best first move and still costs the ray.
+- **The charge is removed** (finding 2): it didn't bind, so it was a number with no decision
+  behind it. Wear does its job (late waves press because fish wear out, not because rays run
+  dry). The ray's "recharge over the build" (an instant refill) goes with it.
+- **The first build is 60 s and the run starts with a ray in the live well**, "caught at
+  dawn" (finding 2): the losses the critic traced were first builds with no ray (23% of runs)
+  or no fish (7%). Wave 1's lessons now hold on every seed.
+- **The pace tests compare the same bot with one thing taken away** (finding 3): the good bot
+  against itself without the rod (`noRod`) and without selling (`naive`: bed first, never
+  sells). Crates are counted over won runs only. Runs are 100 seeds, wave-1 checks 200, every
+  threshold a margin from the measured mean. Per-wave targets: wave 1 costs ≤ 2 crates, waves
+  5-8 ≥ 1.5. The critic asked for 200-seed runs; 100 keeps the suite under 3 minutes and the
+  margins (8 wins on the floor, 12-16 on the comparisons) are several times the spread.
+- **The ray is a pass fish; the rod's job is rays** (findings 4 and 7). Lesser electric rays
+  are high-salinity surf and pass fish, an occasional catch on a brackish flat: 0.8/min in the
+  bay, 2.5 at the point. The surf rod costs 50 (was 60). The good bot sells puffers to buy it
+  first unless gulls are coming. Measured: without the rod the same bot wins 42/100 against 78;
+  without selling, 51. Selling to invest is now worth ~27 wins: finding 1's question has an
+  answer.
+- **Rays can't shock a gull** (finding 7): no discharge goes through air. Gull counts are
+  halved (wave 3: 5; 5: 6; 7: 7; 8: 5) and the puffer is the gull answer. The good bot fishes
+  the dock for puffers when a gull wave is this one or the next, and holds them in the live
+  well through the raccoon wave before it.
+- **The pufferfish paralyses** (finding 8): 24 poison over 3 s and a 4 s stun (was 40 and 2 s).
+  It kills a gull, not a raccoon: beside a ray it holds a raccoon in reach for 24 more. The
+  Potato Mine's role (one use that kills exactly one basic walker) is gone; what is left is
+  the animal's. A thief already paralysed can't snatch a second puffer (finding 11).
+- **The ray's chain is removed** (finding 8). **Flagged as derivative**: "the shock jumps to 2
+  more within 2 tiles at 50%" is Kingdom Rush's Tesla tower, and a discharge doesn't hop
+  between animals on dry land. A ray now shocks one walker, staying on it while it is in reach.
+  Lock-on is ours, from measuring: nearest-each-pulse spread the damage over a line of
+  raccoons and killed none.
+- **Terrapin predator truth** (finding 7). Raccoons are the diamondback terrapin's real
+  predator; black bears aren't. Raccoons now worry a terrapin 4 s each, gnawing 1.5 HP/s; a
+  bear shoves it aside in 3 s and does it no harm. The first model had it backwards (raccoons
+  gave up in 2 s, only bears cracked it).
+- **Bears aren't pulled by worms** (finding 7): bears raid for fish. Bear HP 200 → 160 and
+  bounty 5 → 4 (1 per 40 HP), one bear in waves 4 and 6, two in 8: a bear that nothing holds
+  long has to be killed by rays as it walks.
+- **Bears first, tested and rejected** (finding 4). The critic proposed spawning bears first so
+  raccoons line up behind a bear at a terrapin. With the 3 s shove the line doesn't form, and
+  measured bears-first won 22/40 against 32/40 for bears last. Bears stay last. The shot of
+  a line at a terrapin is now raccoons, which is the true picture.
+- **Smaller truths** (finding 7): the least puffer lives near the bottom (band `bottom`); a
+  terrapin needs the marsh edge, not a heavy line (size medium), and the reeds east of the
+  dock are inside the tier-1 cast.
+- **Floaters judged in HUD pixels** (finding 5): overlap by the font's real width and line
+  height, stacked a whole line up, money floaters merged, word floaters dropped when the board
+  is smaller than the HUD, and no "Poisoned!" floater at all.
+- **Lines spaced by body length** (finding 6): gull 1, raccoon 1.2, bear 1.6 tiles; each
+  animal stands half its length plus half the one ahead's behind it. A thief that leaves a
+  line or a terrapin rejoins the road at the nearest road point ahead of it (it used to walk
+  back to where it left the road).
+- **The way out is drawn** (finding 10): a dirt trail down column 34 (`Tile.Trail`), and the
+  stray sand tile at (36,18) is grass. The end screen shows recovered crates only when there
+  are any; no slot reaches the trail, and that is on purpose (a crate that leaves is gone).
+- **Lures** (finding 9): pull radii now differ by thief (gull 2, raccoon 4, bear none), and a
+  line at a lure wades at your rays. Whether that makes lures control rather than a recipe is
+  a question for play; the pace test shows the lure is still the best first move.
+- **Craft** (finding 11): the nearest road index is precomputed per tile in `World`
+  (`roadNear`), not searched per defender per frame; DESIGN.md's "two raccoons eat a ray one
+  tile out" is corrected to three; PLAN.md's defender table is updated and its note moved below
+  it; HANDOFF.md is rewritten for the 2D game.
+- **Calling early stays weak** (finding 11): $1-12 against ~1.8 fish of fishing. Left as is and
+  noted in DESIGN.md §2 and IDEAS.md; no lesson or pace test leans on it.
+
+What the numbers say about §8 now (DESIGN.md §7, 100 seeds): the good bot wins 78/100 with
+13.2 crates in won runs and $26 unspent; it sells 3.5 fish a run and loses 2.2 to claws.
+Taking selling away costs 27 wins, the rod 36, the terrapins 32 (a pace test each). Sell-or-deploy is a decision with a measured
+price on both sides; whether it *feels* like one is the Milestone 2 gate's question.

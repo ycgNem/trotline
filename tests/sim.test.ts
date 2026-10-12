@@ -5,12 +5,12 @@
 import { describe, expect, it } from 'vitest';
 import { Game, type Thief, type Defender } from '../src/sim/Game';
 import { Bot } from '../src/sim/bot';
-import { LINE_FIRST, LINE_STEP } from '../src/sim/systems/thieves';
+import { lineOffsets } from '../src/sim/systems/thieves';
 import { THIEVES } from '../src/data/thieves';
 import { PUFFER, RAY, TURTLE } from '../src/data/defenders';
 import { WORMS } from '../src/data/bait';
 import { RULES } from '../src/data/rules';
-import type { SpeciesId } from '../src/data/species';
+import { SPECIES, type SpeciesId } from '../src/data/species';
 
 /** A thief placed by hand at road index i, walking toward the smokehouse. */
 function put(g: Game, kind: Thief['kind'], i: number, extra: Partial<Thief> = {}): Thief {
@@ -46,17 +46,17 @@ const secs = (g: Game, s: number) => { for (let i = 0; i < Math.round(s * 60); i
 const rate = (g: Game, s: SpeciesId, x: number, y: number) => g.biteTable({ x, y }).find((b) => b.s === s)?.rate ?? 0;
 
 describe('fishing (DESIGN.md §3)', () => {
-  it('open sand: puffers x0.8, rays x1.3; by the dock: puffers x1.3, rays x0.5; terrapins only by reeds', () => {
+  it('open sand: puffers x0.8, rays x1; by the dock: puffers x1.3, rays x0.5; terrapins only by reeds', () => {
     const g = new Game(1);
     expect(rate(g, 'puffer', 14, 7)).toBeCloseTo(2.0 * 0.8);
-    expect(rate(g, 'ray', 14, 7)).toBeCloseTo(1.5 * 1.3);
+    expect(rate(g, 'ray', 14, 7)).toBeCloseTo(SPECIES.ray.rates.shallows!);
     expect(rate(g, 'puffer', 15, 9)).toBeCloseTo(2.0 * 1.3);
-    expect(rate(g, 'ray', 15, 9)).toBeCloseTo(1.5 * 0.5);
+    expect(rate(g, 'ray', 15, 9)).toBeCloseTo(SPECIES.ray.rates.shallows! * 0.5);
     expect(g.biteTable({ x: 14, y: 7 }).some((b) => b.s === 'turtle')).toBe(false);
-    // by the reeds a terrapin bites, but the tier-1 line is too light for it
-    expect(g.biteTable({ x: 23, y: 10 }).find((b) => b.s === 'turtle')).toEqual({ s: 'turtle', rate: 0, why: 'line too light' });
+    // by the reeds a terrapin bites, on the tier-1 line too
+    expect(rate(g, 'turtle', 23, 10)).toBeCloseTo(0.5);
   });
-  it('catches ~2.7 fish in a 45 s phase on open sand at tier 1', () => {
+  it('catches ~1.8 fish in a 45 s phase on open sand at tier 1', () => {
     let n = 0;
     const N = 400;
     for (let s = 1; s <= N; s++) {
@@ -64,11 +64,11 @@ describe('fishing (DESIGN.md §3)', () => {
       g.worms = 99;
       g.act({ k: 'cast', x: 14, y: 7 });
       g.run(45 * 60);
-      n += g.caught.puffer + g.caught.ray;
+      n += g.caught.puffer + g.caught.ray + g.caught.turtle;
     }
-    // (1.6 + 1.95) per minute for 0.75 min = 2.66
-    expect(n / N).toBeGreaterThan(2.4);
-    expect(n / N).toBeLessThan(2.95);
+    // (1.6 + 0.8) per minute for 0.75 min = 1.8
+    expect(n / N).toBeGreaterThan(1.6);
+    expect(n / N).toBeLessThan(2.0);
   });
   it('needs a worm per catch, and stops when out of worms or when the live well is full', () => {
     const g = new Game(3);
@@ -76,7 +76,8 @@ describe('fishing (DESIGN.md §3)', () => {
     g.act({ k: 'cast', x: 14, y: 7 });
     g.run(60 * 60 * 3);
     expect(g.worms).toBe(0);
-    expect(g.liveWell.filter(Boolean).length).toBe(2);
+    // the ray the run starts with, and two catches
+    expect(g.liveWell.filter(Boolean).length).toBe(1 + 2);
     expect(g.fishBlock()).toBe('Out of worms');
     const h = new Game(4);
     h.worms = 99;
@@ -84,7 +85,7 @@ describe('fishing (DESIGN.md §3)', () => {
     while (h.liveWell.includes(null)) h.step();
     expect(h.fishBlock()).toBe('Live well full');
   });
-  it('the surf rod reaches the point (rays only) and lands terrapins by the reeds', () => {
+  it('the surf rod reaches the point (rays only, where they are common)', () => {
     const g = new Game(5);
     expect(g.canCast(30, 2).ok).toBe(false);
     g.money = 100;
@@ -93,6 +94,7 @@ describe('fishing (DESIGN.md §3)', () => {
     const point = [...Array(w.w * w.h).keys()].map((i) => ({ x: i % w.w, y: Math.floor(i / w.w) })).find((p) => w.zone[w.idx(p.x, p.y)] === 'point' && g.canCast(p.x, p.y).ok)!;
     expect(point).toBeTruthy();
     expect(g.biteTable(point).map((b) => b.s)).toEqual(['ray']);
+    expect(rate(g, 'ray', point.x, point.y)).toBeGreaterThan(2 * rate(g, 'ray', 14, 7));
     expect(rate(g, 'turtle', 23, 10)).toBeCloseTo(0.5 * 1.5);
     const spot = new Bot(g, 'good').castSpot('turtle')!;
     expect(rate(g, 'turtle', spot.x, spot.y)).toBeGreaterThan(0);
@@ -162,7 +164,7 @@ describe('thieves and the ways out (DESIGN.md §5)', () => {
     expect(t.carrying).toBe(1);
     const money = g.money;
     t.hp = 1;
-    g.defenders.push({ id: g.id(), species: 'ray', x: 33, y: 18, hp: 20, maxHp: 20, cool: 0, charge: RAY.charge, roadI: -1, acted: 99, worrier: 0, queue: [] });
+    g.defenders.push({ id: g.id(), species: 'ray', x: 33, y: 18, hp: 20, maxHp: 20, cool: 0, target: 0, roadI: -1, acted: 99, worrier: 0, queue: [] });
     secs(g, 2);
     expect(t.mode).toBe('dead');
     expect(g.crates).toBe(RULES.crates);
@@ -171,90 +173,115 @@ describe('thieves and the ways out (DESIGN.md §5)', () => {
 });
 
 describe('defenders (DESIGN.md §4)', () => {
-  it('a raccoon that comes within a tile of a pufferfish eats it, stands retching 2 s and dies of the poison', () => {
+  it('a raccoon that comes within a tile of a pufferfish eats it, stands paralysed 4 s and takes 24 poison', () => {
     const g = waveGame();
     fish(g, 'puffer', 18, 11);
     const a = put(g, 'raccoon', 15);
     // index 15 to 17 is 2 tiles: it is in reach after ~1.7 s
     secs(g, 1.8);
     expect(g.defenders.length).toBe(0);
-    expect(a.stunT).toBeGreaterThan(1.5);
+    expect(a.stunT).toBeGreaterThan(3.5);
     const x = a.x;
-    secs(g, 1.5);
+    secs(g, 3.5);
     expect(a.x).toBe(x);
-    expect(a.hp).toBeLessThan(THIEVES.raccoon.hp);
-    secs(g, 2);
-    expect(a.mode).toBe('dead');
-    expect(PUFFER.poison).toBeGreaterThanOrEqual(THIEVES.raccoon.hp);
+    expect(a.hp).toBeCloseTo(THIEVES.raccoon.hp - PUFFER.poison, 0);
+    expect(a.mode).toBe('road');
   });
-  it('a gull snatches a pufferfish too, and only one thief eats each', () => {
+  it('a gull snatches a pufferfish too and dies of it; only one thief eats each, and one already paralysed can\'t take another', () => {
     const g = waveGame();
     fish(g, 'puffer', 18, 11);
     const a = put(g, 'gull', 16), b = put(g, 'gull', 15);
     secs(g, 1);
     expect([a, b].filter((t) => t.poison > 0 || t.mode === 'dead').length).toBe(1);
+    secs(g, 4);
+    expect([a, b].some((t) => t.mode === 'dead')).toBe(true);
+    const h = waveGame();
+    fish(h, 'puffer', 18, 11);
+    const c = put(h, 'raccoon', 17, { stunT: 5 });
+    h.step();
+    expect(h.defenders.length).toBe(1);
+    expect(c.poison).toBe(0);
   });
-  it('a ray shocks the nearest thief at 4/s and the shock jumps to two more at half', () => {
+  it('a ray shocks only the nearest walker, 6/s', () => {
     const g = waveGame();
     fish(g, 'ray', 18, 10);
     const ts = [put(g, 'bear', 18), put(g, 'bear', 19), put(g, 'bear', 17)];
     for (const t of ts) t.stunT = 99; // hold them still
     secs(g, 1);
     const dmg = ts.map((t) => t.maxHp - t.hp).sort((a, b) => b - a);
-    expect(dmg[0]).toBeCloseTo(4, 0);
-    expect(dmg[1]).toBeCloseTo(2, 0);
-    expect(dmg[2]).toBeCloseTo(2, 0);
+    expect(dmg[0]).toBeCloseTo(RAY.dps, 0);
+    expect(dmg[1]).toBe(0);
+    expect(dmg[2]).toBe(0);
   });
-  it('a ray is spent after 140 damage in a wave and full again for the next', () => {
+  it('a ray can\'t shock a gull in the air', () => {
     const g = waveGame();
-    const r = fish(g, 'ray', 18, 10);
-    const t = put(g, 'bear', 18, { stunT: 999, hp: 1000, maxHp: 1000 });
-    secs(g, 60);
-    expect(1000 - t.hp).toBeCloseTo(RAY.charge, 0);
-    expect(r.charge).toBe(0);
-    t.hp = 0;
-    t.mode = 'dead';
-    g.phase = 'build';
-    g.step();
-    expect(r.charge).toBe(RAY.charge);
+    fish(g, 'ray', 18, 10);
+    const gull = put(g, 'gull', 18, { stunT: 99 });
+    secs(g, 2);
+    expect(gull.hp).toBe(THIEVES.gull.hp);
   });
-  it('a raccoon claws a ray 1 tile from the road as it passes; 2 tiles out it is safe', () => {
+  it('fish wear out: a tenth of an HP a second back between waves', () => {
+    const g = new Game(1);
+    const r = fish(g, 'ray', 18, 10);
+    r.hp = 5;
+    secs(g, 10);
+    expect(r.hp).toBeCloseTo(5 + RAY.regen * 10, 1);
+    expect(RAY.regen).toBeLessThanOrEqual(0.1);
+  });
+  it('a walker claws a ray 1 tile from the road as it passes; 2 tiles out it is safe', () => {
     const g = waveGame();
     const near = fish(g, 'ray', 18, 11);
     const far = fish(g, 'ray', 21, 10);
-    near.charge = far.charge = 0; // no shocks, so the raccoon walks the whole way
-    put(g, 'raccoon', 14);
-    secs(g, 8);
-    expect(near.hp).toBeLessThan(RAY.hp - 5);
+    put(g, 'bear', 14);
+    secs(g, 12);
+    expect(near.hp).toBeLessThan(RAY.hp - 8);
     expect(far.hp).toBe(RAY.hp);
   });
-  it('raccoons line up at a terrapin: one worries it 2 s while the rest wait behind, then they walk on', () => {
+  it('a raccoon waiting in a line wades out and claws a ray 2 tiles away, slowly', () => {
+    const g = waveGame();
+    const r = fish(g, 'ray', 14, 10);
+    const t = put(g, 'raccoon', 15, { mode: 'queue', stunT: 0 });
+    t.x = g.world.pathBack(16, THIEVES.raccoon.len).x;
+    // stood in a lure's line: fake the lure it waits for
+    g.lures.push({ id: 999, x: 16, y: 12, roadI: 16, bait: 'worm', food: 1e9, eater: 0, queue: [t.id] });
+    t.lure = 999;
+    t.hp = 1e6;
+    t.maxHp = 1e6;
+    g.lures[0].eater = put(g, 'raccoon', 16, { mode: 'eat', lure: 999, eatLeft: 1e9, hp: 1e6, maxHp: 1e6 }).id;
+    secs(g, 2);
+    expect(t.grabbing).toBe(r.id);
+    expect(RAY.hp - r.hp).toBeCloseTo(2 * THIEVES.raccoon.wadeDps, 0);
+  });
+  it('raccoons line up at a terrapin: one worries it 4 s, gnawing, while the rest wait a body length apart', () => {
     const g = waveGame();
     const tur = fish(g, 'turtle', 12, 12);
     const rs = [put(g, 'raccoon', 8), put(g, 'raccoon', 7), put(g, 'raccoon', 6)];
     secs(g, 4);
     expect(rs[0].mode).toBe('worry');
     expect(rs.slice(1).every((t) => t.mode === 'wait')).toBe(true);
-    // the line doesn't overlap
-    expect(Math.abs(rs[1].x - rs[0].x)).toBeCloseTo(LINE_STEP, 1);
-    expect(Math.abs(rs[0].x - (tur.x + 0.5))).toBeCloseTo(LINE_FIRST, 1);
-    secs(g, 9);
+    const len = THIEVES.raccoon.len;
+    expect(tur.x + 0.5 - rs[0].x).toBeCloseTo(0.5 + len / 2, 1);
+    expect(rs[0].x - rs[1].x).toBeCloseTo(len, 1);
+    secs(g, 16);
     expect(rs.every((t) => t.mode === 'road' && t.x > 13)).toBe(true);
-    expect(tur.hp).toBe(TURTLE.hp);
+    expect(TURTLE.hp - tur.hp).toBeCloseTo(3 * 4 * TURTLE.gnaw.raccoon!, 0);
   });
-  it('a bear cracks a terrapin in its 20 s of worrying; a gull flies over', () => {
+  it('a bear shoves a terrapin aside in 3 s and does it no harm; a gull flies over', () => {
     const g = waveGame();
     const tur = fish(g, 'turtle', 12, 12);
     const b = put(g, 'bear', 10);
     const gull = put(g, 'gull', 10);
-    secs(g, 3);
+    secs(g, 1.5);
     expect(b.mode).toBe('worry');
-    expect(gull.x).toBeGreaterThan(14);
-    secs(g, 10);
-    expect(tur.hp).toBeLessThan(TURTLE.hp * 0.6);
-    secs(g, 12);
-    expect(g.defenders.length).toBe(0);
+    expect(gull.x).toBeGreaterThan(13);
+    secs(g, 4);
     expect(b.mode).toBe('road');
+    expect(tur.hp).toBe(TURTLE.hp);
+  });
+  it('lines are spaced by the animals\' lengths', () => {
+    const g = waveGame();
+    const a = put(g, 'raccoon', 5), b = put(g, 'bear', 4);
+    expect(lineOffsets(g, [a.id, b.id], () => 0)).toEqual([0, (THIEVES.raccoon.len + THIEVES.bear.len) / 2]);
   });
 });
 
@@ -266,7 +293,7 @@ describe('lures (DESIGN.md §6)', () => {
     secs(g, 3.5);
     expect(a.mode).toBe('eat');
     expect(b.mode).toBe('queue');
-    expect(a.x - b.x).toBeCloseTo(LINE_FIRST, 1);
+    expect(a.x - b.x).toBeCloseTo(THIEVES.raccoon.len, 1);
     secs(g, 6);
     expect(b.mode).toBe('eat');
     expect(a.mode).toBe('road');
@@ -306,6 +333,7 @@ describe('the run', () => {
     const m = g.money;
     g.act({ k: 'call' });
     expect(g.money - m).toBe(Math.floor(0.25 * 6 * THIEVES.raccoon.bounty));
+    expect(g.liveWell[0]).toBe('ray');
     g.step();
     expect(g.phase).toBe('wave');
   });

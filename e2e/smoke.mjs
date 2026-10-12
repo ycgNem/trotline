@@ -43,15 +43,15 @@ await frames(page, 3);
 check((await st()).screen === 'play', 'clicking Start did not start a run');
 
 // cast by clicking shallow water near the dock
-let p = await css(15, 10);
+let p = await css(14, 7);
 await page.mouse.click(p.x, p.y);
 await frames(page, 2);
 check(await page.evaluate(() => !!window.__app.game.fishing), 'clicking the water did not cast');
 
-// fast-forward (Tab twice = x3) until a fish is in the live well
+// fast-forward (Tab twice = x3) until a fish is caught (the well starts with the dawn ray)
 await page.keyboard.press('Tab');
 await page.keyboard.press('Tab');
-await page.waitForFunction(() => window.__app.game.liveWell.some(Boolean), null, { timeout: 60000 });
+await page.waitForFunction(() => { const c = window.__app.game.caught; return c.puffer + c.ray + c.turtle > 0; }, null, { timeout: 60000 });
 check((await st()).lesson === 'firstCatch', 'no first-catch lesson card');
 await page.keyboard.press('Enter');
 await frames(page, 2);
@@ -85,7 +85,8 @@ await closeCards();
 
 // send the wave with N, pause with Space
 await page.keyboard.press('KeyN');
-await frames(page, 3);
+// the sim steps on its own clock, not per frame: wait for it rather than counting frames
+await page.waitForFunction(() => window.__app.game.phase === 'wave', null, { timeout: 5000 }).catch(() => {});
 check((await st()).phase === 'wave', 'N did not send the wave');
 await page.keyboard.press('Space');
 await frames(page, 2);

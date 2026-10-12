@@ -37,6 +37,11 @@ lesson cards (first catch, first deploy, first lure); the pace tests pass; scree
 first catch, first deploy, a raccoon leaving the road for a worm, and a bear chewing a turtle
 are in `e2e/out/` and have been looked at.
 
+**Milestone 1 status (2026-10-12):** built; exit met. Two `indie-critic` reviews are implemented
+(`DECISIONS.md`). The "bear chewing a turtle" shot became "raccoons lined up at a terrapin":
+raccoons are the terrapin's real predator and a bear shoves it aside (`DECISIONS.md`, the
+second review). Ready for the gate.
+
 ## Milestone 2 — The gate
 
 `indie-critic` reviews the slice against `DESIGN.md` §8 and the not-list. The owner plays it.

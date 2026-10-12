@@ -19,17 +19,17 @@ export interface Lesson {
 export const LESSONS: Lesson[] = [
   {
     on: 'firstCatch', title: 'Into the live well',
-    text: 'Every fish is a choice: sell it, or deploy it in the light water beside the road. A pufferfish is poison to whatever snatches it. An electric ray shocks thieves until its charge is spent for the wave. Click the fish in your live well.',
+    text: 'Every fish is a choice: sell it, or deploy it in the light water beside the road. A pufferfish paralyses and poisons whatever snatches it (a gull dies of it). An electric ray shocks walkers near the road, never a gull in the air. Click the fish in your live well.',
   },
   {
     on: 'firstDeploy', title: 'A fish on guard',
-    text: 'Thieves walk the road to the smokehouse, take crates and slip away into the woods. Raccoons and bears claw at a fish right beside the road, so keep rays a tile back. Now press L and cast a worm onto the road beside your fish.',
+    text: 'Thieves walk the road to the smokehouse, take crates and slip away into the woods. Raccoons and bears claw at a fish right beside the road, so keep rays a tile back. Fish heal only a little between waves. Now press L and cast a worm onto the road beside your fish.',
   },
   {
     on: 'firstLure', title: 'Bait moves trouble',
-    text: 'Raccoons and bears near the worm leave the road and eat one at a time while the rest wait in line. A gull swallows a worm whole, and a worm spoils when the wave ends: cast it where your fish can reach, when the walkers are coming.',
+    text: 'Raccoons near the worm leave the road and eat one at a time while the rest wait in line, wading out for your fish. A gull swallows a worm whole, bears ignore it, and a worm spoils when the wave ends: cast it where your rays reach, when the raccoons are coming.',
   },
 ];
 
 /** What the status line says before the player has done anything. */
-export const FIRST_HINT = 'Hover the water to see what bites there, then click to cast. Thieves come when the timer runs out.';
+export const FIRST_HINT = 'A ray caught at dawn waits in your live well. Hover the water to see what bites, click to cast. Thieves come when the timer runs out.';

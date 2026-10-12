@@ -1,6 +1,6 @@
 // The slice's shore (DESIGN.md §10): a hand-written 40x22 tile map. One character per tile:
 //   ~ deep water   - mid water   . shallow water   r reeds (shallow, no defender)
-//   s sand   g grass   T tree   # road   = dock   H smokehouse
+//   s sand   g grass   T tree   # road   = dock   H smokehouse   : the woods trail (the way out)
 // The road runs from the west edge along the north shore, bends south at the pool (bend 1) and
 // east to the smokehouse door (bend 2). Thieves enter at the road's west end.
 
@@ -22,11 +22,11 @@ export const SHORE_ROWS = [
   'gggTgggggggggggTggggggTggs...#gggggss...',
   'gggggggggTgggTggggggggggggr..#gggggHHH..',
   'ggTgggggggggggggggggggggggsss######HHHgg',
-  'ggggggTggggggggggggTgggggggggggggggHHHgg',
-  'ggggggggggggTggggggggggggggTgggTggggsggg',
-  'gTggggggggggggggggggggggTgggggggggggggTg',
-  'ggggggggTggggggggTgggTgggggggggggTgggggg',
-  'gggggggggggggggggggggggggggggggggggggggg',
+  'ggggggTggggggggggggTgggggggggggggg:HHHgg',
+  'ggggggggggggTggggggggggggggTgggTgg:ggggg',
+  'gTggggggggggggggggggggggTggggggggg:gggTg',
+  'ggggggggTggggggggTgggTgggggggggggT:ggggg',
+  'gggggggggggggggggggggggggggggggggg:ggggg',
 ] as const;
 
 export type ZoneId = 'shallows' | 'point';

@@ -60,18 +60,19 @@ tower shop, the economy, the pathing control and the map.
 
 | Fish | Job | Where | Note |
 |---|---|---|---|
-| Pufferfish | poison: the first thief beside it snatches it, retches and sickens; one use | water or bucket | the cheap first catch |
-| Electric ray | shock: chains to 3 thieves within 3 tiles, until its charge is spent for the wave | water only | the DPS backbone, wants water near the road |
-| Terrapin | bait with a shell: walkers stop to worry it one at a time, only a bear cracks it | road (it walks) | the stall; slow to catch, by the reeds |
-
-(2026-10-12: the first three rows were re-derived after the critic's review. A pufferfish that
-exploded and a turtle every thief chewed at once were Plants vs Zombies' Potato Mine and
-Wall-nut with fish sprites, and American eels aren't electric. See `DECISIONS.md`.)
+| Pufferfish | poison: the first thief beside it eats it, stands paralysed and sickening; one use | water or bucket | the cheap first catch; the answer to gulls |
+| Electric ray | shock: one walker within 3 tiles at a time; never a gull in the air | water only | the DPS backbone, wants water near the road |
+| Terrapin | the raccoon's prey: raccoons stop to worry it one at a time; a bear shoves it aside | road (it walks) | the stall; caught by the reeds |
 | Catfish | slap: single target, heavy | water, bottom bait | the big-hitter, needs line strength |
 | Gar | pierce: line attack along the road | water | needs cast range to catch |
 | Bass | jump: leaps at a thief carrying a crate, makes it drop it | water | the recovery tool |
 
-Each defender has a stat line that is the species' real traits turned up: pufferfish inflate,
+(2026-10-12: the first three rows were re-derived twice after the critic's reviews. A
+pufferfish that exploded and a turtle every thief chewed at once were Plants vs Zombies'
+Potato Mine and Wall-nut with fish sprites; a ray whose shock chained between thieves was
+Kingdom Rush's Tesla tower; American eels aren't electric. See `DECISIONS.md`.)
+
+Each defender has a stat line that is the species' real traits turned up: pufferfish are poison to eat,
 electric rays shock, terrapins are armored, gar are long. A fish out of water (bucket) runs a
 timer; back in water it rests. Defenders can be eaten: herons snipe them, pelicans swallow
 them, otters raid water tiles. Losing a defender hurts because it was a fish you could have sold.
@@ -80,7 +81,7 @@ them, otters raid water tiles. Losing a defender hurts because it was a fish you
 
 Gull (fast, flies over turtles, low HP, 1 crate), raccoon (medium, 1 crate, loves worms),
 otter (swims: takes the water lanes, attacks defenders), heron (ranged, picks off defenders in
-water), bear (tank, 5 crates, bait holds it longest), pelican (swallows a defender whole, then
+water), bear (tank, 5 crates, comes for fish: worms don't hold it), pelican (swallows a defender whole, then
 is slow), poacher (human, cuts a line, immune to bait). Bosses later: the Old Bear, the
 Pelican Flock, a game warden who confiscates (a joke boss).
 

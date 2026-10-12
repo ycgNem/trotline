@@ -36,8 +36,8 @@ export interface Defender {
   maxHp: number;
   /** seconds to the next zap pulse */
   cool: number;
-  /** a ray: damage it can still deal this wave */
-  charge: number;
+  /** a ray: the thief it is shocking (it stays on it while it's in reach) */
+  target: number;
   /** road path index, for a turtle */
   roadI: number;
   /** seconds since it last acted or was hurt (for the renderer's flash) */
@@ -141,7 +141,7 @@ export class Game {
   wormBed = false;
   wormBedT = 0;
   rodTier = 1;
-  liveWell: (SpeciesId | null)[] = new Array(RULES.liveWell).fill(null);
+  liveWell: (SpeciesId | null)[] = Array.from({ length: RULES.liveWell }, (_, i) => RULES.startWell[i] ?? null);
 
   /** where the line is in the water (tile), or null when reeled in */
   fishing: Pt | null = null;
@@ -260,7 +260,7 @@ export class Game {
         if (!r.ok) return r;
         this.liveWell[c.slot] = null;
         const d = DEFENDERS[s];
-        this.defenders.push({ id: this.id(), species: s, x: c.x, y: c.y, hp: d.hp, maxHp: d.hp, cool: 0, charge: d.kind === 'zap' ? d.charge : 0, roadI: this.world.pathIndex[this.world.idx(c.x, c.y)], acted: 99, worrier: 0, queue: [] });
+        this.defenders.push({ id: this.id(), species: s, x: c.x, y: c.y, hp: d.hp, maxHp: d.hp, cool: 0, target: 0, roadI: this.world.pathIndex[this.world.idx(c.x, c.y)], acted: 99, worrier: 0, queue: [] });
         this.stats.deployed++;
         this.events.push({ type: 'deploy', tick: this.tick, id: s, x: c.x + 0.5, y: c.y + 0.5 });
         if (!this.firsts.deploy) { this.firsts.deploy = true; this.events.push({ type: 'firstDeploy', tick: this.tick, id: s }); }
@@ -314,7 +314,8 @@ export class Game {
     const w = WAVES[this.wave];
     let bounty = 0;
     for (const [id, n] of w.groups) bounty += THIEVES[id].bounty * n;
-    return Math.floor(RULES.callEarly * bounty * Math.max(0, this.phaseTime) / RULES.buildTime);
+    const full = this.wave === 0 ? RULES.firstBuild : RULES.buildTime;
+    return Math.floor(RULES.callEarly * bounty * Math.max(0, this.phaseTime) / full);
   }
 
   canCast(x: number, y: number): Result {

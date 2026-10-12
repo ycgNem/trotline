@@ -16,7 +16,7 @@ export interface BaitDef {
 export const BAIT: Record<BaitId, BaitDef> = {
   worm: {
     id: 'worm', name: 'Worm', match: 1, lureFood: 36,
-    derivation: 'DESIGN.md §6, §7: a lure feeds one thief at a time; 36 thief-seconds is a 6 s meal for each of wave 1\'s six raccoons (the luring lesson), or 3.6 bears',
+    derivation: 'DESIGN.md §6, §7: a lure feeds one thief at a time; 36 thief-seconds is a 6 s meal for each of wave 1\'s six raccoons (the luring lesson); bears don\'t take worms (§5)',
   },
 };
 
@@ -30,5 +30,5 @@ export const WORMS = {
   /** the bait shop's pack when you are out and have no bed */
   packCost: 5,
   packSize: 3,
-  derivation: 'DESIGN.md §3: worm bed 40, a worm per 15 s up to 12 (it can\'t keep a tier-2 line fed, so packs stay a running cost); a pack of 3 for 5; 8 to start',
+  derivation: 'DESIGN.md §3: worm bed 40, a worm per 15 s up to 12 (about what a tier-2 line at the point uses, 3.75 a minute before lures: a saving, not a surplus); a pack of 3 for 5; 8 to start',
 };

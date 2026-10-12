@@ -59,6 +59,17 @@ export class Ground {
     return hasArt(name) ? name : null;
   }
 
+  /** The woods trail thieves leave by: grass with a worn dirt track down the middle. */
+  private trail(ctx: CanvasRenderingContext2D, x: number, y: number, px: number, py: number) {
+    const f = (c: string, a: number, b: number, ww: number, hh: number) => { ctx.fillStyle = c; ctx.fillRect(px + a, py + b, ww, hh); };
+    if (hasArt('tile_grass')) { const s = sheet('tile_grass'); ctx.drawImage(s.frames[Math.floor(hash2(x, y, 91) * s.frames.length)], px, py); }
+    else f(C.green, 0, 0, 16, 16);
+    const wob = Math.floor(hash2(x, y, 7) * 3) - 1;
+    f(C.clay, 4 + wob, 0, 8, 16);
+    f(C.tan, 5 + wob, 0, 6, 16);
+    for (let i = 0; i < 4; i++) f(C.sand, 5 + wob + Math.floor(hash2(x, y, 80 + i) * 6), Math.floor(hash2(x, y, 90 + i) * 16), 1, 1);
+  }
+
   private roadArt(x: number, y: number) {
     const w = this.world;
     const v = w.at(x, y - 1) === Tile.Road || w.at(x, y + 1) === Tile.Road;
@@ -72,6 +83,7 @@ export class Ground {
     const w = this.world;
     const t = w.at(x, y);
     const f = (c: string, a: number, b: number, ww: number, hh: number) => { ctx.fillStyle = c; ctx.fillRect(px + a, py + b, ww, hh); };
+    if (t === Tile.Trail) return this.trail(ctx, x, y, px, py);
     const art = this.artName(x, y);
     if (art) {
       if (t === Tile.Dock) { const u = hasArt('tile_shallow') ? sheet('tile_shallow') : null; if (u) ctx.drawImage(u.frames[0], px, py); }

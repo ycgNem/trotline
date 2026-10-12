@@ -3,12 +3,12 @@
 import { SHORE_ROWS, SHORE, ZONES, type ZoneId } from '../data/shore';
 
 export enum Tile {
-  Deep, Mid, Shallow, Reeds, Sand, Grass, Tree, Road, Dock, House,
+  Deep, Mid, Shallow, Reeds, Sand, Grass, Tree, Road, Dock, House, Trail,
 }
 
 const CHAR: Record<string, Tile> = {
   '~': Tile.Deep, '-': Tile.Mid, '.': Tile.Shallow, r: Tile.Reeds, s: Tile.Sand, g: Tile.Grass,
-  T: Tile.Tree, '#': Tile.Road, '=': Tile.Dock, H: Tile.House,
+  T: Tile.Tree, '#': Tile.Road, '=': Tile.Dock, H: Tile.House, ':': Tile.Trail,
 };
 
 export function isWater(t: Tile) {
@@ -27,6 +27,8 @@ export class World {
   pathIndex: Int32Array;
   /** Chebyshev distance in tiles to the nearest road tile */
   roadDist: Int32Array;
+  /** each tile's nearest road tile, as an index into path */
+  roadNear: Int32Array;
   /** zone of each water tile, or null */
   zone: (ZoneId | null)[];
   /** where the angler stands (tile centre, in tiles) */
@@ -56,6 +58,8 @@ export class World {
     this.pathIndex = new Int32Array(this.w * this.h).fill(-1);
     this.path.forEach((p, i) => (this.pathIndex[p.y * this.w + p.x] = i));
     this.roadDist = this.distances();
+    this.roadNear = new Int32Array(this.w * this.h);
+    for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) this.roadNear[this.idx(x, y)] = this.nearestPathIndex(x + 0.5, y + 0.5);
     // a zone with a circle claims the water inside it; the shallows are every shallow tile left
     this.zone = this.tiles.map((t, i) => {
       if (!isWater(t)) return null;

@@ -23,11 +23,11 @@ const BAR_H = 18;
 /** The help card: [keys, what they do]. */
 const HELP: [string, string][] = [
   ['Goal', 'Keep crates in the smokehouse through 8 waves of hungry thieves.'],
-  ['Click', 'Cast into the water. Puffers bite by the dock and reeds, rays on open sand, terrapins at the reeds (surf rod). Hover water to see. Every catch takes a worm.'],
+  ['Click', 'Cast into the water. Puffers bite by the dock and reeds, terrapins only at the reeds; rays are strays in the bay and common at the point (surf rod). Hover water to see. Every catch takes a worm.'],
   ['1-6', 'Pick a fish in the live well.'],
   ['X', 'Sell it for money.'],
   ['F', 'Deploy it: pale water by the road for pufferfish and rays, the road itself for a terrapin.'],
-  ['L', 'Cast a worm on the road. Raccoons and bears stop to eat it; a gull swallows it. Shift-click for more.'],
+  ['L', 'Cast a worm on the road. Raccoons stop to eat it; a gull swallows it; bears ignore it. Shift-click for more.'],
   ['N', 'Send the next wave early for a bonus.'],
   ['Space', 'Pause. Tab speeds up (x1 to x3).'],
   ['Esc', 'Cancel (or right-click).'],
@@ -160,7 +160,7 @@ export class Hud {
   private deployTip(s: SpeciesId): string {
     const d = DEFENDERS[s];
     return d.place === 'road'
-      ? 'Deploy (F): put it on any road tile. Walkers stop to worry it one at a time while the rest wait; only a bear cracks it. Gulls fly over.'
+      ? 'Deploy (F): put it on any road tile. Raccoons stop to worry it one at a time while the rest wait, gnawing it down; a bear shoves it aside in 3 s. Gulls fly over.'
       : d.kind === 'zap'
         ? 'Deploy (F): light shallow water within 2 tiles of the road. 1 tile out, walkers claw at it as they pass; 2 tiles out it is safe.'
         : `Deploy (F): light shallow water within ${d.maxRoadDist} tile of the road. The lit tiles are where it fits.`;
@@ -181,11 +181,11 @@ export class Hud {
     const next = RODS[g.rodTier];
     if (ui.button('rod', x + 86, y + 4, bw, bh, rod === null ? 'Surf rod' : `Surf rod $${rod}`, {
       disabled: rod === null || g.money < rod,
-      tip: next ? `${next.name}: casts ${next.range} tiles (to the point, where only rays bite), lands terrapins by the reeds, reel x${next.reel}.` : 'Your best rod.',
+      tip: next ? `${next.name}: casts ${next.range} tiles, out to the point where the rays live (only rays bite there), reel x${next.reel}.` : 'Your best rod.',
     })) a.act({ k: 'buy', item: 'rod' });
     if (ui.button('pack', x + 4, y + 24, bw, bh, `${WORMS.packSize} worms $${pack}`, { disabled: g.money < pack, tip: 'A pack of worms from the bait shop.' })) a.act({ k: 'buy', item: 'worms' });
     const lure = a.mode.k === 'lure';
-    if (ui.button('lure', x + 86, y + 24, bw, bh, lure ? 'Cancel' : 'Lure (L)', { active: lure, disabled: g.worms < 1 && !lure, tip: 'Cast a worm onto the road in reach. Raccoons and bears within 4 tiles leave the road to eat it, one at a time. A gull within 2 swallows it whole. It spoils when the wave ends. Shift-click to cast more.' })) a.toggleLure();
+    if (ui.button('lure', x + 86, y + 24, bw, bh, lure ? 'Cancel' : 'Lure (L)', { active: lure, disabled: g.worms < 1 && !lure, tip: 'Cast a worm onto the road in reach. Raccoons within 4 tiles leave the road to eat it, one at a time, and the ones waiting in line claw at fish within 2 tiles. A gull within 2 swallows it whole; bears ignore it. It spoils when the wave ends. Shift-click to cast more.' })) a.toggleLure();
   }
 
   // ---------------------------------------------------------------- status line
@@ -244,7 +244,6 @@ export class Hud {
     if (d) {
       const def = DEFENDERS[d.species];
       const lines: TipLine[] = [{ text: `${SPECIES[d.species].name}  ${Math.ceil(d.hp)}/${d.maxHp} HP`, color: C.gold }, { text: def.job }];
-      if (def.kind === 'zap') lines.push(d.charge > 0 ? { text: `Charge ${Math.floor(d.charge)}/${def.charge} this wave.`, color: C.gold } : { text: 'Spent for this wave; full again by the next.', color: C.ember });
       if (g.thieves.some((t) => t.grabbing === d.id)) lines.push({ text: 'Being clawed!', color: C.red });
       ui.tip(lines);
       return;
@@ -377,7 +376,8 @@ export class Hud {
       `Fish caught: ${caught} (${g.caught.puffer} puffer, ${g.caught.ray} ray, ${g.caught.turtle} terrapin).`,
       `Deployed ${st.deployed}, sold ${st.sold}. Lures cast: ${st.lures}.`,
       `Thieves stopped: ${st.killed}. Reached the smokehouse: ${st.leaks}.`,
-      `Crates taken back from fleeing thieves: ${st.recovered}.`,
+      `Fish lost to claws and gnawing: ${st.lost}.`,
+      ...(st.recovered ? [`Crates taken back from fleeing thieves: ${st.recovered}.`] : []),
     ];
     const w = Math.min(300, ui.w - 20), h = 34 + rows.length * LINE_H + 30;
     const x = Math.floor((ui.w - w) / 2), y = Math.floor((ui.h - h) / 2);

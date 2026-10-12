@@ -19,6 +19,7 @@ import { THIEVES } from '../data/thieves';
 import { WAVES } from '../data/waves';
 import { C } from '../data/palette';
 import { Hud } from './hud';
+import { textWidth, LINE_H } from '../ui/font';
 
 export type Mode = { k: 'idle' } | { k: 'deploy'; slot: number } | { k: 'lure' };
 export type Screen = 'title' | 'play' | 'end';
@@ -202,10 +203,10 @@ export class App {
         case 'catch': this.audio.sfx('catch'); this.float('+' + SPECIES[e.id as SpeciesId].name, g.world.angler.x, g.world.angler.y - 1, C.ice); break;
         case 'cast': this.audio.sfx('cast'); break;
         case 'zap': if (!e.value) this.audio.sfx('zap', 0.6); break;
-        case 'snatch': this.audio.sfx('snatch'); this.float('Poisoned!', e.x2!, e.y2! - 1, C.lime); break;
+        // no word for a snatch: the puffer in the thief's mouth and the green bubbles say it
+        case 'snatch': this.audio.sfx('snatch'); break;
         case 'swallow': this.audio.sfx('gulp'); this.float('Gulp!', e.x!, e.y! - 1, C.rose); break;
         case 'grab': this.audio.sfx('claw', 0.7); break;
-        case 'spent': this.audio.sfx('spent', 0.6); break;
         // at a zoom below the HUD's scale a +$ over every kill is noise (the top bar counts it)
         case 'kill': this.audio.sfx('kill'); if (this.renderer.cam.zoom >= this.uiScale) this.float('+$' + e.value, e.x!, e.y! - 1, C.gold); break;
         case 'steal': this.audio.sfx('steal'); this.float('-' + e.value + ' crate' + (e.value === 1 ? '' : 's'), e.x!, e.y! - 1, C.ember); break;
@@ -240,7 +241,7 @@ export class App {
     const who = w.groups.map(([id, n]) => `${n} ${THIEVES[id].name.toLowerCase()}${n > 1 ? 's' : ''}`).join(', ');
     const fresh = w.groups.map(([id]) => id).filter((id) => !this.met.has(id));
     for (const id of fresh) this.met.add(id);
-    const notes = n > 1 ? fresh.map((id) => THIEVES[id].note) : [];
+    const notes = n > 1 ? fresh.map((id) => `First ${THIEVES[id].name.toLowerCase()}: ${THIEVES[id].note[0].toLowerCase()}${THIEVES[id].note.slice(1)}`) : [];
     this.say(`Wave ${n}: ${who}.` + (notes.length ? ' ' + notes.join(' ') : ''), notes.length ? 6 : 2.5);
   }
 
@@ -252,7 +253,18 @@ export class App {
 
   /** A floating number over the board; one starting near another stacks above it. */
   float(text: string, x: number, y: number, col: string) {
-    const near = this.floaters.filter((f) => f.t < 0.8 && Math.abs(f.x - x) < 2.5 && Math.abs(f.y - y) < 2);
+    const k = this.uiScale, r = this.renderer;
+    // a board drawn smaller than the HUD has no room for words over it (the sprites already show a
+    // snatch or a lost fish); numbers ("+$3", "-1 crate") still float
+    if (!/^[+-]?\$?\d/.test(text) && r.cam.zoom < k) return;
+    // overlap is judged where the text is drawn, in HUD pixels: its width, its line, as it rises
+    const box = (f: { text: string; x: number; y: number; t: number }) => {
+      const p = r.toScreen(f.x, f.y);
+      return { cx: p.x / k, top: p.y / k - f.t * 12, w: textWidth(f.text) };
+    };
+    const me = { text, x, y, t: 0 };
+    const crosses = (f: Floater) => { const a = box(f), b = box(me); return Math.abs(a.cx - b.cx) < (a.w + b.w) / 2 + 3; };
+    const near = this.floaters.filter((f) => crosses(f) && Math.abs(box(f).top - box(me).top) < LINE_H * 3);
     // money near money adds up into one number instead of a tower of them
     const money = /^\+\$(\d+)$/.exec(text);
     if (money) {
@@ -260,8 +272,10 @@ export class App {
       if (m) { m.text = '+$' + (Number(m.text.slice(2)) + Number(money[1])); m.t = 0; return; }
     }
     if (near.length >= 3) return;
-    while (near.some((f) => Math.abs(f.y - y) < 0.55)) y -= 0.6;
-    this.floaters.push({ text, x, y, t: 0, col });
+    // stack a line up (in tiles: a HUD line at this zoom) until it clears everything it crosses
+    const step = (LINE_H + 1) * k / (r.cam.zoom * TILE);
+    for (let i = 0; i < 4 && near.some((f) => Math.abs(box(f).top - box(me).top) < LINE_H + 1); i++) me.y -= step;
+    this.floaters.push({ text, x: me.x, y: me.y, t: 0, col });
   }
 
   say(text: string, life = 2.5) {

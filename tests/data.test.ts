@@ -129,7 +129,7 @@ describe('the shore (DESIGN.md §10)', () => {
       const x = Math.floor(p.x), y = Math.floor(p.y);
       if (!w.inb(x, y)) continue;
       const t = w.at(x, y);
-      expect(t === Tile.Grass || t === Tile.Sand, `exit at ${x},${y}`).toBe(true);
+      expect(t, `exit at ${x},${y}`).toBe(Tile.Trail);
     }
   });
   it('every species bites somewhere the surf rod reaches (DESIGN.md §3)', () => {

@@ -6,7 +6,7 @@ import { C, rgba } from '../data/palette';
 import type { Game, Thief, Defender } from '../sim/Game';
 import { Tile, isWater } from '../sim/world';
 import { THIEVES } from '../data/thieves';
-import { DEFENDERS, RAY, TURTLE } from '../data/defenders';
+import { DEFENDERS, TURTLE } from '../data/defenders';
 import { BAIT } from '../data/bait';
 import type { SpeciesId } from '../data/species';
 import type { GameEvent } from '../engine/events';
@@ -101,7 +101,6 @@ export class Renderer {
         case 'snatch': this.fx.push({ kind: 'splash', x, y, x2: 0, y2: 0, t: 0, life: 0.5, v: 0 }); break;
         case 'swallow': this.fx.push({ kind: 'ring', x, y, x2: 0, y2: 0, t: 0, life: 0.5, v: 1 }); break;
         case 'grab': this.fx.push({ kind: 'claw', x, y, x2: 0, y2: 0, t: 0, life: 0.4, v: 0 }); break;
-        case 'spent': this.fx.push({ kind: 'fizzle', x, y, x2: 0, y2: 0, t: 0, life: 0.6, v: 0 }); break;
         case 'catch': this.fx.push({ kind: 'splash', x, y, x2: 0, y2: 0, t: 0, life: 0.6, v: 0, id: e.id }); this.fx.push({ kind: 'leap', x, y, x2: g.world.angler.x, y2: g.world.angler.y, t: 0, life: 0.7, v: 0, id: e.id }); break;
         case 'cast': this.fx.push({ kind: 'ring', x, y, x2: 0, y2: 0, t: 0, life: 0.5, v: 0 }); break;
         case 'lure': this.fx.push({ kind: 'ring', x, y, x2: 0, y2: 0, t: 0, life: 0.5, v: 1 }); break;
@@ -280,12 +279,8 @@ export class Renderer {
     // a terrapin rests head out (frame 1) and tucks in (frame 0) only while it is worried
     const f = def.kind === 'shell' ? (worried ? 0 : Math.min(1, s.frames.length - 1)) : frameAt(s, this.time + d.id * 0.37);
     const img = clawed && Math.floor(this.time * 8) % 2 ? this.white(s) : s;
-    const spent = def.kind === 'zap' && d.charge <= 0;
-    // spent: dimmed, but not so far that it vanishes on the pale placeable water
-    if (spent) ctx.globalAlpha = 0.6;
     drawSprite(ctx, img, f, cx + bob, cy + (def.place === 'water' ? 2 : 4), d.species === 'turtle' ? false : (d.id % 2 === 0));
-    ctx.globalAlpha = 1;
-    if (def.kind === 'zap' && d.acted < 0.12 && !spent) {
+    if (def.kind === 'zap' && d.acted < 0.12) {
       ctx.fillStyle = C.gold;
       ctx.fillRect(cx - 1, cy - 6, 2, 2);
     }
@@ -391,12 +386,6 @@ export class Renderer {
           }
           break;
         }
-        case 'fizzle': {
-          // a spent ray: a few grey sparks sink back into the water
-          ctx.fillStyle = rgba(C.steel, 1 - k);
-          for (let i = 0; i < 4; i++) ctx.fillRect(Math.round(e.x * TILE) - 4 + i * 3, Math.round(e.y * TILE) - 6 + Math.round(k * 5) + (i % 2) * 2, 1, 1);
-          break;
-        }
         case 'splash': {
           ctx.fillStyle = rgba(C.bone, 1 - k);
           for (let i = 0; i < 6; i++) {
@@ -455,18 +444,13 @@ export class Renderer {
     // a fish's bars sit on its side away from the road, so they never cover a thief walking past
     const w = g.world;
     for (const d of g.defenders) {
-      const near = w.path[w.nearestPathIndex(d.x + 0.5, d.y + 0.5)];
+      if (d.hp >= d.maxHp) continue;
+      const near = w.path[w.roadNear[w.idx(d.x, d.y)]];
       const above = DEFENDERS[d.species].place === 'water' && near.y > d.y;
       const y = above ? d.y * TILE - 2 : (d.y + 1) * TILE + 1;
-      const step = above ? -3 : 3;
-      const hurt = d.hp < d.maxHp;
-      if (hurt) {
-        const frac = d.hp / d.maxHp;
-        const danger = frac < 0.35;
-        if (!danger || Math.floor(this.time * 6) % 2 === 0) this.bar((d.x + 0.5) * TILE, y, 12, frac, danger ? C.red : C.lime);
-      }
-      // a ray's charge left, while a wave is on and it has spent some
-      if (g.phase === 'wave' && DEFENDERS[d.species].kind === 'zap' && d.charge < RAY.charge) this.bar((d.x + 0.5) * TILE, y + (hurt ? step : 0), 12, d.charge / RAY.charge, C.gold);
+      const frac = d.hp / d.maxHp;
+      const danger = frac < 0.35;
+      if (!danger || Math.floor(this.time * 6) % 2 === 0) this.bar((d.x + 0.5) * TILE, y, 12, frac, danger ? C.red : C.lime);
     }
   }
 
