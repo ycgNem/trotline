@@ -18,8 +18,8 @@ moving camera; `npm test` green on an empty sim; `npm run screens` produces a re
 workflow publishes to GitHub Pages; `PROGRESS.md` and `DECISIONS.md` have their first entries.
 
 **Milestone 0 status (2026-10-12):** built. Exit met except the owner's palette pick (Apollo
-provisional, `pixel-art/palette-test/contact_both.png`) and the Pages deploy, which runs on the next
-push to `main` (a push needs the owner's yes).
+provisional, `pixel-art/palette-test/contact_both.png`). The 2D build is live on GitHub Pages
+(https://ycgnem.github.io/trotline/), redeployed on every push to `main`.
 
 ## Milestone 1 — The vertical slice
 
@@ -37,8 +37,8 @@ lesson cards (first catch, first deploy, first lure); the pace tests pass; scree
 first catch, first deploy, a raccoon leaving the road for a worm, and a bear chewing a turtle
 are in `e2e/out/` and have been looked at.
 
-**Milestone 1 status (2026-10-12):** built; exit met. Two `indie-critic` reviews are implemented
-(`DECISIONS.md`). The "bear chewing a turtle" shot became "raccoons lined up at a terrapin":
+**Milestone 1 status (2026-10-12):** built; exit met. Three `indie-critic` reviews and a balance
+audit are implemented (`DECISIONS.md`). The "bear chewing a turtle" shot became "raccoons lined up at a terrapin":
 raccoons are the terrapin's real predator and a bear shoves it aside (`DECISIONS.md`, the
 second review). Ready for the gate.
 
@@ -48,7 +48,9 @@ second review). Ready for the gate.
 Either the model changes (in `DESIGN.md`, then the slice is revised and reviewed again) or the
 gate is marked passed here with the date.
 
-**Gate status: not yet passed.**
+**Gate status: not yet passed.** The critic's side is done (2026-10-12: a re-gate review and the
+gate review, both implemented, `DECISIONS.md`); waiting on the owner to play it and answer
+`DESIGN.md` §8, and on the owner's calls listed in `HANDOFF.md`.
 
 ## Milestone 3 — The fleet and the works
 

@@ -2,10 +2,13 @@
 
 What exists, what is stubbed, what is next. Updated at the end of every session.
 
-## Status (2026-10-12, overnight session, in progress)
+## Status (2026-10-12, end of the overnight session)
 
-**Milestone 0 (2D foundation) is done** except the owner's palette pick (Apollo is provisional) and
-the GitHub Pages deploy (it runs on a push, which needs the owner's yes). **Milestone 1 (the
+**Live**: https://ycgnem.github.io/trotline/ (pushed with the owner's yes at the end of the
+session; every push to `main` runs the tests and redeploys).
+
+**Milestone 0 (2D foundation) is done** except the owner's palette pick (Apollo is provisional).
+**Milestone 1 (the
 vertical slice) is playable end to end**: title, eight waves, win and lose, restart, continue from
 a save. **The critic's first review is implemented** (DECISIONS.md, "The critic's first review"):
 re-derived pufferfish and terrapin, the electric ray, cast location, thieves leaving another way,

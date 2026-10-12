@@ -7,8 +7,8 @@ the end of every session.
 
 **The game is 2D now and the vertical slice (Milestone 1) is playable end to end**: title, a
 60 s first build with a ray caught at dawn in the live well, eight waves, win and lose, restart,
-continue from a save. `npm run dev` (or `Play.bat`) and click Start. The 3D proof of concept is
-gone (in git history at e6f9a18).
+continue from a save. `npm run dev` (or `Play.bat`) and click Start, or play it live at
+https://ycgnem.github.io/trotline/. The 3D proof of concept is gone (in git history at e6f9a18).
 
 The `indie-critic` reviewed the slice **five times** (three reviews, a re-gate and the gate
 review) and the `balance-auditor` once; all six are implemented (`DECISIONS.md`, one section
@@ -66,9 +66,11 @@ built, with the measured numbers. Nothing is half-built.
 
 ## State of things outside the code
 
-- **Git**: `main` is the whole session's commits ahead of `origin/main`, all local. Every push
-  to `main` runs the tests and redeploys GitHub Pages, so pushing needs the owner's yes
-  (`CLAUDE.md`). The live Pages build is still the 3D proof of concept until that push.
+- **Git**: everything is committed and pushed to `origin/main` (the owner said yes at the end of
+  the session). Every push to `main` runs the tests and redeploys GitHub Pages, so a push still
+  needs the owner's yes each time (`CLAUDE.md`). **Live**: https://ycgnem.github.io/trotline/
+  (the 2D slice; the 3D proof of concept is gone). CI's `npm test` now takes several minutes:
+  the pace tests play ~1,400 runs.
 - **PixelLab**: 0 of the session's 100 generations spent. All art is drawn with the
   pixel-art-studio skill (user level, `~/.claude/skills/pixel-art-studio`): build scripts in
   `pixel-art/<name>/build.py`, PNG strips plus JSON in `src/art/`. Never SpriteCook.
