@@ -13,6 +13,9 @@ import type { GameEvent } from '../engine/events';
 import { Ground, TILE, CHUNK, hash2, isSlot } from './ground';
 import { sheet, drawSprite, frameAt, type SpriteSheet } from './sprites';
 
+/** Where each thief's mouth is, (forward, up) in px from its anchor: the puffer it snatched sits there (art director, STYLE.md). */
+const MOUTH: Record<Thief['kind'], [number, number]> = { raccoon: [8, -6], bear: [11, -8], gull: [7, -3] };
+
 export class Camera {
   /** centre, in world pixels */
   x = 0;
@@ -274,10 +277,12 @@ export class Renderer {
     }
     const bob = clawed || worried ? Math.round(Math.sin(this.time * 30)) : 0;
     // a terrapin under attack pulls into its shell (frame 0)
-    const f = def.kind === 'shell' ? (worried ? 0 : frameAt(s, this.time + d.id)) : frameAt(s, this.time + d.id * 0.37);
+    // a terrapin rests head out (frame 1) and tucks in (frame 0) only while it is worried
+    const f = def.kind === 'shell' ? (worried ? 0 : Math.min(1, s.frames.length - 1)) : frameAt(s, this.time + d.id * 0.37);
     const img = clawed && Math.floor(this.time * 8) % 2 ? this.white(s) : s;
     const spent = def.kind === 'zap' && d.charge <= 0;
-    if (spent) ctx.globalAlpha = 0.45;
+    // spent: dimmed, but not so far that it vanishes on the pale placeable water
+    if (spent) ctx.globalAlpha = 0.6;
     drawSprite(ctx, img, f, cx + bob, cy + (def.place === 'water' ? 2 : 4), d.species === 'turtle' ? false : (d.id % 2 === 0));
     ctx.globalAlpha = 1;
     if (def.kind === 'zap' && d.acted < 0.12 && !spent) {
@@ -300,7 +305,10 @@ export class Renderer {
     drawSprite(ctx, img, f, t.x * TILE + shake, t.y * TILE + 4 - lift + bob, t.facing < 0);
     if (t.carrying) drawSprite(ctx, sheet('crate'), 0, t.x * TILE - t.facing * 3, t.y * TILE - s.ay + 6 - lift);
     // the pufferfish it snatched, blown up in its mouth
-    if (stunned) drawSprite(ctx, sheet('puffer_big'), 0, t.x * TILE + t.facing * Math.max(2, s.w / 2 - 3), t.y * TILE - 1 - lift);
+    if (stunned) {
+      const [fx, fy] = MOUTH[t.kind];
+      drawSprite(ctx, sheet('puffer_gulp'), 0, t.x * TILE + shake + t.facing * fx, t.y * TILE + 4 - lift + fy);
+    }
     // poisoned: sick green bubbles rise off it
     if (t.poisonT > 0) {
       ctx.fillStyle = C.lime;
@@ -444,9 +452,13 @@ export class Renderer {
       if (t.mode === 'eat') this.bar(t.x * TILE, t.y * TILE - s.ay - 2 - lift, 10, t.eatLeft / THIEVES[t.kind].eat, C.rose);
       if (t.mode === 'worry') this.bar(t.x * TILE, t.y * TILE - s.ay - 2 - lift, 10, t.worryLeft / (TURTLE.worry[t.kind] ?? 1), C.shell);
     }
-    // defenders' bars sit under the sprite, so they never cover a thief on the road above it
+    // a fish's bars sit on its side away from the road, so they never cover a thief walking past
+    const w = g.world;
     for (const d of g.defenders) {
-      const y = (d.y + 1) * TILE + 1;
+      const near = w.path[w.nearestPathIndex(d.x + 0.5, d.y + 0.5)];
+      const above = DEFENDERS[d.species].place === 'water' && near.y > d.y;
+      const y = above ? d.y * TILE - 2 : (d.y + 1) * TILE + 1;
+      const step = above ? -3 : 3;
       const hurt = d.hp < d.maxHp;
       if (hurt) {
         const frac = d.hp / d.maxHp;
@@ -454,7 +466,7 @@ export class Renderer {
         if (!danger || Math.floor(this.time * 6) % 2 === 0) this.bar((d.x + 0.5) * TILE, y, 12, frac, danger ? C.red : C.lime);
       }
       // a ray's charge left, while a wave is on and it has spent some
-      if (g.phase === 'wave' && DEFENDERS[d.species].kind === 'zap' && d.charge < RAY.charge) this.bar((d.x + 0.5) * TILE, y + (hurt ? 3 : 0), 12, d.charge / RAY.charge, C.gold);
+      if (g.phase === 'wave' && DEFENDERS[d.species].kind === 'zap' && d.charge < RAY.charge) this.bar((d.x + 0.5) * TILE, y + (hurt ? step : 0), 12, d.charge / RAY.charge, C.gold);
     }
   }
 

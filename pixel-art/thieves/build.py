@@ -2,8 +2,9 @@
 
 raccoon  18x15, 4-frame walk, fps 8, anchor at the feet. Grey (Apollo's steel/ash/fog), the
          black mask through the eye with white brow and muzzle, ringed tail held low.
-gull     16x14, 4-frame flap (up, glide, down, glide), fps 8, anchor under the body: herring
-         gull, white with a grey mantle, black wingtips, yellow bill. The renderer lifts it.
+gull     16x14, 4-frame flap (up, glide, down, glide), fps 8, anchor under the body: laughing
+         gull, white body, dark grey mantle and wings, black wingtips, black hood with a white
+         eye crescent, dark red bill. The renderer lifts it.
 bear     26x19, 4-frame walk, fps 6, anchor at the feet: American black bear, black coat with
          a slate sheen on the back, the brown muzzle, round ears, no shoulder hump.
 
@@ -67,16 +68,21 @@ def raccoon():
 
 
 # ---------------------------------------------------------------------------------- gull
+# Laughing gull in breeding plumage, flying right: white body and tail, a dark slate-grey
+# mantle and wings (steel, iron where the wing turns away or is the far one), black (ink)
+# wingtips that run into the grey, a black hood (slate inside the ink outline) with a white
+# nape between it and the mantle, the dark red bill two pixels long. W bone, w mist (the
+# white's shadow side), H hood, o the white eye crescent, R bill.
 GULL = {
     "up": [
         "................",
         ".KKK............",
         "..KKKGG.........",
         "....GGGGg.......",
-        "......GGGg......",
-        ".......gGGg.WW..",
-        "..W.....gGGWeWY.",
-        ".WWWWWWWWWWWWw..",
+        ".....GGGg.......",
+        "......gGg.HHo...",
+        "..W.....gWHHHRR.",
+        ".WWWWWWWWWWWW...",
         "..wwWWWWWWWww...",
         ".....wwwwww.....",
         "................",
@@ -90,9 +96,9 @@ GULL = {
         "................",
         "................",
         "................",
-        "....gggg....WW..",
-        ".KKKGGGGGGgWeWY.",
-        ".WWWWWWWWWWWWw..",
+        "....gggg..HHo...",
+        ".KKKGGGGGWHHHRR.",
+        ".WWWWWWWWWWWW...",
         "..wwWWWWWWWww...",
         ".....wwwwww.....",
         "................",
@@ -106,9 +112,9 @@ GULL = {
         "................",
         "................",
         "................",
-        "............WW..",
-        "..WGGGGGGG.WeWY.",
-        ".WWWWWWWWWWWWw..",
+        "..........HHo...",
+        "..WGGGGGGWHHHRR.",
+        ".WWWWWWWWWWWW...",
         "..wwWGGGGGWww...",
         "....GGGGGww.....",
         "...GGGGg........",
@@ -117,7 +123,8 @@ GULL = {
         "................",
     ],
 }
-GULL_LEGEND = {"W": "bone", "w": "mist", "G": "fog", "g": "ash", "K": "ink", "Y": "gold", "e": "ink"}
+GULL_LEGEND = {"W": "bone", "w": "mist", "G": "steel", "g": "iron", "K": "ink", "H": "slate",
+               "o": "bone", "R": "red"}
 
 
 def gull():

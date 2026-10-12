@@ -184,6 +184,11 @@ function placeholder(name: string): SpriteSheet {
         r(x, C.gold, 1, 6, 1, 3);
         if (f) { r(x, C.shell, 7, 1, 1, 1); r(x, C.shell, 3, 2, 1, 1); r(x, C.shell, 11, 2, 1, 1); }
       });
+    case 'puffer_gulp':
+      return make(11, 11, 5, 5, 1, 1, (x) => {
+        disc(x, C.gold, 5.5, 5.5, 4.5, 4.5);
+        for (const [a, b] of [[5, 0], [0, 5], [10, 5], [5, 10]]) r(x, C.shell, a, b, 1, 1);
+      });
     case 'puffer_big':
       return make(18, 18, 9, 11, 1, 1, (x) => {
         disc(x, C.gold, 9, 9, 7, 7);
@@ -261,4 +266,4 @@ function placeholder(name: string): SpriteSheet {
 }
 
 /** Names the game draws (the art director's export list). */
-export const SPRITE_NAMES = ['gull', 'raccoon', 'bear', 'puffer', 'puffer_big', 'ray', 'turtle', 'angler', 'worm', 'crate', 'tree', 'smokehouse', 'bobber', 'wormbed'];
+export const SPRITE_NAMES = ['gull', 'raccoon', 'bear', 'puffer', 'puffer_big', 'puffer_gulp', 'ray', 'turtle', 'angler', 'worm', 'crate', 'tree', 'smokehouse', 'bobber', 'wormbed'];

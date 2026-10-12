@@ -266,8 +266,9 @@ Water in four tints: deep (open water), mid (the point's water), shallow, and th
 **placeable shallows**, the lightest, with slot ticks at the tile corners. In deploy mode the
 exact tiles that fish fits are lit; in lure mode the road tiles in reach glow pink.
 
-A defender about to be eaten (2026-10-12, the critic's review): HP bars sit **under** the
-sprite, so they never cover a thief on the road above it, red and blinking under 35%. A fish
+A defender about to be eaten (2026-10-12, the critic's review): a fish's HP bar sits on
+its side **away from the road** (above a fish north of it, below one south of it), so it never
+covers a thief walking past; red and blinking under 35%. A fish
 being clawed shakes, blinks white and has a red ripple, with claw scratches over it. A
 terrapin being worried pulls into its shell and shakes. A spent ray is drawn at half strength,
 and during a wave a gold bar under it shows the charge left. A thief that snatched a

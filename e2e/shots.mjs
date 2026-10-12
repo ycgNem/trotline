@@ -79,7 +79,7 @@ await run(() => {
   const g = a.game;
   g.wave = 3;
   g.rodTier = 2;
-  for (const [s, x, y] of [['turtle', 27, 12], ['ray', 27, 14], ['ray', 28, 15]]) { g.liveWell[0] = s; g.act({ k: 'deploy', slot: 0, x, y }); }
+  for (const [s, x, y] of [['turtle', 20, 12], ['ray', 17, 10]]) { g.liveWell[0] = s; g.act({ k: 'deploy', slot: 0, x, y }); }
   g.act({ k: 'cast', x: 14, y: 7 });
   g.act({ k: 'call' });
   g.step();
@@ -88,8 +88,20 @@ await run(() => {
 });
 await frames(page, 2);
 await run(() => window.__app.dismissLesson());
-await until("g.thieves.some((t) => t.kind === 'bear' && t.mode === 'worry') && g.thieves.some((t) => t.mode === 'wait')", 60 * 60);
-await run(() => window.__app.step(120));
+await until("g.thieves.some((t) => t.kind === 'bear' && t.mode === 'worry')", 60 * 60);
+// raccoons outrun the bear and pass the terrapin first, so walk three in behind it for the picture
+await run(() => {
+  const a = window.__app, g = a.game;
+  g.spawnQueue = ['raccoon', 'raccoon', 'raccoon'];
+  a.step(60 * 4);
+  const tur = g.defenders.find((d) => d.species === 'turtle');
+  g.thieves.filter((t) => t.kind === 'raccoon' && t.mode === 'road').forEach((t, i) => {
+    const p = g.world.pathPt(tur.roadI - 2 - i);
+    t.x = p.x; t.y = p.y; t.pathI = tur.roadI - 1 - i;
+  });
+  a.step(60 * 2);
+  a.toast = null;
+});
 // past the bear's hit flash, so it isn't drawn white
 await until("g.thieves.some((t) => t.kind === 'bear' && t.hitT > 0.15)", 60);
 await shot('09-bear-worries-terrapin');
