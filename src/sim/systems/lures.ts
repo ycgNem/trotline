@@ -5,6 +5,7 @@ import type { Game } from '../Game';
 import type { Pt } from '../world';
 import { DEFENDERS } from '../../data/defenders';
 import { THIEVES } from '../../data/thieves';
+import { WAVES } from '../../data/waves';
 
 export function tickLures(g: Game, _dt: number) {
   for (const l of g.lures) {
@@ -12,7 +13,8 @@ export function tickLures(g: Game, _dt: number) {
     if (l.eater && !g.thieves.some((t) => t.id === l.eater && t.lure === l.id && (t.mode === 'eat' || t.mode === 'toLure'))) l.eater = 0;
   }
   g.lures = g.lures.filter((l) => {
-    if (l.food > 0) return true;
+    // eaten to nothing, it stays while its last raccoon finishes the meal it took
+    if (l.food > 0 || l.eater) return true;
     g.events.push({ type: 'lureGone', tick: g.tick, x: l.x + 0.5, y: l.y + 0.5 });
     return false;
   });
@@ -35,8 +37,24 @@ export interface LinePreview {
  * where a line of `n` more would wait behind it, the fish that line could wade at and the rays
  * that reach the eater. The lure overlay draws it; the good bot scores by it.
  */
-export function lurePreview(g: Game, x: number, y: number, n = 4): LinePreview {
-  return linePreview(g, g.world.pathIndex[g.world.idx(x, y)], 0, n);
+export function lurePreview(g: Game, x: number, y: number, n?: number): LinePreview {
+  const i = g.world.pathIndex[g.world.idx(x, y)];
+  return linePreview(g, i, 0, n ?? comingRaccoons(g, i));
+}
+
+/**
+ * How long a line could get at road index `i`: the raccoons on the road behind it and those
+ * still to come this wave (in a build, the next wave's), less the one eating, at most 16. A
+ * preview that assumed four said "clear of your fish" to a ray a wave-6 line reached.
+ */
+export function comingRaccoons(g: Game, i: number): number {
+  let n = 0;
+  if (g.phase === 'build') n = (WAVES[g.wave]?.groups ?? []).reduce((a, [id, k]) => a + (id === 'raccoon' ? k : 0), 0);
+  else {
+    for (const t of g.thieves) if (t.kind === 'raccoon' && (t.mode === 'road' || t.mode === 'toLure' || t.mode === 'queue') && t.pathI <= i + 1) n++;
+    for (const k of g.spawnQueue) if (k === 'raccoon') n++;
+  }
+  return Math.max(1, Math.min(16, n - 1));
 }
 
 /**

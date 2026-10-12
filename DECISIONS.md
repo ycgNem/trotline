@@ -286,3 +286,60 @@ eight findings, and what changed (DESIGN.md §2-§7, §10, §11 rewritten):
 Measured (DESIGN.md §7): selling is worth ~25 wins, the rod ~45, a worm on the road every wave
 ~42; terrapins about nothing over a whole run (they do what the worm does) but 11 leaks to 1 in
 a fixed wave, so their pace test is the fixed wave.
+
+## The re-gate review, implemented (2026-10-12)
+
+The critic re-ran the Milestone 2 gate on the third review's build and played it with its own
+policy. Findings and what was done:
+
+- **A. A simple line won 96-99 of 100** (the dawn ray at (19,10) inside the tier-1 cast, a worm
+  a tile short of it; sell puffers until the rod and no further; packs, no bed; four rays before
+  any terrapin). The reference bot was beaten by a simpler player, so the pace tests were
+  measuring a weak one. **Done**: the good bot plays that line (DESIGN.md §7): it invests in the
+  rod only, keeps four worms from the bait shop after it, scores ray tiles by the wet road they
+  shock (double where the rod can cast a worm), fishes terrapins only after eight rays and gull
+  puffers only after four, and sells a fish for bait when the can and the purse are both empty
+  (it had lost seed 1 that way). Against the old waves it won 97/100 with 17.4 crates; waves 4-8
+  grew by about half and their spawns came closer (DESIGN.md §5) until it wins 78-85 of 100 over
+  five seed sets. More raccoons barely moved it and paid it bounty it couldn't spend; closer
+  spawns press without paying.
+- **B. The lure could be ground down and its line ran off the map.** **Done**: a raccoon takes
+  its whole meal when it starts eating, the lure stays while that meal lasts, and a lure pulls no
+  one whose place in line would stand before the start of the road (DESIGN.md §6).
+- **C. The lure preview undercounted the line** (it drew the raccoons on the road, not the ones
+  coming). **Done**: it counts the next wave's raccoons in the build, and those behind the tile
+  and still to spawn in a wave, up to 16.
+- **D. The gull alarm plays as the Potato Mine** (one use, then an effect in a radius that ends
+  the threat), the flag the third review left open. **Re-derived**: laughing gulls are
+  kleptoparasites; they rob each other. The gull that snatches a puffer drops onto the water
+  with it; its flockmates within 2.5 tiles land round it for 6 s trying to take the fish, then
+  fly on. Nothing dies but the eater and no thief leaves early; what the puffer buys is gulls
+  sitting on the water, where a ray's shock reaches (the wet-ground rule). A puffer alone delays
+  a flock; a puffer between two rays kills it. 6 s, not 4: at 4 s two rays killed only one more
+  gull a flock (measured). The flag is withdrawn: the puffer is now a lure for gulls that the
+  rays work, not a mine.
+- **E. DESIGN's pool numbers were stale** (§5, §10). **Done**: re-measured and corrected.
+- **F. Terrapins added about nothing.** Measured with the new bot they were worse than nothing
+  (no terrapins won 81-84 against 70-82): fishing for them after four rays cost four rays by
+  wave 7, and the bot set them where the line waiting behind wades out to a ray (ray losses in
+  wave 7: 67 a hundred runs against 16). **Done** (bot, not model): a terrapin is never set where
+  its line wades a ray, and terrapins come after eight rays. Now the same bot without terrapins
+  loses 0.6-1.8 more crates in waves 5-8 and keeps 1-2.5 fewer in a won run, at about the same
+  wins; they help the bot that casts no worms the same way (11.3-12.2 crates against 8.3-11.0).
+  A longer worry (6 s) changed nothing and was not taken. New pace test: no terrapins loses half
+  a crate more in waves 5-8. A terrapin is worth a crate, not a win: whether that is enough of a
+  role is the gate's question.
+- **G. Money has no use after the rod** ($50-55 unspent; the bed measures the same as never
+  buying it, at 20, 25, 30 or 40). **Owner's call, not taken**: the critic suggested a heavy surf
+  rod at ~100 or a cheaper bed. A third rod tier is Milestone 3 (ROADMAP: rod tiers 1-2 in the
+  slice), and a cheaper bed changes no win (measured). Logged in IDEAS.md.
+- Minor: the bait derivation said "six raccoons" (wave 1 is five); merged money floaters no
+  longer restart their rise, so a stream of bounties can't hold one number up forever.
+
+**The bait threshold moved** (the pace tests' header says say why): "no worms cast wins 25
+fewer" became "10 fewer". With the stronger bot and its eight rays, a run without worms still
+wins 50-68 against 78-85 (gaps of 13-34 over five sets); the lesson is intact where it is taught
+(wave 1 costs 3.2-3.8 crates without a worm and none with one). **Selling and the rod are now
+near-forced**: never selling wins 1-4 of 100, no rod none. The rod is the slice's one
+investment and selling is how it comes in time; that is the sell-or-deploy decision at its
+sharpest, but it makes the opening a line rather than a choice. Flagged for the next review.

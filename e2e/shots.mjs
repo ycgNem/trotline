@@ -110,7 +110,7 @@ await until("g.thieves.some((t) => t.stunT > 1.2)", 60 * 60);
 await run(() => window.__app.step(15));
 await shot('13-puffer-snatched');
 
-// a gull flock: the first takes the pufferfish, its alarm turns the other two back north
+// a gull flock: the first takes the pufferfish and drops onto the water; the other two land round it to rob it
 await run(() => {
   const a = window.__app;
   a.newRun(17);
@@ -121,9 +121,9 @@ await run(() => {
   g.act({ k: 'deploy', slot: 0, x: 8, y: 11 });
   g.act({ k: 'call' });
 });
-await until('g.stats.scared >= 2', 60 * 30);
-await run(() => { window.__app.step(14); window.__app.toast = null; });
-await shot('16-gull-alarm');
+await until('g.stats.mobbed >= 2', 60 * 30);
+await run(() => { window.__app.step(70); window.__app.toast = null; });
+await shot('16-gull-mob');
 
 // a ray one tile from the road, clawed by a passing raccoon (the defender about to be eaten)
 await run(() => {
@@ -142,9 +142,24 @@ await shot('14-ray-clawed');
 await until("g.thieves.some((t) => t.mode === 'exit' && t.y > 18)", 60 * 120);
 await shot('15-raccoon-escapes');
 
-// the good bot to the end of a season, then the lost season
-await run(() => { const a = window.__app; a.newRun(3); a.freeze(); a.autoplay('good'); for (const l of ['firstCatch', 'firstDeploy', 'firstLure']) a.seen.add(l); });
+// the good bot to the end of a season (the first seed it wins: it loses about one in six), then
+// the lost season
+const won = await run(() => {
+  const a = window.__app;
+  for (const s of [3, 1, 2, 4, 5, 6, 7, 8, 9, 10]) {
+    a.newRun(s); a.freeze(); a.autoplay('good');
+    for (const l of ['firstCatch', 'firstDeploy', 'firstLure']) a.seen.add(l);
+    for (let i = 0; i < 60 * 60 * 20 && !a.game.over; i++) a.step(1);
+    if (a.game.phase === 'won') return s;
+  }
+  return 3;
+});
+console.log('the good bot wins seed', won);
+await run((s) => { const a = window.__app; a.newRun(s); a.freeze(); a.autoplay('good'); for (const l of ['firstCatch', 'firstDeploy', 'firstLure']) a.seen.add(l); }, won);
 await until("g.wave === 8 && g.phase === 'wave' && g.thieves.filter((t) => t.mode !== 'dead' && t.mode !== 'gone').length > 8", 60 * 60 * 20);
+// (stepped without frames, the run's earlier wave starts fell out of the event queue, so the
+// toast would introduce every kind again; in play it says "Wave 8: ..." for 2.5 s)
+await run(() => { window.__app.toast = null; });
 await shot('10-wave-8-fight');
 await until('g.over', 60 * 60 * 20);
 await shot('11-season-won');

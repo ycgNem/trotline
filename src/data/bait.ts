@@ -16,7 +16,7 @@ export interface BaitDef {
 export const BAIT: Record<BaitId, BaitDef> = {
   worm: {
     id: 'worm', name: 'Worm', match: 1, lureFood: 36,
-    derivation: 'DESIGN.md §6, §7: a lure feeds one thief at a time; 36 thief-seconds is a 6 s meal for each of wave 1\'s six raccoons (the luring lesson); bears don\'t take worms (§5)',
+    derivation: 'DESIGN.md §6, §7: a lure feeds one thief at a time; 36 thief-seconds is six 6 s meals: all of wave 1\'s five raccoons, with one to spare (the luring lesson); bears don\'t take worms (§5)',
   },
 };
 

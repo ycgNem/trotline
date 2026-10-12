@@ -143,7 +143,7 @@ export class Audio {
       case 'snatch': this.tone(320 * r(), 'sine', { a: 0.004, d: 0.12 }, 0.07 * v, B, 0, 0.35); this.tone(130, 'square', { a: 0.02, d: 0.3 }, 0.035 * v, B, 0.14, 0.7); break;
       // a laughing gull takes the worm: two quick falling chirps
       case 'gulp': this.tone(980 * r(), 'triangle', { a: 0.003, d: 0.06 }, 0.04 * v, B, 0, 0.75); this.tone(900 * r(), 'triangle', { a: 0.003, d: 0.07 }, 0.04 * v, B, 0.08, 0.7); break;
-      // a laughing gull's alarm: three quick rising calls, "ha-ha-ha"
+      // laughing gulls squabbling over a fish: three quick rising calls, "ha-ha-ha"
       case 'alarm': for (let i = 0; i < 3; i++) this.tone((760 + i * 120) * r(), 'triangle', { a: 0.004, d: 0.05 }, 0.035 * v, B, i * 0.07, 1.25); break;
       // claws on a fish: two short scratches
       case 'claw': this.noise(0.05, 0.08 * v, 'bandpass', 3200, 3, 0, 1); this.noise(0.05, 0.07 * v, 'bandpass', 2600, 3, 0.07, 1); break;

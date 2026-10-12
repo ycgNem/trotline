@@ -60,7 +60,9 @@ Rod tier 1: reel ×1.0, a 9-tile cast (§10), medium line. Tier 2 (the surf rod,
 marsh edge, not a heavy line, and the reeds east of the dock are inside the tier-1 cast. Live
 well: 6 slots. Every catch takes the worm off the hook. **Starting worms: 8**: the first build
 phase of fishing and a lure or two. **The worm bed** (40, bought once) makes a worm every **30 s**
-up to 12; the bait shop sells a pack of 3 for 5 so a broke player is never stuck. 2 worms a
+up to 12; the bait shop sells a pack of 3 for 5, so a player with 5 to spend or a fish to sell is never
+stuck (one with neither waits on bounties: an opening that buys the rod with its last dollars
+and its last worm can stall there). 2 worms a
 minute is about half what a tier-2 line at the point uses (3.75/min) before any lures, so
 **bait is a cost every build** (2026-10-12, the critic's third review: at a worm every 15 s money
 stopped mattering once the rod and the bed were bought; "selling funds bait" is pillar 1).
@@ -110,14 +112,20 @@ a chain that was Kingdom Rush's Tesla tower. The second (2026-10-12):
   (40) on its own: it holds one still for 4 s, and inside a ray's reach that is 24 more damage,
   48 in all. A puffer is what you put *beside* a ray, and what you fish for when gulls come.
   A thief already paralysed can't take a second one, nor one on its way out.
-- **Gulls come in flocks, and a puffer turns a flock** (2026-10-12, the critic's third review:
-  one puffer per gull made every gull wave a count of puffers, and tied the line to the dock).
-  Laughing gulls travel in small flocks and give alarm calls. Gulls arrive three at a time,
-  0.3 s apart; when one snatches a pufferfish and retches, every other gull within 2.5 tiles of
-  it turns back north with nothing (no crate, no bounty). One puffer a flock stops a gull wave.
-  **Flagged** (DECISIONS.md): a one-use fish followed by an effect in a radius is the shape of
-  the Potato Mine's splash; here nothing is hurt, only the same kind reacts and they leave with
-  nothing, and the behaviour is the animal's. The owner should judge it.
+- **Gulls come in flocks, and a puffer brings a flock down** (2026-10-12, the critic's third
+  review: one puffer per gull made every gull wave a count of puffers; re-derived at the re-gate
+  review, which read the first version, an alarm call turning the flock back, as the Potato
+  Mine: one use, then an effect in a radius that ends the threat). Gulls arrive three at a time,
+  0.3 s apart. Laughing gulls are kleptoparasites: they rob each other of food. The gull that
+  snatches a pufferfish drops onto the water with it, retching; every flockmate within 2.5
+  tiles lands on the water round it for **6 s** trying to take the fish, then flies on along
+  the road. Nothing is killed but the snatcher; what the puffer buys is **two gulls sitting on
+  the water for 6 s, where a ray reaches them** (a shock travels through water, below). A ray
+  deals 6 a second and stays on the nearest (often the snatcher first, already dying): one ray
+  kills one of the two, two rays both. A puffer alone delays a flock; a puffer between two rays
+  brings it down (§7, measured). The answer to gulls is the same pair as the answer to
+  raccoons, a puffer beside rays, placed where the flock passes. 6 s, not 4: at 4 s two rays
+  killed only one more gull a flock.
 - **Electric ray: one shock at a time, through water.** No chain: a discharge goes into what it
   touches. A ray picks the nearest walker within 3 tiles and **stays on it while it is in
   reach**; switching every pulse to whichever thief stepped closest spread the damage over a
@@ -164,14 +172,13 @@ Variants (big, rare, golden) arrive with the catch log in Milestone 4: ×1.5 sta
 
 | Thief | Real animal | HP | Speed | Crates | Bounty | Length | Behavior |
 |---|---|---|---|---|---|---|---|
-| Gull | laughing gull | 20 | 2.5 t/s | 1 | 1 | 1 | flocks of 3; flies: over terrapins, out of a ray's reach; swallows a worm within 2 tiles whole; turns back at a flockmate's alarm; never claws |
+| Gull | laughing gull | 20 | 2.5 t/s | 1 | 1 | 1 | flocks of 3; flies: over terrapins, out of a ray's reach; swallows a worm within 2 tiles whole; lands on the water 6 s round a flockmate with a pufferfish; never claws |
 | Raccoon | raccoon | 40 | 1.2 t/s | 1 | 1 | 1.2 | pulled by worms within 4 tiles, eats 6 s; worries terrapins; claws 1 tile walking, wades 2 tiles in a line |
 | Bear | Louisiana black bear | 160 | 0.7 t/s | 5 | 4 | 1.6 | ignores worms; shoves terrapins aside; claws 1 tile, 5/s, walking or waiting |
 
-**Bounty is 1 per 40 HP, at least 1.** Every thief stopped over the 8 waves would pay 115; a
-gull that turns back at an alarm pays nothing, so a run's bounty is nearer 95. Against 30 to
-start, 90 of shop (bed 40, rod 50) and bait every build, selling fish to buy the rod and the bed
-sooner is the opening's real trade (§7).
+**Bounty is 1 per 40 HP, at least 1.** Every thief stopped over the 8 waves would pay 166.
+Against 30 to start, 90 of shop (bed 40, rod 50) and bait every build, selling fish to buy the
+rod sooner is the opening's real trade (§7): bounties come too late for it.
 
 **Bears come for fish, not worms** (2026-10-12, the critic: a worm holding a bear 10 s was
 false). Bears aren't pulled by worms, and a terrapin holds one 3 s. Bear HP went 200 → 160
@@ -180,7 +187,7 @@ rays: at 0.7 t/s a ray two tiles out from a straight has 4.47 tiles of road in r
 **39 damage a pass** (measured, 0.5 s pulses). Four passes are 156, short of 160: a bear needs
 **five ray-passes, or four and a puffer**. Three passes and a puffer kill it (165) only if the
 puffer sits in a ray's reach, so its 4 s of paralysis is shocked too; elsewhere it is 141 and
-the bear walks on. The pool ray (§10) does 75 a pass.
+the bear walks on. The best pool ray (§10) does 63 a pass.
 
 **Lines are spaced by body length** (2026-10-12): the animals in a line stand their lengths
 apart (half of each, summed), so a bear and three raccoons read as four animals, not a
@@ -195,24 +202,28 @@ poisoned or half-dead as it reached the door. The end screen counts recovered cr
 there are any.
 
 Road length 39 tiles. Spawns 1.5 s apart unless a wave says otherwise; a gull flock's three
-0.3 s apart, the wave's gap between flocks. Slice waves (2026-10-12, retuned after the third
-review against the strong reference bot, §7):
+0.3 s apart, the wave's gap between flocks. Slice waves (2026-10-12, retuned at the re-gate
+review against the stronger reference bot that plays the critic's line, §7):
 
 | Wave | Composition (in spawn order) | Gap | Total HP | Bounty |
 |---|---|---|---|---|
 | 1 | 5 Raccoon | 1.5 s | 200 | 5 |
 | 2 | 7 Raccoon | 1.5 s | 280 | 7 |
 | 3 | 6 Gull (2 flocks) | 1.2 s | 120 | 6 |
-| 4 | 6 Raccoon, 1 Bear | 1.5 s | 400 | 10 |
-| 5 | 9 Gull (3 flocks), 8 Raccoon | 1.0 s | 500 | 17 |
-| 6 | 12 Raccoon, 1 Bear | 1.0 s | 640 | 16 |
-| 7 | 9 Gull (3 flocks), 12 Raccoon | 0.8 s | 660 | 21 |
-| 8 | 9 Gull (3 flocks), 16 Raccoon, 2 Bear | 0.7 s | 1,140 | 33 |
+| 4 | 10 Raccoon, 1 Bear | 1.2 s | 560 | 14 |
+| 5 | 12 Gull (4 flocks), 12 Raccoon | 0.75 s | 720 | 24 |
+| 6 | 18 Raccoon, 2 Bear | 0.65 s | 1,040 | 26 |
+| 7 | 15 Gull (5 flocks), 20 Raccoon, 1 Bear | 0.55 s | 1,260 | 39 |
+| 8 | 15 Gull (5 flocks), 22 Raccoon, 2 Bear | 0.45 s | 1,500 | 45 |
 
 Wave 1 is five raccoons, the first lessons' wave: the dawn ray, two or three puffers and one
 worm a tile short of the ray stop it (§7). The first bear (wave 4) is the run's first spike and
-wave 8 its last. A second bear in wave 6 was tried: it spiked that wave to 3-3.6 crates and
-dropped the strong bot to 65-72 wins. **Bears stay last in their waves**: the critic proposed
+wave 8 its last. Waves 4-8 grew by about half at the re-gate review, and their spawns came
+closer: the critic's line (the dawn ray inside the rod's cast, the rod and no bed, rays before
+terrapins) won 96-99 of 100 against the old ones. More raccoons barely moved the reference bot
+(its mid-game holds; what loses runs is a bad opening) and paid it more bounty than it could
+spend; closer spawns press without paying. The late waves now cost it 8-9 crates a run, about
+half of them in wave 8. **Bears stay last in their waves**: the critic proposed
 bears first so a bear holds a line of raccoons behind it at a terrapin; with the bear's 3 s
 shove that line no longer forms, and measured, bears-first won 22/40 against 32/40.
 
@@ -258,6 +269,15 @@ food, wins 17. A crowd eats a worm in a few seconds, and one ray shocks one thie
 the stall is gone. The queue stays: a worm stalls raccoons one at a time where you put it, and
 where you put it decides who shocks them and what the line wades at (above).
 
+**A meal is taken when it starts, and a line never runs off the map** (2026-10-12, the re-gate
+review). The first lure took food as it was eaten and pulled whenever a raccoon was near, so a
+worm by the spawn grew a line back past road index 0, and a worm could feed a meal it no longer
+held. Now a raccoon takes its whole meal (6 s, or what is left) the moment it starts eating;
+the lure stays on the road until that meal is done, then goes; and a lure pulls no one whose
+place in line would stand past the start of the road. The lure-mode preview counts the
+raccoons still coming to that tile (the next wave's in the build; those behind it and those
+still to spawn in a wave), up to 16, so the line it draws is the line that will form.
+
 The lure's reach is the rod's cast: tier 1 reaches road tiles 9 to 23 (15 tiles around the
 dock's foot, §10).
 
@@ -275,6 +295,21 @@ line waits clear of them; places terrapins where rays shock their line; keeps ra
 Measured on the old numbers it won 191 of 200: the third review's model changes are what made the
 slice a game for it again.
 
+**The reference player plays the critic's line** (2026-10-12, the re-gate review). The critic
+found a simpler line that beat that bot, 96-99 of 100: the dawn ray goes inside the tier-1
+rod's cast (so the first worms land in its reach), puffers are sold until the rod and no
+further (the bed is skipped; packs are bought), and rays come before terrapins. The good bot now
+plays it: it sells puffers until the rod only; once the rod is bought it keeps four worms from
+the bait shop (and digs the bed when it has the money, which measures the same as never: below);
+it scores ray tiles by the wet road they shock, double where the rod can cast a worm; it fishes
+terrapins only once **eight** rays are down, and never sets one where the line waiting behind
+it would wade out to a ray. Two more things a strong player does: it fishes puffers for the
+gull flocks only once four rays are down (a puffer alone kills only the gull that eats it, §4),
+and with an empty can and less than a pack's price it sells a fish for bait rather than stop
+fishing (seed 1 lost a run to that: the rod bought down to $4 with one worm, then nothing
+caught for three waves). Against the old waves it won 97 of 100 with 17.4 crates: waves 4-8 grew
+(§5) until it wins 78-85.
+
 **Wave 1, the intended lesson: deploy, don't sell.** A ray two tiles from a straight has 4.47
 tiles of road in reach: a raccoon at 1.2 t/s spends 3.7 s there, 24 damage, so **a lone ray
 kills nothing** (40 HP). A puffer beside it holds one raccoon 4 s in reach: 24 poison and the
@@ -288,10 +323,17 @@ raccoon 6 s in its reach (36 damage) and lines the others up. **Measured** (200 
 with the dawn ray): **3.42 → 0.06 leaks** with the lure, a cut of **3.36**: the best move of the
 first minute. Beside the ray it costs the ray; a tile or two short of it costs nothing (§6).
 
-**Wave 3, the gull flocks.** Six gulls in two flocks. Rays can't shock them, terrapins don't
-stop them, a worm is swallowed; a puffer kills the gull that takes it and its alarm turns the
-flock. **Measured** (20 seeds, straight to wave 3, no line cast: structural): three terrapins
-leak **all 6**; four rays **all 6**; one puffer **3** (the other flock); two puffers **none**.
+**Wave 3, the gull flocks.** Six gulls in two flocks. Rays can't shock them in the air,
+terrapins don't stop them, a worm is swallowed; a puffer kills the gull that takes it and
+lands its flock on the water round it for 6 s, where rays in reach shock them (§4).
+**Measured** (20 seeds, straight to wave 3, no line cast: structural): three terrapins leak
+**all 6**; four rays spread along the road **all 6**; two puffers alone **4** (each kills its
+eater; the flock lands, then flies on); two puffers with those four rays **3** (the rays are
+mostly out of reach of where the flocks land); a puffer beside one ray, for each flock, **2**; a
+puffer between two rays, for each flock, **none**. With 4 s on the water a pair of rays killed
+only one more gull a flock (2 leaked): 6 s is what lets a puffer and two rays bring a flock
+down, so a gull wave asks for a puffer and two rays where each flock passes, the same pair the
+raccoons ask for.
 The HUD's wave tip shows the next two waves, so a player can fish the dock for the flocks a
 wave ahead; the good bot holds puffers through the raccoon wave before.
 
@@ -299,34 +341,43 @@ wave ahead; the good bot holds puffers through the raccoon wave before.
 a ray in reach). It needs five ray-passes on wet road, or four and a puffer (§5); walking past
 a ray one tile out it claws at 5/s for ~2.9 s, 14 damage, most of a ray.
 
-**A terrapin holds the line.** Wave 6 (12 raccoons and a bear) past four rays two tiles out:
-11 leak; with one terrapin where they shock its line, **1**. Over a whole run the strong bot
-does about as well without terrapins (73-80 wins against 75-83): with a worm down every wave a
-terrapin does what the worm does. It is the free, permanent worm, worth most to a player short
-of bait or money.
+**A terrapin holds the line.** In a fixed wave past four rays two tiles out, one terrapin
+where they shock its line cuts the leaks by 5 or more (the pace test). Over a whole run a
+terrapin is worth its fishing time only once the rays are down: fished after four rays it cost
+four rays by wave 7 and the bot did better without (re-gate review); fished after **eight**,
+and never set where its line wades a ray, the same bot without terrapins loses **0.6-1.8 more
+crates** in waves 5-8 at about the same wins, and the bot that casts no worms keeps 11.3-12.2
+crates in a won run with them against 8.3-11.0 without. It is the free, permanent worm for the
+late waves, not the opener; worth a crate, not a win.
 
-**Money and selling.** The rod (50) and the bed (40) are the investment; bait is the running
-cost (a worm every 30 s from the bed, packs of 3 for 5). The good bot sells ~7.6 fish a run,
-nearly all puffers before the rod and the bed, and ends with $42-47: past the investment, the
-slice sells only bait. Money that piles up late is the slice's limit, not a lesson: Milestone 3's
-boats, canals and chum are the sinks (IDEAS.md).
+**Money and selling.** The rod (50) is the investment; bait is the running cost (packs of 3
+for 5, or a worm every 30 s from the bed). The good bot sells ~3.4 puffers a run, nearly all
+before the rod, and ends with $50-55: past the rod, the slice sells only bait. **The bed buys nothing a
+strong player needs**: the same bot that never digs it wins the same runs (bed at 20, 25, 30 or
+40) and ends $30 richer. Money that piles up late is the slice's limit, not a lesson: Milestone
+3's boats, canals and chum, or a third rod, are the sinks (IDEAS.md; the owner's call).
 
-**Measured over five 100-seed sets** (seeds 1-500; every threshold clears the worst set):
+**Measured over five 100-seed sets** (seeds 1-500, the re-gate review's waves and bot; every
+threshold clears the worst set):
 
-| Bot | Wins per 100 (five sets) | Crates, won runs | Fish lost | Unspent |
-|---|---|---|---|---|
-| good | 76, 77, 76, 75, 83 | 12.1-14.9 | 1.2-1.4 | $42-47 |
-| good, worms cast beside the most rays | 74, 77, 73, 75, 84 | 12.4-14.7 | 1.4-1.5 | $41-47 |
-| good, never selling | 48, 58, 55, 47, 47 | 12.4-14.7 | 2.2-2.4 | $25-28 |
-| good, never selling, bed first | 27, 30, 36, 29, 27 | 10.8-12.1 | 2.5-2.9 | $22-25 |
-| good, no rod | 28, 35, 34, 30, 32 | 9.7-11.6 | 1.8-2.1 | $49-56 |
-| good, no terrapins | 73, 78, 75, 77, 80 | 14.1-15.5 | 1.3-1.5 | $43-47 |
-| good, no worms cast | 28, 43, 25, 36, 41 | 8.4-9.6 | 0.2-0.5 | $28-38 |
+| Bot | Wins per 100 (five sets) | Crates, won runs | Stolen, waves 5-8 | Fish lost | Unspent |
+|---|---|---|---|---|---|
+| good | 81, 78, 81, 84, 85 | 12.8-14.3 | 7.8-8.9 | 2.0-2.5 | $50-55 |
+| good, worms cast beside the most rays | 82, 78, 81, 84, 85 | 12.9-14.4 | 8.0-8.7 | 2.0-2.5 | $50-54 |
+| good, never digging the bed | 81, 78, 81, 83, 85 | 12.7-14.2 | 7.8-8.9 | 2.0-2.5 | $80-84 |
+| good, no terrapins | 82, 83, 82, 83, 84 | 10.6-12.7 | 8.7-10.7 | 0.7-1.0 | $54-55 |
+| good, no worms cast | 56, 65, 64, 50, 68 | 11.3-12.2 | 4.7-6.0 | 2.0-2.6 | $55-61 |
+| good, no worms cast, no terrapins | 55, 62, 57, 54, 59 | 8.3-11.0 | 6.4-8.0 | 0 | $58-62 |
+| good, never selling | 2, 3, 1, 4, 2 | 1.0-4.7 | 11.0-12.1 | 0.2-0.3 | $15-20 |
+| good, never selling, bed first | 0, 0, 0, 0, 0 | - | 11.0-11.9 | 0.1-0.2 | $25-31 |
+| good, no rod | 0, 0, 0, 0, 0 | - | 14.6-15.1 | 0.6-0.8 | $31-34 |
 
-Selling is worth ~25 wins (and buying the rod before the bed ~20 more), the rod ~45, worms
-on the road ~42. Crates stolen per wave (seeds 1-200): 1.8, 1.8, 0.0, 2.6, 0.4, 1.1, 0.2, 1.7:
-the first bear and the finale are the peaks, the gull waves cost puffers rather than crates.
-Deploy-all and sell-all win 0/20.
+The rod is the run (no rod: no wins) and selling is how it comes in time (never selling: 1-4);
+worms on the road are worth 13-34 wins (wave 1 alone: 3.2-3.8 crates without one, none with);
+terrapins half a crate to two in the late waves; the bed nothing. The no-worms bot loses fewer
+crates in waves 5-8 than the good bot because it has lost the runs that would have reached them
+with crates to lose. Crates stolen per wave (good, seeds 1-100): 0.0, 0.1, 0.4, 0.1, 0.6, 2.0,
+1.5, 4.8: the finale is the peak. Deploy-all and sell-all win 0/20.
 
 Pace tests assert (floors say the lesson is there; ceilings say the game hasn't gone soft;
 comparisons take one thing away from the same bot):
@@ -335,12 +386,14 @@ comparisons take one thing away from the same bot):
   cuts leaks by ≥ 2;
 - §6: a worm a tile short of the dawn ray stops all but ≤ 1 and leaves the ray ≥ 15 HP; beside
   it, the ray is waded to death and 2 more leak;
-- wave 3: three terrapins and four rays leak every gull; two puffers (one a flock) leak ≤ 1;
-- a terrapin where four rays shock its line cuts wave 6's leaks by ≥ 5;
+- wave 3: three terrapins and four rays leak every gull; two puffers alone leak ≥ 4; a puffer
+  between two rays for each flock leaks ≤ 1;
+- a terrapin where four rays shock its line cuts wave 6's leaks by ≥ 5 (measured: 18 of 20 to 2);
 - the good run wins 65-90 of 100 (winnable, not solved); won runs end with 8-16 crates; wave 1
   costs ≤ 2.5 crates and waves 5-8 ≥ 1.5; ≤ $60 unspent; ≥ 1 fish lost a run;
 - the never-selling bot wins ≤ good − 10; the no-rod bot ≤ good − 30; the no-worms bot
-  ≤ good − 25;
+  ≤ good − 10 (it was − 25; DECISIONS.md, the re-gate review); the no-terrapins bot loses ≥ 0.5
+  crates more in waves 5-8;
 - sell-all and deploy-all never win.
 
 The won-run crate ceiling went from 15 to 16 and wave 1's from 2 to 2.5 when the reference bot
@@ -385,9 +438,13 @@ the pool, 4 south, bend 2, 5 east to the smokehouse door. Water within 2 tiles o
 - **The point** is a peninsula east of bend 1; its fishing zone is the water within 4.5 tiles
   of its tip, 11-19 tiles from the angler (42 tiles): tier 2 (14) reaches 19 of them, the near
   side.
-- **The pool at bend 1** is a 3 × 3 shallow pond inside the corner: a ray there has 9 road
-  tiles within 3 tiles (8.5 tiles of road), against 5 (4.5 of road) for a ray beside a straight. The kill zone is a place on
-  the map, not a bonus; it is outside the tier-1 lure reach, so the first lures land on the
+- **The pool at bend 1** is a 3 × 3 shallow pond inside the corner (one corner reeds): a ray at its best tile
+  (27,13) has 8 road tiles within 3, 7 of them wet (the corner, 29, is dry), against 5 for a ray
+  two tiles off a straight. **Measured** (one walker, one pass): 39 damage to a raccoon and 63 to
+  a bear, against 24 and 39 on a straight; (27,14) has 9 tiles in reach but 7 wet, 36 and 60
+  (re-measured at the re-gate review; the old 75 counted the dry corner); its south row, 18 and
+  24-30. The kill zone is a
+  place on the map, not a bonus; it is outside the tier-1 lure reach, so the first lures land on the
   straight by the dock and the bend pays off once the surf rod is bought.
 - **Structure** for fishing (§3) is the dock and the reed clumps: one by the road's start,
   two east of the dock (tiles 24-25, inside the tier-1 cast) and a few along the bend and the
@@ -415,8 +472,9 @@ lengths apart, so a line reads as a line. A shock is a 1 px gold bolt for 4 fram
 enough to see, short enough not to hide its target. **Wet road** has a dark damp band along
 the side that touches water, dithered into the dry road; deploying a ray, the hovered slot
 tints in gold the wet road it would shock. A lure keeps a pink ring and its food bar over the
-sprites, so a raccoon eating it doesn't hide it. A gull turning back at an alarm gets a pink
-"!". The wave toast sits under the top bar, over open water (at the bottom it covered the
+sprites, so a raccoon eating it doesn't hide it. A gull landing to rob a flockmate gets a pink
+"!", and gulls on the water (retching or robbing) are drawn down on it with no shadow: those
+are the ones a ray can reach. The wave toast sits under the top bar, over open water (at the bottom it covered the
 smokehouse), and waits while a card is open.
 
 **Floaters** (2026-10-12, the critic's second review: "Electric ray eaten" ran into itself,

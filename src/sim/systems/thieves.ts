@@ -70,11 +70,12 @@ export function tickThieves(g: Game, dt: number) {
         atLure(g, t, dt);
         break;
       case 'eat': {
+        // its meal came off the worm when it started eating (atLure): it finishes it even if the
+        // worm is gone (a gull took the rest), and one shocked dead mid-meal ate it all the same
         const l = g.lures.find((q) => q.id === t.lure);
-        if (!l || l.food <= 0) { if (l) l.queue = l.queue.filter((q) => q !== t.id); rejoin(g, t); break; }
+        if (!l) { rejoin(g, t); break; }
         t.eatLeft -= dt;
-        l.food -= dt;
-        if (t.eatLeft <= 0 || l.food <= 0) {
+        if (t.eatLeft <= 0) {
           t.fed.push(l.id);
           if (l.eater === t.id) l.eater = 0;
           l.queue = l.queue.filter((q) => q !== t.id);
@@ -86,6 +87,13 @@ export function tickThieves(g: Game, dt: number) {
       case 'wait':
         atTurtle(g, t, dt);
         break;
+      case 'mob': {
+        const dist = Math.hypot(t.mobX - t.x, t.mobY - t.y);
+        if (dist > ARRIVE) moveToward(t, t.mobX, t.mobY, Math.min(d.speed * dt, dist));
+        t.mobT -= dt;
+        if (t.mobT <= 0) { t.mode = 'road'; resumeRoad(g, t); }
+        break;
+      }
       case 'exit':
         walkExit(g, t, d.speed * dt);
         break;
@@ -107,6 +115,8 @@ function pullToLure(g: Game, t: Thief): boolean {
   for (const l of g.lures) {
     const r = d.pulledBy[l.bait];
     if (!r || l.food <= 0 || t.fed.includes(l.id)) continue;
+    const line = l.eater ? [l.eater, ...l.queue] : l.queue;
+    if (line.length && l.roadI - backOf(g, line, atWorm, d.len) < 0) continue;
     const dist = Math.hypot(l.x + 0.5 - t.x, l.y + 0.5 - t.y);
     if (dist <= r && (!best || dist < best.dist)) best = { id: l.id, dist };
   }
@@ -158,7 +168,8 @@ function atLure(g: Game, t: Thief, dt: number) {
   t.y = ty;
   if (l.eater !== t.id) { t.mode = 'queue'; return; }
   t.mode = 'eat';
-  t.eatLeft = d.eat;
+  t.eatLeft = Math.min(d.eat, l.food);
+  l.food -= t.eatLeft;
   g.events.push({ type: 'eat', tick: g.tick, id: t.kind, x: t.x, y: t.y });
 }
 
@@ -332,17 +343,27 @@ function steal(g: Game, t: Thief) {
   g.events.push({ type: 'steal', tick: g.tick, id: t.kind, x: t.x, y: t.y, value: take });
 }
 
-/** A thief that turns back with nothing (a gull hearing its flockmate's alarm): it leaves the way
- * its kind leaves, carrying no crates and paying no bounty (DESIGN.md §4). */
-export function scare(g: Game, t: Thief) {
-  t.mode = 'exit';
-  t.exitI = 0;
+/**
+ * A gull lands on the water round a flockmate that snatched a pufferfish, to steal it (laughing
+ * gulls rob each other): it sits at (x, y) for `mobTime` seconds, then flies on along the road
+ * (DESIGN.md §4). On the water it is wet, so a ray in reach shocks it.
+ */
+export function mob(g: Game, t: Thief, of: Thief, x: number, y: number) {
+  t.mode = 'mob';
+  t.mobOf = of.id;
+  t.mobX = x;
+  t.mobY = y;
+  t.mobT = THIEVES[t.kind].mobTime;
   t.lure = 0;
-  t.carrying = 0;
-  g.stats.scared++;
+  g.stats.mobbed++;
   const ws = g.waveStats[g.waveStats.length - 1];
-  if (ws) ws.scared++;
-  g.events.push({ type: 'scare', tick: g.tick, id: t.kind, x: t.x, y: t.y });
+  if (ws) ws.mobbed++;
+  g.events.push({ type: 'mob', tick: g.tick, id: t.kind, x: t.x, y: t.y });
+}
+
+/** Sitting on the water (mobbing, or retching up a pufferfish there): a gull a ray can reach. */
+export function landed(t: Thief): boolean {
+  return t.mode === 'mob' || t.stunT > 0;
 }
 
 function escape(g: Game, t: Thief) {

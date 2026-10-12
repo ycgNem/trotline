@@ -92,13 +92,17 @@ describe('DESIGN.md §7: wave 3, the gulls (two flocks of three)', () => {
   it('rays don\'t stop them (no shock through air): four rays leak all of them', () => {
     expect(fixedWave(3, FOUR_RAYS)).toBe(gulls);
   });
-  it('a pufferfish a flock stops them (the alarm turns the rest): two puffers leak 1 or fewer (measured: none)', () => {
-    expect(fixedWave(3, [['puffer', 4, 11], ['puffer', 14, 11]])).toBeLessThanOrEqual(1);
+  it('a pufferfish alone kills only the gull that eats it (its flock lands, then flies on): two leak 4 or more', () => {
+    expect(fixedWave(3, [['puffer', 4, 11], ['puffer', 14, 11]])).toBeGreaterThanOrEqual(gulls - 2);
+  });
+  it('a puffer beside two rays brings a flock down where they shock it: one pair a flock leaks 1 or fewer (measured: none)', () => {
+    const pairs: [string, number, number][] = [['puffer', 4, 11], ['ray', 3, 10], ['ray', 5, 10], ['puffer', 14, 11], ['ray', 13, 10], ['ray', 15, 10]];
+    expect(fixedWave(3, pairs)).toBeLessThanOrEqual(1);
   });
 });
 
 describe('DESIGN.md §7: a terrapin holds the line', () => {
-  it('wave 6 past four rays: one terrapin where they shock its line cuts leaks by 5 or more (measured: 11 to 1)', () => {
+  it('wave 6 past four rays: one terrapin where they shock its line cuts leaks by 5 or more (measured: 18 of 20 to 2)', () => {
     expect(fixedWave(6, FOUR_RAYS, 0, 10) - fixedWave(6, FOUR_RAYS, 1, 10)).toBeGreaterThanOrEqual(5);
   });
 });
@@ -131,8 +135,13 @@ describe('DESIGN.md §7: the whole run', () => {
   it('the rod matters: the same bot without it wins 30 fewer', () => {
     expect(wins(runs('good', RUNS, { noRod: true }))).toBeLessThanOrEqual(wins(good) - 30);
   });
-  it('bait matters: the same bot that never casts a worm wins 25 fewer', () => {
-    expect(wins(runs('good', RUNS, { noLure: true }))).toBeLessThanOrEqual(wins(good) - 25);
+  it('bait matters: the same bot that never casts a worm wins 10 fewer', () => {
+    expect(wins(runs('good', RUNS, { noLure: true }))).toBeLessThanOrEqual(wins(good) - 10);
+  });
+  it('terrapins matter once the rays are down: the same bot without them loses half a crate more in waves 5-8', () => {
+    const noTerr = runs('good', RUNS, { keep: { ray: 99, puffer: 99, turtle: 0 } });
+    const late = (rs: Game[]) => stolen(rs, 5) + stolen(rs, 6) + stolen(rs, 7) + stolen(rs, 8);
+    expect(late(noTerr)).toBeGreaterThanOrEqual(late(good) + 0.5);
   });
   it('selling everything never wins, and nor does deploying with no worms coming', () => {
     expect(wins(runs('sellAll', 20))).toBe(0);

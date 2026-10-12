@@ -121,6 +121,8 @@ export class App {
     const d = readSave(1);
     if (!d || !Array.isArray(d.log)) return false;
     this.game = Game.replay(d.seed, d.log as { t: number; c: Command }[], Number(d.tick) || 0);
+    // the kinds of thief already met this run, so a continued run doesn't introduce them again
+    this.met = new Set(WAVES.slice(0, this.game.wave).flatMap((w) => w.groups.map(([id]) => id)));
     this.screen = this.game.over ? 'end' : 'play';
     this.mode = { k: 'idle' };
     this.selected = null;
@@ -207,7 +209,7 @@ export class App {
         case 'snatch': this.audio.sfx('snatch'); break;
         case 'swallow': this.audio.sfx('gulp'); this.float('Gulp!', e.x!, e.y! - 1, C.rose); break;
         case 'grab': this.audio.sfx('claw', 0.7); break;
-        case 'scare': this.audio.sfx('alarm', 0.6); break;
+        case 'mob': this.audio.sfx('alarm', 0.6); break;
         // at a zoom below the HUD's scale a +$ over every kill is noise (the top bar counts it)
         case 'kill': this.audio.sfx('kill'); if (this.renderer.cam.zoom >= this.uiScale) this.float('+$' + e.value, e.x!, e.y! - 1, C.gold); break;
         case 'steal': this.audio.sfx('steal'); this.float('-' + e.value + ' crate' + (e.value === 1 ? '' : 's'), e.x!, e.y! - 1, C.ember); break;
@@ -270,7 +272,8 @@ export class App {
     const money = /^\+\$(\d+)$/.exec(text);
     if (money) {
       const m = near.find((f) => /^\+\$\d+$/.test(f.text));
-      if (m) { m.text = '+$' + (Number(m.text.slice(2)) + Number(money[1])); m.t = 0; return; }
+      // (it keeps rising: a steady stream of bounties must not hold one number up forever)
+      if (m) { m.text = '+$' + (Number(m.text.slice(2)) + Number(money[1])); return; }
     }
     if (near.length >= 3) return;
     // stack a line up (in tiles: a HUD line at this zoom) until it clears everything it crosses

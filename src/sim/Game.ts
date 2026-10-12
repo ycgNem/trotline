@@ -52,7 +52,7 @@ export interface Defender {
  * (worrying it, or waiting behind the one that is). exit: leaving with crates (walkers south into
  * the woods, gulls north over the water).
  */
-export type ThiefMode = 'road' | 'toLure' | 'queue' | 'eat' | 'worry' | 'wait' | 'exit' | 'dead' | 'gone';
+export type ThiefMode = 'road' | 'toLure' | 'queue' | 'eat' | 'worry' | 'wait' | 'mob' | 'exit' | 'dead' | 'gone';
 
 export interface Thief {
   id: number;
@@ -83,6 +83,11 @@ export interface Thief {
   poisonT: number;
   /** the water defender it is clawing at as it walks past (0: none) */
   grabbing: number;
+  /** mobbing: the flockmate with the pufferfish it is after, where it sits, and seconds left */
+  mobOf: number;
+  mobX: number;
+  mobY: number;
+  mobT: number;
   facing: 1 | -1;
   /** seconds since it was last hit (for the renderer's flash) */
   hitT: number;
@@ -121,8 +126,8 @@ export interface WaveStats {
   recovered: number;
   escaped: number;
   killed: number;
-  /** thieves that turned back with nothing (gulls hearing an alarm call) */
-  scared: number;
+  /** gulls that landed round a flockmate to steal its pufferfish */
+  mobbed: number;
 }
 
 export class Game {
@@ -163,7 +168,7 @@ export class Game {
   caught: Record<SpeciesId, number> = { puffer: 0, ray: 0, turtle: 0 };
   firstCatch: Partial<Record<SpeciesId, number>> = {};
   firsts = { deploy: false, lure: false, sell: false };
-  stats = { killed: 0, leaks: 0, stolen: 0, recovered: 0, escaped: 0, sold: 0, deployed: 0, lures: 0, earned: 0, lost: 0, scared: 0 };
+  stats = { killed: 0, leaks: 0, stolen: 0, recovered: 0, escaped: 0, sold: 0, deployed: 0, lures: 0, earned: 0, lost: 0, mobbed: 0 };
   waveStats: WaveStats[] = [];
 
   /** the player's commands with the tick they were given on: the run's deltas */

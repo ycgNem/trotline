@@ -19,7 +19,7 @@ function put(g: Game, kind: Thief['kind'], i: number, extra: Partial<Thief> = {}
   const d = THIEVES[kind];
   const t: Thief = {
     id: g.id(), kind, x: p.x, y: p.y, hp: d.hp, maxHp: d.hp, pathI: i + 1, exitI: 0, carrying: 0, mode: 'road',
-    lure: 0, eatLeft: 0, turtle: 0, worryLeft: 0, fed: [], stunT: 0, poison: 0, poisonT: 0, grabbing: 0,
+    lure: 0, eatLeft: 0, turtle: 0, worryLeft: 0, fed: [], stunT: 0, poison: 0, poisonT: 0, grabbing: 0, mobOf: 0, mobX: 0, mobY: 0, mobT: 0,
     facing: 1, hitT: 99, wave: 1, ...extra,
   };
   g.thieves.push(t);
@@ -39,7 +39,7 @@ function waveGame(seed = 1) {
   const g = new Game(seed);
   g.phase = 'wave';
   g.wave = 1;
-  g.waveStats.push({ wave: 1, leaks: 0, stolen: 0, recovered: 0, escaped: 0, killed: 0, scared: 0 });
+  g.waveStats.push({ wave: 1, leaks: 0, stolen: 0, recovered: 0, escaped: 0, killed: 0, mobbed: 0 });
   return g;
 }
 
@@ -224,8 +224,9 @@ describe('defenders (DESIGN.md §4)', () => {
   it('a ray can\'t shock a gull in the air', () => {
     const g = waveGame();
     fish(g, 'ray', 18, 10);
-    const gull = put(g, 'gull', 18, { stunT: 99 });
-    secs(g, 2);
+    // flying past over the wet road, in reach for most of a second (a stunned gull sits on the water)
+    const gull = put(g, 'gull', 17);
+    secs(g, 1);
     expect(gull.hp).toBe(THIEVES.gull.hp);
   });
   it('a ray\'s shock travels through water: a walker on dry road in reach takes nothing, one at the water\'s edge does', () => {
@@ -251,21 +252,30 @@ describe('defenders (DESIGN.md §4)', () => {
     expect(ticks[2] - ticks[1]).toBeCloseTo(SPAWN_GAP.flock * 60, -1);
     expect(ticks[3] - ticks[2]).toBeCloseTo((WAVES[2].gap ?? SPAWN_GAP.seconds) * 60, -1);
   });
-  it('a gull that snatches a pufferfish calls the alarm: flockmates within 2.5 tiles turn back with nothing', () => {
+  it('a gull that snatches a pufferfish drops onto the water; flockmates within 2.5 tiles land round it to rob it for 6 s, then fly on', () => {
     const g = waveGame();
     fish(g, 'puffer', 18, 11);
     const a = put(g, 'gull', 17), b = put(g, 'gull', 15), c = put(g, 'gull', 11);
     g.step();
     expect(a.stunT).toBeGreaterThan(0);
-    expect(b.mode).toBe('exit');
-    expect(b.carrying).toBe(0);
+    expect(g.world.isWet(a.x, a.y)).toBe(true);
+    expect(b.mode).toBe('mob');
     expect(c.mode).toBe('road');
-    expect(g.stats.scared).toBe(1);
-    const crates = g.crates, money = g.money;
-    secs(g, 6);
-    expect(b.mode).toBe('gone');
-    expect(g.crates).toBe(crates);
-    expect(g.money).toBe(money + THIEVES.gull.bounty);
+    expect(g.stats.mobbed).toBe(1);
+    secs(g, 1);
+    expect(g.world.isWet(b.x, b.y)).toBe(true);
+    secs(g, THIEVES.gull.mobTime);
+    expect(b.mode).toBe('road');
+    expect(b.hp).toBe(THIEVES.gull.hp);
+  });
+  it('a ray beside the pufferfish shocks the gulls sitting on the water', () => {
+    const g = waveGame();
+    fish(g, 'puffer', 18, 11);
+    fish(g, 'ray', 19, 10);
+    put(g, 'gull', 17);
+    const b = put(g, 'gull', 15);
+    secs(g, THIEVES.gull.mobTime);
+    expect(b.hp).toBeLessThan(THIEVES.gull.hp);
   });
   it('fish wear out: a tenth of an HP a second back between waves', () => {
     const g = new Game(1);

@@ -111,7 +111,7 @@ export class Renderer {
         case 'deploy': this.fx.push({ kind: 'splash', x, y, x2: 0, y2: 0, t: 0, life: 0.5, v: 0 }); break;
         case 'kill': this.fx.push({ kind: 'poof', x, y, x2: 0, y2: 0, t: 0, life: 0.5, v: 0, id: e.id }); break;
         case 'pulled': this.fx.push({ kind: 'bang', x, y, x2: 0, y2: 0, t: 0, life: 0.8, v: 0 }); break;
-        case 'scare': this.fx.push({ kind: 'bang', x, y: y - 0.6, x2: 0, y2: 0, t: 0, life: 0.8, v: 0 }); break;
+        case 'mob': this.fx.push({ kind: 'bang', x, y: y - 0.6, x2: 0, y2: 0, t: 0, life: 0.8, v: 0 }); break;
         case 'defenderLost': this.fx.push({ kind: 'poof', x, y, x2: 0, y2: 0, t: 0, life: 0.6, v: 1 }); break;
       }
     }
@@ -182,9 +182,24 @@ export class Renderer {
 
     // gulls fly above everything, with a shadow on the ground
     for (const t of g.thieves) if (t.mode !== 'dead' && t.mode !== 'gone' && THIEVES[t.kind].flies) {
-      ctx.fillStyle = rgba(C.ink, 0.35);
-      ctx.fillRect(Math.round(t.x * TILE) - 4, Math.round(t.y * TILE) + 2, 8, 2);
-      this.thief(g, t, 10);
+      // one sitting on the water (retching, or robbing a flockmate) is drawn down on it, with no shadow
+      const down = t.mode === 'mob' || t.stunT > 0;
+      const rx = Math.round(t.x * TILE), ry = Math.round(t.y * TILE);
+      if (!down) {
+        ctx.fillStyle = rgba(C.ink, 0.35);
+        ctx.fillRect(rx - 4, ry + 2, 8, 2);
+      }
+      this.thief(g, t, down ? 0 : 10);
+      if (down) {
+        // afloat: its belly sunk under the waterline, and a ripple widening round it
+        ctx.fillStyle = rgba(C.ice, 0.85);
+        ctx.fillRect(rx - 6, ry + 7, 12, 2);
+        const k = (this.time * 1.2 + t.id * 0.37) % 1, w = 7 + Math.round(k * 3);
+        ctx.fillStyle = rgba(C.bone, 0.8 * (1 - k));
+        ctx.fillRect(rx - w + 1, ry + 9, w * 2 - 2, 1);
+        ctx.fillRect(rx - w, ry + 7, 1, 2);
+        ctx.fillRect(rx + w - 1, ry + 7, 1, 2);
+      }
     }
 
     this.line(g);

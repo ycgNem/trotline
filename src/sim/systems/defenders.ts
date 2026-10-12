@@ -6,7 +6,7 @@
 import type { Game, Thief, Defender } from '../Game';
 import { DEFENDERS, type PoisonDef, type ZapDef } from '../../data/defenders';
 import { THIEVES } from '../../data/thieves';
-import { hurt, alive, scare } from './thieves';
+import { hurt, alive, mob, landed } from './thieves';
 
 export function tickDefenders(g: Game, dt: number) {
   const resting = g.phase === 'build';
@@ -51,12 +51,27 @@ function snatch(g: Game, d: Defender, def: PoisonDef) {
   best.stunT = Math.max(best.stunT, def.stun);
   d.hp = 0;
   g.events.push({ type: 'snatch', tick: g.tick, id: best.kind, x: cx, y: cy, x2: best.x, y2: best.y });
-  // a gull retching it up calls the alarm: its flockmates near it turn back (DESIGN.md §4)
-  const alarm = THIEVES[best.kind].alarm;
-  if (alarm > 0) {
+  // a gull drops onto the water with it, retching; its flockmates near it land round it to rob it
+  // of the fish (laughing gulls steal from each other), out of the air and in a ray's reach
+  const r = THIEVES[best.kind].mob;
+  if (r > 0) {
+    const sx = best.x, sy = best.y;
+    const p = g.world.pathPt(g.world.roadNear[g.world.idx(d.x, d.y)]);
+    let vx = cx - p.x, vy = cy - p.y;
+    const len = Math.hypot(vx, vy) || 1;
+    vx /= len; vy /= len;
+    // it sits on the puffer's tile a little out from the road, so it reads as on the water
+    const mx = cx + vx * 0.3, my = cy + vy * 0.3;
+    best.x = mx;
+    best.y = my;
+    // round it on the water: either side along the shore, and one further out
+    const spots = [[-vy * 0.7, vx * 0.7], [vy * 0.7, -vx * 0.7], [vx * 0.7, vy * 0.7]];
+    let k = 0;
     for (const o of g.thieves) {
-      if (o === best || o.kind !== best.kind || !alive(o) || o.mode === 'exit') continue;
-      if (Math.hypot(o.x - best.x, o.y - best.y) <= alarm) scare(g, o);
+      if (o === best || o.kind !== best.kind || !alive(o) || o.mode === 'exit' || o.mode === 'mob') continue;
+      if (Math.hypot(o.x - sx, o.y - sy) > r) continue;
+      const [ox, oy] = spots[k++ % spots.length];
+      mob(g, o, best, mx + ox, my + oy);
     }
   }
 }
@@ -65,11 +80,12 @@ function snatch(g: Game, d: Defender, def: PoisonDef) {
  * One pulse. A ray stays on the walker it is shocking while it is in reach (switching to whichever
  * stepped closest would spread the damage over a whole line and kill nothing); otherwise it takes
  * the nearest. A shock travels only through water: the thief must stand in it or at its edge
- * (wet ground, DESIGN.md §4), never on dry land and never a gull in the air.
+ * (wet ground, DESIGN.md §4), never on dry land and never a gull in the air (one sitting on the
+ * water, retching or robbing a flockmate, is in it).
  */
 function zap(g: Game, d: Defender, def: ZapDef): boolean {
   const cx = d.x + 0.5, cy = d.y + 0.5;
-  const ok = (t: Thief) => alive(t) && !THIEVES[t.kind].flies && g.world.isWet(t.x, t.y) && Math.hypot(t.x - cx, t.y - cy) <= def.range;
+  const ok = (t: Thief) => alive(t) && (!THIEVES[t.kind].flies || landed(t)) && g.world.isWet(t.x, t.y) && Math.hypot(t.x - cx, t.y - cy) <= def.range;
   let best: Thief | null = g.thieves.find((t) => t.id === d.target && ok(t)) ?? null;
   if (!best) {
     let bd = def.range;

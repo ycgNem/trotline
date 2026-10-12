@@ -17,10 +17,15 @@ rod's job), a dawn ray and a 60 s first build, lines spaced by body length, the 
 floaters judged in HUD pixels, and pace tests that compare the same bot with one thing removed.
 **The balance audit and the critic's third review are in too** (DECISIONS.md): worm placement
 shown in lure mode and taught; the dock, the reeds and the point as three habitats (puffers,
-terrapins, rays); a ray's shock only through wet ground; gull flocks and the alarm call; no bonus
-for sending a wave early; bait a cost every build (the bed makes a worm every 30 s); a strong
-reference bot, and every pace threshold re-set against it over five seed sets; the crowd lure
-tested and rejected.
+terrapins, rays); a ray's shock only through wet ground; gull flocks; no bonus for sending a
+wave early; bait a cost every build (the bed makes a worm every 30 s); a strong reference bot,
+and every pace threshold re-set against it over five seed sets; the crowd lure tested and
+rejected. **And the re-gate review** (DECISIONS.md, "The re-gate review"): the reference bot
+plays the critic's winning line; waves 4-8 grew by about half to meet it; a gull that snatches a
+puffer lands its flock on the water round it, where rays reach (the alarm call, flagged as the
+Potato Mine, is gone); a lure's meal is taken when it starts and its line never runs off the map;
+the lure preview counts the raccoons coming; terrapins after eight rays and never where their
+line wades a ray (they help now); DESIGN's pool numbers re-measured.
 
 ## What exists
 
@@ -40,8 +45,9 @@ tested and rejected.
   rates per tile), `world.ts` (tiles, the road as a path, distances, zones, the exit path, the
   structure and reed maps), one system per file in the CLAUDE.md order, and `bot.ts` (deploy-all,
   deploy-with-bed, sell-all and "good" players for the pace tests and the browser bot).
-  - Gulls arrive in flocks of three; one that snatches a pufferfish calls the alarm and the
-    flockmates near it turn back with nothing.
+  - Gulls arrive in flocks of three; one that snatches a pufferfish drops onto the water with
+    it, and the flockmates near it land round it for 6 s trying to rob it (a ray reaches gulls
+    sitting on the water), then fly on.
   - Thieves: walk the road, go for lures (raccoons eat one at a time, the rest in a line spaced
     by body length; gulls swallow them; bears ignore them), stop at terrapins (raccoons worry
     and gnaw one at a time, bears shove), claw fish within a tile as they walk and wade for them
@@ -51,7 +57,9 @@ tested and rejected.
     paralysed), rays shock one walker at a time on wet ground and stay on it, terrapins worried by raccoons and
     shoved by bears. A tenth of an HP a second of rest between waves; a fish clawed or gnawed to 0
     is lost.
-  - Lures: a gull swallows one whole; they spoil at the wave's end.
+  - Lures: a raccoon takes its whole meal when it starts eating and the lure stays until that
+    meal is done; no one is pulled whose place in line would be off the map; a gull swallows one
+    whole; they spoil at the wave's end. The lure-mode preview counts the raccoons coming.
 - **Render** (`src/render/`): integer-zoom camera that fits the whole shore, ground baked into
   chunks, trees baked once into a props layer, y-sorted sprites, gulls above with shadows,
   effects from sim events (1 px shock bolts, splashes, the fish leaping to the angler, poofs,
@@ -69,13 +77,14 @@ tested and rejected.
   F deploy, L lure (Shift-click for more), N send the wave, Space pause, Tab speed (x1-x3), Esc or
   right-click cancel, WASD/arrows pan, Q/E or the wheel zoom, H hide HUD, M mute, / or F1 help,
   ` debug line.
-- **Tests** (144): data validation (including the trail, that every species bites somewhere the
-  surf rod reaches and that the reeds are in tier-1 reach), the sim's rules one by one (30), the
-  pace lessons from DESIGN.md §6-§7 (17: floors, ceilings, and comparisons of the good bot with the
-  rod, the selling or the worms taken away, and fixed waves for the gulls and the terrapin), sim purity, engine. `npm test` takes ~3 minutes, mostly pace.
+- **Tests**: data validation (including the trail, that every species bites somewhere the
+  surf rod reaches and that the reeds are in tier-1 reach), the sim's rules one by one (34), the
+  pace lessons from DESIGN.md §6-§7 (19: floors, ceilings, and comparisons of the good bot with the
+  rod, the selling, the worms or the terrapins taken away, and fixed waves for the gulls and the
+  terrapin), sim purity, engine. `npm test` takes several minutes, mostly pace.
 - **e2e**: `npm run shots` (title, first catch, deploy mode, first deploy, lure mode, a raccoon
   leaving the road, eating and the line, after wave 1, raccoons lined up at a terrapin, a
-  pufferfish snatched, a ray being clawed, a raccoon escaping south, a gull flock turned by the alarm, wave 8, won, lost), `npm run screens` (overlap audit, 11 states x 3 sizes), `npm run smoke` (real input
+  pufferfish snatched, a ray being clawed, a raccoon escaping south, a gull flock landing round a puffer, wave 8, won, lost), `npm run screens` (overlap audit, 11 states x 3 sizes), `npm run smoke` (real input
   only), `npm run bot` (three strategies x three seeds, played in the browser).
 
 ## Measured (DESIGN.md §7)
@@ -83,10 +92,12 @@ tested and rejected.
 Wave 1 (5 raccoons, 200 seeds): deploy-all leaks 3.0, sell-all 5.0, a midpoint worm beside the
 dawn ray 3.42 → 0.06. A worm a tile short of the ray stops all five and spares it; beside it the
 ray dies; on the dry dock foot nothing is shocked. Wave 3 (two flocks): three terrapins or four
-rays leak all 6; one puffer 3; two puffers none. Wave 6 past four rays: 11 leak, 1 with a
-terrapin. Whole run, the strong good bot over five 100-seed sets: 76, 77, 76, 75, 83 wins, won
-runs 12-15 crates, $42-47 unspent, 1.3 fish lost; never selling 47-58; no rod 28-35; no worms
-25-43; no terrapins 73-80. Crates stolen per wave 1.8, 1.8, 0.0, 2.6, 0.4, 1.1, 0.2, 1.7.
+rays leak all 6; two puffers alone 4; a puffer between two rays for each flock, none. Whole run,
+the good bot (the critic's line) over five 100-seed sets: 81, 78, 81, 84, 85 wins, won runs
+12.8-14.3 crates, $50-55 unspent, ~2.2 fish lost; never selling 1-4; no rod 0; no worms 50-68;
+no terrapins 82-84 wins but 0.6-1.8 more crates stolen in waves 5-8; never digging the bed: the
+same. Wave 6 past four rays: 18 of 20 leak, 2 with a terrapin. Crates stolen per wave 0.0, 0.1,
+0.4, 0.1, 0.6, 2.0, 1.5, 4.8.
 
 ## Stubbed or missing
 
@@ -96,13 +107,16 @@ runs 12-15 crates, $42-47 unspent, 1.3 fish lost; never selling 47-58; no rod 28
 
 ## Known problems / watch next
 
-- **Money piles up late** ($42-47 unspent for the strong bot): past the rod and the bed the slice
-  sells only bait. A slice limit; Milestone 3's boats, canals and chum are the sinks (IDEAS.md).
-- **Terrapins do what a worm does** over a whole run (about no wins either way with a worm down
-  every wave), though one turns a fixed wave from 11 leaks to 1. A free, permanent worm; whether
-  that is enough of a role is a question for the gate.
-- **The gull alarm is flagged as possibly derivative** (a one-use fish, then an effect in a
-  radius, like the Potato Mine's splash). The owner should judge it (DECISIONS.md).
+- **Money piles up late** ($50-55 unspent for the strong bot) and **the bed buys nothing**: the
+  same bot never digging it wins the same runs. The owner's call (the re-gate review's G:
+  a third rod, or a job for the bed; IDEAS.md).
+- **The opening is close to a line**: never selling wins 1-4 of 100, no rod 0. Selling for the
+  rod is the decision at its sharpest, but there is no second road to the rays (IDEAS.md).
+- **Wave 8 is a spike** (4.8 of the good bot's ~9.5 stolen crates a run), and **a run can die in
+  its opening**: with few early catches and the rod bought down to the last dollars, a player
+  can have no worms and no money for a pack; selling a fish is the way out (the bot does), and a
+  player with an empty live well waits on bounties. DESIGN §3 says a broke player is never stuck;
+  that holds only with a fish to sell.
 - **Worm placement is a first-waves lesson**: it decides wave 1, but over a whole run with rays in
   numbers it is worth ~1 win. Whether lures feel like control is the gate's question 2.
 - **In the frozen screenshot scripts** many effects (bolts, "!") from a batch of stepped ticks

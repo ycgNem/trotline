@@ -60,7 +60,7 @@ tower shop, the economy, the pathing control and the map.
 
 | Fish | Job | Where | Note |
 |---|---|---|---|
-| Pufferfish | poison: the first thief beside it eats it, stands paralysed and sickening; one use (a gull's alarm turns its flock) | water or bucket | the cheap first catch; the answer to gulls |
+| Pufferfish | poison: the first thief beside it eats it, stands paralysed and sickening; one use (a gull's flock lands on the water round it, where rays reach) | water or bucket | the cheap first catch; the answer to gulls |
 | Electric ray | shock: one walker within 3 tiles at a time, through water (on the wet road at the water's edge); never a gull in the air | water only | the DPS backbone, wants water near the road |
 | Terrapin | the raccoon's prey: raccoons stop to worry it one at a time; a bear shoves it aside | road (it walks) | the stall; caught by the reeds |
 | Catfish | slap: single target, heavy | water, bottom bait | the big-hitter, needs line strength |
