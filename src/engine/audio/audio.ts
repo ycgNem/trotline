@@ -133,6 +133,18 @@ export class Audio {
       // a fish finder's ping: a short high sine with a soft tail
       case 'ping': this.tone(2100, 'sine', { a: 0.002, d: 0.25 }, 0.035 * v, B, 0, 0.97); break;
       case 'splash': this.noise(0.35, 0.2 * v, 'lowpass', 1500, 1, 0, 0.3); break;
+      // placeholders until Milestone 9 designs the bank: short, distinct, quiet
+      case 'cast': this.noise(0.22, 0.07 * v, 'bandpass', 2400, 2, 0, 0.4); break;
+      case 'catch': this.noise(0.18, 0.14 * v, 'lowpass', 1200, 1, 0, 0.4); this.tone(330, 'sine', { a: 0.005, d: 0.12 }, 0.07 * v, B, 0.04, 1.8); break;
+      case 'zap': this.tone(110 * r(), 'sawtooth', { a: 0.002, d: 0.07 }, 0.025 * v, B, 0, 2.4); break;
+      case 'puff': this.noise(0.25, 0.22 * v, 'lowpass', 900, 1, 0, 0.2); this.tone(180, 'square', { a: 0.003, d: 0.12 }, 0.05 * v, B, 0, 0.4); break;
+      case 'kill': this.tone(520 * r(), 'triangle', { a: 0.003, d: 0.09 }, 0.05 * v, B, 0, 1.6); break;
+      case 'steal': this.tone(220, 'square', { a: 0.005, d: 0.2 }, 0.05 * v, B, 0, 0.6); break;
+      case 'coin': this.tone(1320, 'square', { a: 0.002, d: 0.06 }, 0.03 * v, B); this.tone(1760, 'square', { a: 0.002, d: 0.09 }, 0.03 * v, B, 0.05); break;
+      case 'wave': this.tone(196, 'triangle', { a: 0.02, d: 0.5 }, 0.07 * v, B, 0, 1.05); this.tone(147, 'triangle', { a: 0.02, d: 0.6 }, 0.05 * v, B, 0.12); break;
+      case 'lure': this.noise(0.12, 0.06 * v, 'bandpass', 600, 2); this.tone(440, 'sine', { a: 0.004, d: 0.1 }, 0.04 * v, B, 0, 0.7); break;
+      case 'win': for (const [i, f] of [262, 330, 392, 523].entries()) this.tone(f, 'triangle', { a: 0.01, d: 0.3 }, 0.06 * v, B, i * 0.12); break;
+      case 'lose': for (const [i, f] of [392, 330, 262, 196].entries()) this.tone(f, 'triangle', { a: 0.01, d: 0.35 }, 0.06 * v, B, i * 0.16); break;
       default: this.tone(600, 'sine', { a: 0.002, d: 0.05 }, 0.03 * v, B);
     }
     this.pm = 1;

@@ -2,9 +2,9 @@
 // (Extracted from Sprocket & Sprout's engine layer; the action list is Trotline's.)
 
 export const ACTIONS = [
-  'presetOverview', 'presetCove', 'presetDock', 'presetUnder',
-  'orbitLeft', 'orbitRight', 'tiltUp', 'tiltDown', 'zoomIn', 'zoomOut',
-  'pixelPass', 'hud', 'sonarView', 'pause', 'faster', 'debug',
+  'panUp', 'panDown', 'panLeft', 'panRight', 'zoomIn', 'zoomOut',
+  'slot1', 'slot2', 'slot3', 'slot4', 'slot5', 'slot6',
+  'sell', 'deploy', 'lure', 'callWave', 'cancel', 'pause', 'faster', 'hud', 'debug',
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
@@ -14,17 +14,18 @@ export const DEBUG_KEYS = !!import.meta.env?.DEV || (typeof location !== 'undefi
 export const SHOWN_ACTIONS = ACTIONS.filter((a) => a !== 'debug' || DEBUG_KEYS);
 
 export const ACTION_LABELS: Record<Action, string> = {
-  presetOverview: 'Camera: overview', presetCove: 'Camera: cove', presetDock: 'Camera: dock', presetUnder: 'Camera: under water',
-  orbitLeft: 'Orbit left', orbitRight: 'Orbit right', tiltUp: 'Tilt up', tiltDown: 'Tilt down', zoomIn: 'Zoom in', zoomOut: 'Zoom out',
-  pixelPass: 'Pixel pass on/off', hud: 'HUD on/off', sonarView: 'Sonar only / all fish', pause: 'Pause', faster: 'Fast clock (hold)',
-  debug: 'Debug readout',
+  panUp: 'Pan up', panDown: 'Pan down', panLeft: 'Pan left', panRight: 'Pan right', zoomIn: 'Zoom in', zoomOut: 'Zoom out',
+  slot1: 'Live well slot 1', slot2: 'Live well slot 2', slot3: 'Live well slot 3', slot4: 'Live well slot 4', slot5: 'Live well slot 5', slot6: 'Live well slot 6',
+  sell: 'Sell the picked fish', deploy: 'Deploy the picked fish', lure: 'Cast a worm lure on the road', callWave: 'Call the next wave early',
+  cancel: 'Cancel', pause: 'Pause', faster: 'Fast forward (toggle)', hud: 'HUD on/off', debug: 'Debug readout',
 };
 
 export const DEFAULT_BINDS: Record<Action, string[]> = {
-  presetOverview: ['Digit1'], presetCove: ['Digit2'], presetDock: ['Digit3'], presetUnder: ['Digit4'],
-  orbitLeft: ['KeyA', 'ArrowLeft'], orbitRight: ['KeyD', 'ArrowRight'], tiltUp: ['KeyW', 'ArrowUp'], tiltDown: ['KeyS', 'ArrowDown'],
+  panUp: ['KeyW', 'ArrowUp'], panDown: ['KeyS', 'ArrowDown'], panLeft: ['KeyA', 'ArrowLeft'], panRight: ['KeyD', 'ArrowRight'],
   zoomIn: ['Equal', 'NumpadAdd', 'KeyE'], zoomOut: ['Minus', 'NumpadSubtract', 'KeyQ'],
-  pixelPass: ['KeyP'], hud: ['KeyH'], sonarView: ['KeyV'], pause: ['Space'], faster: ['ShiftLeft'], debug: ['Backquote'],
+  slot1: ['Digit1'], slot2: ['Digit2'], slot3: ['Digit3'], slot4: ['Digit4'], slot5: ['Digit5'], slot6: ['Digit6'],
+  sell: ['KeyX'], deploy: ['KeyF'], lure: ['KeyL'], callWave: ['KeyN'], cancel: ['Escape'],
+  pause: ['Space', 'KeyP'], faster: ['Tab'], hud: ['KeyH'], debug: ['Backquote'],
 };
 
 export function keyLabel(code: string): string {

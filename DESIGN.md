@@ -28,15 +28,27 @@ range tier 2). Bait: **worm** only in the slice (chum arrives in Milestone 3).
 | Species | Zone | Band | Base rate /min (worm) | Size | Sell |
 |---|---|---|---|---|---|
 | Pufferfish | shallows | surface | 2.0 | small | 10 |
-| Eel | shallows, point | bottom | 1.0 | medium | 25 |
+| Eel | shallows, point | bottom | 1.5 (shallows), 1.0 (point) | medium | 25 |
 | Turtle | point | surface | 0.5 | large | 15 |
 
-Rod tier 1: reel ×1.0, range = shallows, line = medium (turtles need tier 2, cost 60).
+Rod tier 1: reel ×1.0, range = shallows (a 9-tile cast, §10), line = medium (turtles need
+tier 2, cost 60). Tier 2 (the surf rod): a 14-tile cast that reaches the point, large line,
+reel ×1.5 (with the point's turtles and eels that is the "roughly doubles" below).
 Live well: 6 slots. Bait works: worms, 1 per 10 s, 5 money each batch of 3 (slice: a worm
-bed you buy once for 40 and that produces on its own).
+bed you buy once for 40 and that produces on its own, up to 30 worms; the bait shop still
+sells a pack of 3 for 5 so a broke player is never stuck). Every catch takes the worm off the
+hook. **Starting worms: 8**: two build phases of fishing (~2.6 catches each at tier 1) plus a
+lure and a spare, so the worm bed is a wave-2 decision, not a wave-1 emergency.
+
+**Eel 1.0 → 1.5/min in the shallows (2026-10-12, the first pace run).** At 1.0/min a 45 s
+phase catches no eel 47% of the time (e^-0.75), and without an eel nothing kills a 40 HP
+raccoon in wave 1 (a pufferfish does 30): deploy-all averaged 3.8 leaks over 200 seeds, not
+the ≤ 3 §7 expects, and the lesson ("deploy, don't sell") read as luck. At 1.5/min the miss is
+32% (e^-1.125) and deploy-all averages 2.75. The point keeps 1.0/min. Eels are real brackish
+shallows fish (American eel) and take a worm on the bottom readily.
 
 **Derived**: in one 45 s build phase at tier 1 in the shallows you expect ~1.5 pufferfish and
-~0.75 eels: two or three fish. That is the whole early economy, by design: scarcity makes
+~1.1 eels: two or three fish. That is the whole early economy, by design: scarcity makes
 sell-or-deploy a real decision. Over 8 waves at tier 1 you catch ~20 fish; a tier-2 rod by
 wave 3 roughly doubles it and opens turtles.
 
@@ -49,6 +61,13 @@ wave 3 roughly doubles it and opens turtles.
 | Turtle | the road itself | 100 | blocks; thieves stop and chew (5 dmg/s each) | gulls fly over it |
 
 Defenders in water regenerate 1 HP/s between waves. A defender killed is a fish lost.
+
+How the slice reads the table (2026-10-12): "within 1 tile" is Chebyshev (any of the 8 tiles
+around), so a pufferfish diagonal to the road still triggers; distances to the road are
+Chebyshev too. A water tile means a *shallow* tile (mid and deep water is too deep to set a
+fish in; reeds are too thick). An eel's chain hops reach 2 tiles from the last thief it hit.
+The turtle also rests 1 HP/s between waves (it hauls out at the road's edge), or a chewed
+turtle could never be whole again and the bear lesson would only work once.
 Variants (big, rare, golden) arrive with the catch log in Milestone 4: ×1.5 stats, rarer rates.
 
 ## 5. Thieves (slice)
@@ -85,6 +104,13 @@ Thieves of a matching species within 4 tiles leave the road for it, eat for thei
 then return to the road at the nearest point. One lure feeds one thief at a time; a queue
 forms (that's the stall). A lure costs one bait, so luring competes with fishing for worms.
 
+**A lure holds 36 thief-seconds of eating** (2026-10-12): §7's luring lesson has the one
+midpoint worm stall *each* of wave 1's six raccoons for 6 s, so the worm must feed six 6 s
+meals (or 3.6 bears' 10 s meals). Thieves already fed by a lure aren't pulled by it again; a
+lure that runs out sends its queue back to the road. A lure lies on the road until eaten, so
+it can be set in the build phase. The lure's reach is the rod's cast: tier 1 reaches road
+tiles 9 to 23 (15 tiles around the dock's foot, §10), not the first 15 of the road.
+
 ## 7. Derived checks (these become pace tests)
 
 **Wave 1, the intended lesson: deploy, don't sell.** Phase 1 yields ~2 fish (expected: 1–2
@@ -116,6 +142,14 @@ Pace tests assert: deploy-all layout leaks ≤ 3 in wave 1; sell-all leaks ≥ 5
 lure cuts wave-1 leaks by ≥ 2; a turtle-only wave 3 leaks ≥ 6; the scripted "good" run reaches
 wave 8 with ≥ 8 crates.
 
+How they are measured (`tests/pace.test.ts`, 2026-10-12): every lesson is the mean over 200
+seeds, because catches are rolls. The luring lesson compares the same layout (the eel beside
+the road's midpoint) with and without the lure, **over the seeds whose layout has an eel**:
+the lesson is "a lure beside the eel", and a seed with no eel has no lure lesson to teach.
+The bots are in `src/sim/bot.ts`: deploy-all puts every fish on the best tile by road in
+reach and never lures; sell-all sells everything; "good" buys the worm bed then the rod,
+keeps up to 8 eels, 6 pufferfish and 2 turtles, sells the rest, and lures into its kill zone.
+
 ## 8. What the slice must answer
 
 1. Does sell-or-deploy feel like a real decision every build phase?
@@ -133,3 +167,27 @@ per tile, 3 s per tile, must connect to water; a pool is 4 tiles. Buckets: a fis
 60 s then it must go back. Chum: pulls gulls and pelicans; catches catfish and gar. Depth and
 time: dawn/dusk ×1.5 on surface species; a front ×0.5 all rates for one wave. Lore nodes
 (between runs): bigger live well, lures last +4 s, start with a rowboat, worms also pull gulls.
+
+## 10. The slice's shore (Back Bay)
+
+A hand-written 40 × 22 tile map (`src/data/shore.ts`), sized so the whole board shows at 2×
+on a 1280 × 720 window and 3× at 1920 × 1080, with no panning: a tower defense you can see
+whole. The road runs 39 tiles: 30 east along the north shore from the west edge, bend 1 at
+the pool, 4 south, bend 2, 5 east to the smokehouse door. Water within 2 tiles of the road
+(Chebyshev) is the placeable shallows; reeds and mid/deep water are not.
+
+- **The dock** sticks 5 tiles north from the road; the angler stands at its end. A tier-1
+  cast of 9 tiles reaches road tiles 9-23 (15 tiles, §6) and the whole shallow bowl.
+- **The point** is a peninsula east of bend 1; its fishing zone is the water within 4.5 tiles
+  of its tip, 12-15 tiles from the angler: tier 2 (14) reaches its near side only.
+- **The pool at bend 1** is a 3 × 3 shallow pond inside the corner: an eel there has 9 road
+  tiles within 3 tiles, against 5 for an eel beside a straight. The kill zone is a place on
+  the map, not a bonus; it is outside the tier-1 lure reach, so the first lures land on the
+  straight by the dock and the bend pays off once the surf rod is bought.
+
+## 11. Readability (what the board must show at 1×)
+
+Water in four tints: deep (open water), mid (the point's water), shallow, and the
+**placeable shallows**, the lightest, with slot ticks at the tile corners. In deploy mode the
+exact tiles that fish fits are lit; in lure mode the road tiles in reach glow pink. A
+defender being chewed shows its HP bar, red and blinking under 35%.

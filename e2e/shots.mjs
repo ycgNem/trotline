@@ -1,81 +1,106 @@
-// The four camera presets as fixed, deterministic frames (a fresh sim from seed 1 stepped
-// SHOT_TICKS ticks, then frozen), each with and without the pixel pass, plus the overview with
-// every fish shown. The overview is pixel-diffed against e2e/baseline/overview.png (written on the
-// first run; delete it to accept a new look). Output: e2e/out/shots/. Needs the dev server.
-// Usage: npm run shots            (SwiftShader, the deterministic baseline)
-//        GPU=hw npm run shots     (the real GPU)
+// The moments that matter (CLAUDE.md), as deterministic frames: a fixed seed and scripted
+// commands through window.__app, the sim stepped by hand (frozen loop), then a screenshot.
+// Output: e2e/out/shots/*.png. Needs the dev server. Usage: npm run shots [-- --size 1920x1080]
 import fs from 'node:fs';
-import { launch, openGame } from './launch.mjs';
-import { SHOT_TICKS } from './ticks.mjs';
+import { launch, openGame, frames } from './launch.mjs';
 
-const PRESETS = ['overview', 'cove', 'dock', 'underwater-mid'];
 const out = 'e2e/out/shots';
 fs.mkdirSync(out, { recursive: true });
-fs.mkdirSync('e2e/baseline', { recursive: true });
+const sizeArg = process.argv.indexOf('--size');
+const [W, H] = sizeArg > 0 ? process.argv[sizeArg + 1].split('x').map(Number) : [1280, 720];
 
-const { browser, gpu } = await launch();
-const { page, errors, renderer } = await openGame(browser);
-console.log(`renderer: ${renderer} (${gpu})`);
-
-async function frame(name, { preset, pixel = true, all = false }) {
-  await page.evaluate(([preset, pixel, all, ticks]) => {
-    const a = window.__app;
-    a.setPreset(preset);
-    a.setPixel(pixel);
-    a.setSonarOnly(!all);
-    a.freeze(ticks);
-  }, [preset, pixel, all, SHOT_TICKS]);
-  // two frames so the paused loop has drawn the frozen state
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
-  const file = `${out}/${name}.png`;
-  await page.screenshot({ path: file });
-  const s = await page.evaluate(() => window.__app.stats());
-  console.log(`shot ${name.padEnd(24)} calls ${s.sceneCalls}/${s.calls}  tris ${s.sceneTriangles}/${s.triangles}  ${s.internal.join('x')}  fish drawn ${s.drawn}`);
-  return file;
+const { browser } = await launch({ gpu: process.env.GPU ?? 'hw' });
+const { page, errors } = await openGame(browser, { w: W, h: H });
+const run = (f, arg) => page.evaluate(f, arg);
+async function shot(name) {
+  await frames(page, 3);
+  await page.mouse.move(W / 2, H - 2);
+  await frames(page, 2);
+  await page.screenshot({ path: `${out}/${name}.png` });
+  const s = await run(() => window.__app.stats());
+  console.log(`shot ${name.padEnd(22)} wave ${s.wave} ${s.phase} $${s.money} crates ${s.crates} thieves ${s.thieves} lesson ${s.lesson}`);
+}
+/** Step the sim until cond() holds in the page (or n ticks pass). */
+async function until(cond, n = 60 * 120) {
+  return run(([c, n]) => { const a = window.__app; const f = new Function('a', 'g', 'return ' + c); let i = 0; while (!f(a, a.game) && i++ < n && !a.game.over) a.step(1); return i; }, [cond, n]);
 }
 
-for (const p of PRESETS) {
-  await frame(p, { preset: p });
-  await frame(`${p}-raw`, { preset: p, pixel: false });
-}
-await frame('overview-allfish', { preset: 'overview', all: true });
-// the integer-upscale option (?pixels=int) for comparison: 240 lines at 720p
-await page.evaluate(() => { const a = window.__app; a.view.pipeline.integer = true; a.resize(); });
-await frame('overview-int', { preset: 'overview' });
-await frame('dock-int', { preset: 'dock' });
-await page.evaluate(() => { const a = window.__app; a.view.pipeline.integer = false; a.resize(); });
+await frames(page, 4);
+await shot('01-title');
 
-// pixel-diff the overview against the stored baseline, in the page (no image library needed)
-const base = 'e2e/baseline/overview.png';
-const cur = `${out}/overview.png`;
-if (!fs.existsSync(base) || gpu !== 'swiftshader') {
-  if (gpu === 'swiftshader') {
-    fs.copyFileSync(cur, base);
-    console.log('baseline written:', base);
-  } else console.log('baseline diff skipped (only SwiftShader frames are comparable)');
-} else {
-  const diff = await page.evaluate(async ([a, b]) => {
-    const load = (src) => new Promise((res) => { const i = new Image(); i.onload = () => res(i); i.src = src; });
-    const [ia, ib] = await Promise.all([load(a), load(b)]);
-    const c = document.createElement('canvas');
-    c.width = ia.width; c.height = ia.height;
-    const x = c.getContext('2d', { willReadFrequently: true });
-    x.drawImage(ia, 0, 0);
-    const da = x.getImageData(0, 0, c.width, c.height).data;
-    x.clearRect(0, 0, c.width, c.height);
-    x.drawImage(ib, 0, 0);
-    const db = x.getImageData(0, 0, c.width, c.height).data;
-    let n = 0;
-    for (let i = 0; i < da.length; i += 4) if (Math.abs(da[i] - db[i]) + Math.abs(da[i + 1] - db[i + 1]) + Math.abs(da[i + 2] - db[i + 2]) > 24) n++;
-    return { changed: n, frac: n / (da.length / 4), size: [ia.width, ia.height, ib.width, ib.height] };
-  }, ['data:image/png;base64,' + fs.readFileSync(base).toString('base64'), 'data:image/png;base64,' + fs.readFileSync(cur).toString('base64')]);
-  const pct = (diff.frac * 100).toFixed(2);
-  console.log(`overview vs baseline: ${pct}% of pixels changed`);
-  if (diff.frac > 0.005) {
-    console.log('  REGRESSION? more than 0.5% changed; look at both PNGs, delete the baseline to accept');
-    process.exitCode = 1;
-  }
-}
+// a run with seed 7, fishing the shallows by the dock
+await run(() => { const a = window.__app; a.newRun(7); a.freeze(); a.act({ k: 'cast', x: 15, y: 10 }); });
+await until('g.liveWell.some(Boolean)');
+await shot('02-first-catch-card');
+await run(() => window.__app.dismissLesson());
+await until('g.liveWell.filter(Boolean).length >= 2 || g.phaseTime < 8');
+await run(() => { const a = window.__app; const i = a.game.liveWell.findIndex(Boolean); a.selected = i; a.mode = { k: 'deploy', slot: i }; });
+await page.mouse.move(...Object.values(await run(() => window.__app.tileToCss(20, 11))));
+await frames(page, 3);
+await page.screenshot({ path: `${out}/03-deploy-mode.png` });
+console.log('shot 03-deploy-mode');
+// deploy everything at the bot's best tiles
+await run(() => {
+  const a = window.__app;
+  const g = a.game;
+  a.autoplay('deployAll');
+  a.bot.think();
+  a.autoplay(null);
+  a.mode = { k: 'idle' };
+  a.selected = null;
+  // staged: an eel beside the road's midpoint, where the worm will land
+  g.liveWell[5] = 'eel';
+  g.act({ k: 'deploy', slot: 5, x: 19, y: 11 });
+});
+await shot('04-first-deploy-card');
+await run(() => window.__app.dismissLesson());
+// lure mode, then a worm on the road by the eel and the wave
+await run(() => { window.__app.mode = { k: 'lure' }; });
+await page.mouse.move(...Object.values(await run(() => window.__app.tileToCss(19, 12))));
+await frames(page, 3);
+await page.screenshot({ path: `${out}/05-lure-mode.png` });
+console.log('shot 05-lure-mode');
+await run(() => { const a = window.__app; a.mode = { k: 'idle' }; a.act({ k: 'lure', x: 19, y: 12 }); a.dismissLesson(); a.act({ k: 'call' }); });
+await frames(page, 2);
+await run(() => window.__app.dismissLesson());
+await until("g.thieves.some((t) => t.mode === 'toLure')");
+await run(() => window.__app.step(40));
+await shot('06-raccoon-leaves-road');
+await until("g.thieves.some((t) => t.mode === 'eat') && g.thieves.some((t) => t.mode === 'queue')");
+await shot('07-eating-and-queue');
+await until("g.phase === 'build'");
+await shot('08-after-wave-1');
+
+// the bear: a fresh run set up for wave 4 with a turtle and two eels around bend 1
+await run(() => {
+  const a = window.__app;
+  a.newRun(11);
+  a.freeze();
+  const g = a.game;
+  g.wave = 3;
+  g.rodTier = 2;
+  for (const [s, x, y] of [['turtle', 27, 12], ['eel', 28, 13], ['eel', 26, 14]]) { g.liveWell[0] = s; g.act({ k: 'deploy', slot: 0, x, y }); }
+  g.act({ k: 'cast', x: 15, y: 10 });
+  g.act({ k: 'call' });
+  g.step();
+  g.spawnQueue = ['bear'];
+  a.seen.add('firstDeploy'); a.seen.add('firstCatch');
+});
+await frames(page, 2);
+await run(() => window.__app.dismissLesson());
+await until("g.thieves.some((t) => t.kind === 'bear' && t.mode === 'chew')", 60 * 200);
+await run(() => window.__app.step(120));
+await shot('09-bear-chews-turtle');
+
+// the good bot to the end of a season, then the lost season
+await run(() => { const a = window.__app; a.newRun(3); a.freeze(); a.autoplay('good'); for (const l of ['firstCatch', 'firstDeploy', 'firstLure']) a.seen.add(l); });
+await until("g.wave === 8 && g.phase === 'wave' && g.thieves.filter((t) => t.mode !== 'dead' && t.mode !== 'gone').length > 12", 60 * 60 * 20);
+await shot('10-wave-8-fight');
+await until('g.over', 60 * 60 * 20);
+await shot('11-season-won');
+await run(() => { const a = window.__app; a.newRun(5); a.freeze(); a.autoplay(null); a.game.act({ k: 'call' }); });
+await until('g.over', 60 * 60 * 30);
+await shot('12-season-lost');
 
 fs.writeFileSync(`${out}/console.txt`, errors.join('\n'));
 console.log('console errors/warnings:', errors.length);

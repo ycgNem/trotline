@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.1",
   "type": "module",
-  "description": "A 3D browser tower defense about fishing an invasive run out of a lake before it spreads.",
+  "description": "A top-down pixel-art tower defense where you catch your towers: fish from the dock, then sell them or put them in the water to guard the smokehouse.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -11,18 +11,16 @@
     "preview": "vite preview",
     "test": "vitest run",
     "shots": "node e2e/shots.mjs",
-    "perf": "node e2e/perf.mjs",
     "screens": "node e2e/screens.mjs",
     "smoke": "node e2e/smoke.mjs",
-    "art": "node scripts/art.mjs"
+    "bot": "node e2e/bot.mjs",
+    "art": "node scripts/art-import.mjs"
   },
   "dependencies": {
-    "jsfxr": "1.4.1",
-    "three": "0.186.1"
+    "jsfxr": "1.4.1"
   },
   "devDependencies": {
     "@types/node": "22.9.0",
-    "@types/three": "0.186.0",
     "playwright": "1.48.2",
     "typescript": "7.0.2",
     "vite": "5.4.10",

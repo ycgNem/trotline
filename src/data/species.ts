@@ -1,67 +1,52 @@
-// Species for the proof of concept: one school of one invasive. Real fish, our numbers.
-import type { BandId } from './lake';
+// What bites (DESIGN.md §3). Fishing is catch rates, never HP: a rod fishing a zone rolls each
+// species' rate every tick. The slice's shore is a brackish back bay (DECISIONS.md 2026-10-12,
+// "Back Bay"): checkered puffers, American eels and diamondback terrapins all really live there.
+import type { ZoneId } from './shore';
 
-export interface SchoolDef {
-  species: string;
-  /** how many in the proof of concept's school */
-  count: number;
-  /** body length drawn (m); oversized a little so a fish is a few pixels at the overview */
-  length: number;
-  band: BandId;
-  /** cruising speed along the loop (m/s); negative swims the loop the other way */
-  speed: number;
-  /** the loop the school swims: an ellipse over the basin (center and radii, m) */
-  loop: { cx: number; cy: number; rx: number; ry: number };
-  /** how much of the loop the school stretches over (fraction of a lap) */
-  spreadAlong: number;
-  /** half-width of the school across its path (m) */
-  spreadSide: number;
-  /** half-height of the school around its band's holding depth (m) */
-  spreadDepth: number;
-  /** tail beats per second while cruising */
-  tailHz: number;
-  /** back, flank and belly colours (from the palette) */
-  colors: [string, string, string];
+export type SpeciesId = 'puffer' | 'eel' | 'turtle';
+export type Band = 'surface' | 'mid' | 'bottom';
+export type Size = 'small' | 'medium' | 'large';
+
+export interface SpeciesDef {
+  id: SpeciesId;
+  name: string;
+  /** the real animal, for the catch log */
+  real: string;
+  band: Band;
+  size: Size;
+  /** catches per minute with worm bait at rod tier 1, by zone (absent: not caught there) */
+  rates: Partial<Record<ZoneId, number>>;
+  /** money when sold at the market */
+  sell: number;
+  /** one line for the catch log: where and how it bites */
+  note: string;
+  derivation: string;
 }
 
-/**
- * Bighead carp: PLAN.md's mid-band invasive. Adults commonly run 0.6-1 m; they cruise in loose
- * schools in open water and feed by filtering plankton, so they hold off the bottom and off the top.
- * Dark grey back with darker blotches, pale belly.
- */
-export const BIGHEAD: SchoolDef = {
-  species: 'bighead carp',
-  count: 500,
-  length: 1.1,
-  band: 'mid',
-  speed: 1.1,
-  loop: { cx: 6, cy: -4.5, rx: 9, ry: 5 },
-  spreadAlong: 0.3,
-  spreadSide: 3,
-  spreadDepth: 0.6,
-  tailHz: 1.4,
-  colors: ['#394a50', '#819796', '#c7cfcc'],
+export const SPECIES: Record<SpeciesId, SpeciesDef> = {
+  puffer: {
+    id: 'puffer', name: 'Pufferfish', real: 'checkered puffer', band: 'surface', size: 'small',
+    rates: { shallows: 2.0 }, sell: 10,
+    note: 'Bait thieves in the dock shallows. Puffs up when something gets close.',
+    derivation: 'DESIGN.md §3: the cheap first catch, 2.0/min in the shallows; sells for 10',
+  },
+  eel: {
+    id: 'eel', name: 'Eel', real: 'American eel', band: 'bottom', size: 'medium',
+    rates: { shallows: 1.5, point: 1.0 }, sell: 25,
+    note: 'Hugs the bottom of the shallows and the point. Takes a worm on the bottom.',
+    derivation: 'DESIGN.md §3, §7: 1.5/min in the shallows so two runs in three have an eel by wave 1 (the deploy lesson needs one); 1.0/min at the point; the best sale (25) is the cost of deploying it',
+  },
+  turtle: {
+    id: 'turtle', name: 'Turtle', real: 'diamondback terrapin', band: 'surface', size: 'large',
+    rates: { point: 0.5 }, sell: 15,
+    note: 'Basks off the point. Heavy: needs the tier-2 line.',
+    derivation: 'DESIGN.md §3: 0.5/min at the point, large (tier-2 line); sells cheap because it is a wall, not a meal',
+  },
 };
 
-/**
- * Silver carp: PLAN.md's surface-band invasive. Adults commonly 0.5-0.9 m; they school near the
- * surface filtering plankton, and are the carp that leap when a motor spooks them. Silvery all
- * over with a darker olive-grey back. Swims the loop the other way, above the bighead, so the
- * proof of concept has two bands to tell apart.
- */
-export const SILVER: SchoolDef = {
-  species: 'silver carp',
-  count: 150,
-  length: 0.95,
-  band: 'surface',
-  speed: -1.5,
-  loop: { cx: 7, cy: -5.5, rx: 7, ry: 3.5 },
-  spreadAlong: 0.22,
-  spreadSide: 2.2,
-  spreadDepth: 0.4,
-  tailHz: 1.8,
-  colors: ['#577277', '#c7cfcc', '#ebede9'],
-};
+export const SPECIES_ORDER: SpeciesId[] = ['puffer', 'eel', 'turtle'];
 
-/** the proof of concept's schools, one InstancedMesh each */
-export const POC_SCHOOLS: SchoolDef[] = [BIGHEAD, SILVER];
+const SIZE_RANK: Record<Size, number> = { small: 0, medium: 1, large: 2 };
+export function sizeRank(s: Size) {
+  return SIZE_RANK[s];
+}

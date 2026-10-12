@@ -17,6 +17,10 @@ Exit: `npm run dev` shows a shore map with water in three depth tints, a road, a
 moving camera; `npm test` green on an empty sim; `npm run screens` produces a report; the
 workflow publishes to GitHub Pages; `PROGRESS.md` and `DECISIONS.md` have their first entries.
 
+**Milestone 0 status (2026-10-12):** built. Exit met except the owner's palette pick (Apollo
+provisional, `pixel-art/palette-test/contact_both.png`) and the Pages deploy, which runs on the next
+push to `main` (a push needs the owner's yes).
+
 ## Milestone 1 — The vertical slice
 
 Exactly the `DESIGN.md` slice: one hand-made shore (40-tile road with two bends hugging the

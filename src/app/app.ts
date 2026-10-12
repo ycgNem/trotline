@@ -1,170 +1,357 @@
-// The app: the engine loop driving the sim at 60 Hz and the view every frame, input to the
-// camera and the toggles, the HUD on the overlay canvas, sound, and window.__app for the e2e
-// harness (presets, the pixel pass, fish counts, a frozen deterministic frame, stats).
+// The app: one canvas, the fixed 60 Hz sim decoupled from the rAF renderer, the HUD drawn over the
+// board with the IMGUI kit, the screens (title, play, end), the player's modes (fishing, deploying
+// a fish, casting a lure), the lesson cards, sound and the autosave. window.__app is its debug
+// handle for the e2e scripts.
 import { GameLoop } from '../engine/loop';
 import { Input } from '../engine/input';
 import { Audio } from '../engine/audio/audio';
-import { Game } from '../sim/Game';
-import { View } from '../render/view';
-import { loadRigTemplate, RigTemplate } from '../render/rigs';
-import type { PresetName } from '../render/camera';
+import { readSave, writeSave, deleteSave, store } from '../engine/save';
 import { UI } from '../ui/ui';
-import { drawHud } from './hud';
+import { Game, type Command } from '../sim/Game';
+import { Bot, type Strategy } from '../sim/bot';
+import { isWater, Tile } from '../sim/world';
+import { Renderer, type Overlay } from '../render/renderer';
+import { loadArt } from '../render/sprites';
+import { TILE } from '../render/ground';
+import { LESSONS, type Lesson } from '../data/lessons';
+import { SPECIES, type SpeciesId } from '../data/species';
+import { THIEVES } from '../data/thieves';
+import { C } from '../data/palette';
+import { Hud } from './hud';
 
-const PRESET_KEYS: [Parameters<Input['wasPressed']>[0], PresetName][] = [
-  ['presetOverview', 'overview'], ['presetCove', 'cove'], ['presetDock', 'dock'], ['presetUnder', 'underwater-mid'],
-];
+export type Mode = { k: 'idle' } | { k: 'deploy'; slot: number } | { k: 'lure' };
+export type Screen = 'title' | 'play' | 'end';
+
+export interface Floater { text: string; x: number; y: number; t: number; col: string }
+
+const META_KEY = 'trotline_meta';
 
 export class App {
-  readonly input = new Input();
-  readonly ui = new UI();
-  readonly audio = new Audio();
-  readonly view: View;
-  readonly loop: GameLoop;
+  ctx: CanvasRenderingContext2D;
+  input = new Input();
+  ui = new UI();
+  audio = new Audio();
+  renderer: Renderer;
+  loop: GameLoop;
+  hud: Hud;
   game: Game;
-  seed = 1;
-  fishCount = 500;
-  sonarOnly = true;
-  hudOn = true;
+  bot: Bot | null = null;
+  screen: Screen = 'title';
+  mode: Mode = { k: 'idle' };
+  selected: number | null = null;
+  lesson: Lesson | null = null;
+  lessonQueue: Lesson[] = [];
+  seen = new Set<string>();
+  paused = false;
+  speed = 1;
+  showHud = true;
+  debug = false;
+  floaters: Floater[] = [];
+  toast: { text: string; t: number } | null = null;
+  hover: { x: number; y: number } | null = null;
+  uiScale = 2;
   ready = false;
-  rigSource: RigTemplate['source'] | null = null;
-  private hudCtx: CanvasRenderingContext2D;
-  private uiScale = 2;
+  /** frozen by a test: no ticks run until resume() */
+  frozen = false;
+  private dpr = 1;
 
-  constructor(private canvas: HTMLCanvasElement, private hud: HTMLCanvasElement) {
-    const params = new URLSearchParams(location.search);
-    this.fishCount = Number(params.get('fish') ?? 500) || 500;
-    this.seed = Number(params.get('seed') ?? 1) || 1;
-    this.game = new Game({ seed: this.seed, fish: this.fishCount });
-    this.view = new View(canvas);
-    if (params.get('pixel') === '0') this.view.pixel = false;
-    if (params.get('pixels') === 'int') this.view.pipeline.integer = true;
-    this.hudCtx = hud.getContext('2d')!;
-    this.input.attach(hud);
+  constructor(public canvas: HTMLCanvasElement) {
+    this.ctx = canvas.getContext('2d', { alpha: false })!;
+    this.renderer = new Renderer(this.ctx);
+    this.hud = new Hud(this);
+    this.game = new Game(this.newSeed());
+    this.loop = new GameLoop(() => this.tick(), (dt) => this.frame(dt));
     this.ui.sfx = (id) => this.audio.sfx(id);
-    const unlock = () => this.audio.unlock();
-    window.addEventListener('pointerdown', unlock);
-    window.addEventListener('keydown', unlock);
-    this.loop = new GameLoop(() => this.game.step(), (dt) => this.frame(dt));
-    window.addEventListener('resize', () => this.resize());
-    this.resize();
+    this.loadMeta();
   }
 
   async start() {
-    const t = await loadRigTemplate(`${import.meta.env.BASE_URL}models/rigs.glb`);
-    this.rigSource = t.source;
-    this.view.build(this.game, t, Math.max(2000, this.fishCount));
-    const preset = new URLSearchParams(location.search).get('cam') as PresetName | null;
-    this.view.setPreset(preset ?? 'overview', true);
+    this.input.attach(this.canvas);
+    const unlock = () => this.audio.unlock();
+    window.addEventListener('pointerdown', unlock);
+    window.addEventListener('keydown', unlock);
+    window.addEventListener('resize', () => this.resize());
+    this.resize();
+    await loadArt();
+    const q = new URLSearchParams(location.search);
+    if (q.has('play')) this.newRun(Number(q.get('seed')) || undefined);
     this.loop.start();
     this.ready = true;
   }
 
-  resize() {
-    const w = window.innerWidth, h = window.innerHeight;
-    this.view.resize(w, h);
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    this.hud.width = Math.round(w * dpr);
-    this.hud.height = Math.round(h * dpr);
-    // the HUD's own pixel scale: about 360 UI lines tall (2x at 720p, 3x at 1080p)
-    this.uiScale = Math.max(1, Math.round(this.hud.height / 360));
+  newSeed() {
+    return (Date.now() % 1_000_000) + 1;
   }
 
-  private controls(dt: number) {
-    const inp = this.input, rig = this.view.rig;
-    for (const [a, p] of PRESET_KEYS) if (inp.wasPressed(a)) {
-      this.view.setPreset(p);
-      this.audio.sfx('click');
+  resize() {
+    this.dpr = window.devicePixelRatio || 1;
+    const w = Math.floor(window.innerWidth * this.dpr), h = Math.floor(window.innerHeight * this.dpr);
+    if (this.canvas.width !== w || this.canvas.height !== h) {
+      this.canvas.width = w;
+      this.canvas.height = h;
     }
-    if (inp.wasPressed('pixelPass')) this.view.pixel = !this.view.pixel;
-    if (inp.wasPressed('hud')) this.hudOn = !this.hudOn;
-    if (inp.wasPressed('sonarView')) this.sonarOnly = !this.sonarOnly;
-    if (inp.wasPressed('pause')) this.loop.paused = !this.loop.paused;
-    this.loop.speed = inp.isDown('faster') ? 8 : 1;
-    // keyboard orbit
-    const turn = 70 * dt;
-    const kx = (inp.isDown('orbitRight') ? 1 : 0) - (inp.isDown('orbitLeft') ? 1 : 0);
-    const ky = (inp.isDown('tiltUp') ? 1 : 0) - (inp.isDown('tiltDown') ? 1 : 0);
-    const kz = (inp.isDown('zoomOut') ? 1 : 0) - (inp.isDown('zoomIn') ? 1 : 0);
-    if (kx || ky || kz) rig.nudge(kx * turn, ky * turn * 0.6, Math.pow(1.6, kz * dt));
-    // mouse: left drag orbits, right drag pans, the wheel dollies
-    const m = inp.mouse;
-    if (!this.ui.captured) {
-      if (m.down[0] && (m.dx || m.dy)) rig.nudge(-m.dx * 0.3, m.dy * 0.25);
-      if (m.down[2] && (m.dx || m.dy)) {
-        const k = rig.pose.dist / 600;
-        rig.nudge(0, 0, 1, -m.dx * k, m.dy * k);
-      }
-      if (m.wheel) rig.nudge(0, 0, Math.pow(1.12, m.wheel));
+    this.uiScale = Math.max(1, Math.min(4, Math.floor(Math.min(w / 512, h / 300))));
+    this.renderer.resize(w, h, this.game.world.w, this.game.world.h);
+  }
+
+  // ---------------------------------------------------------------- runs
+
+  newRun(seed = this.newSeed()) {
+    this.game = new Game(seed);
+    this.screen = 'play';
+    this.mode = { k: 'idle' };
+    this.selected = null;
+    this.floaters = [];
+    this.renderer.fx = [];
+    this.paused = false;
+    this.lesson = null;
+    this.lessonQueue = [];
+    this.game.events.drain();
+    this.save();
+  }
+
+  continueRun(): boolean {
+    const d = readSave(1);
+    if (!d || !Array.isArray(d.log)) return false;
+    this.game = Game.replay(d.seed, d.log as { t: number; c: Command }[], Number(d.tick) || 0);
+    this.screen = this.game.over ? 'end' : 'play';
+    this.mode = { k: 'idle' };
+    this.selected = null;
+    return true;
+  }
+
+  hasSave() {
+    const d = readSave(1);
+    return !!d && Array.isArray(d.log);
+  }
+
+  save() {
+    if (this.game.over) deleteSave(1);
+    else writeSave(1, this.game.snapshot());
+  }
+
+  private loadMeta() {
+    try {
+      const m = JSON.parse(store()?.getItem(META_KEY) ?? '{}');
+      for (const s of m.seen ?? []) this.seen.add(s);
+    } catch { /* a bad meta save just means the lessons show again */ }
+  }
+
+  private saveMeta() {
+    try { store()?.setItem(META_KEY, JSON.stringify({ seen: [...this.seen] })); } catch { /* private window */ }
+  }
+
+  // ---------------------------------------------------------------- the loop
+
+  private tick() {
+    if (this.screen !== 'play' || this.paused || this.lesson || this.frozen) return;
+    for (let i = 0; i < this.speed; i++) {
+      if (this.bot && this.game.tick % 10 === 0) this.bot.think();
+      this.game.step();
+      if (this.game.over) break;
     }
-    rig.update(dt);
   }
 
   private frame(dt: number) {
-    this.controls(dt);
-    for (const e of this.game.events.drain()) if (e.type === 'sonar_turn') this.audio.sfx('ping', 0.6);
-    this.audio.update();
-    this.view.sync(this.game, this.game.time, !this.sonarOnly);
-    this.game.sonar.only = this.sonarOnly;
-    this.view.render();
-    this.drawHud(dt);
-    this.input.endFrame();
-  }
-
-  private drawHud(dt: number) {
-    this.ui.begin(this.hudCtx, this.input, this.uiScale, dt);
-    if (this.hudOn) drawHud(this.ui, this.game, this.view, { fps: this.loop.fps, paused: this.loop.paused, sonarOnly: this.sonarOnly, showKeys: true });
+    if (this.canvas.width !== Math.floor(window.innerWidth * (window.devicePixelRatio || 1))) this.resize();
+    this.events();
+    this.keys();
+    const m = this.input.mouse;
+    const k = this.canvas.width / (this.canvas.clientWidth || this.canvas.width);
+    const t = this.renderer.screenToTile(m.x * k, m.y * k);
+    // the HUD the last frame drew, tested at where the mouse is now (a click straight after a
+    // HUD click must still reach the board)
+    const overHud = this.ui.blockedAt(Math.floor((m.x * k) / this.uiScale), Math.floor((m.y * k) / this.uiScale));
+    this.hover = this.game.world.inb(t.x, t.y) && !overHud && this.screen === 'play' ? t : null;
+    const ov: Overlay = {
+      hover: this.hover,
+      deploy: this.mode.k === 'deploy' ? this.game.liveWell[this.mode.slot] : null,
+      lure: this.mode.k === 'lure',
+      range: this.mode.k === 'idle' && !!this.hover && isWater(this.game.world.at(this.hover.x, this.hover.y)),
+    };
+    this.renderer.draw(this.game, this.paused || this.lesson ? 0 : dt, ov);
+    this.ui.begin(this.ctx, this.input, this.uiScale, dt, false);
+    if (this.showHud || this.screen !== 'play') this.hud.draw(dt);
+    if (this.screen === 'play' && !this.lesson) this.worldClick();
     this.ui.end();
+    this.input.endFrame();
+    this.audio.update(0.3);
   }
 
-  // ---------- for the e2e harness ----------
-
-  setPreset(name: PresetName) {
-    this.view.setPreset(name, true);
+  /** Drain the sim's events into effects, sounds, floaters, lessons and the autosave. */
+  private events() {
+    const g = this.game;
+    const evs = g.events.drain();
+    this.renderer.consume(evs, g);
+    for (const e of evs) {
+      switch (e.type) {
+        case 'catch': this.audio.sfx('catch'); this.float('+' + SPECIES[e.id as SpeciesId].name, g.world.angler.x, g.world.angler.y - 1, C.ice); break;
+        case 'cast': this.audio.sfx('cast'); break;
+        case 'zap': if (!e.value) this.audio.sfx('zap', 0.6); break;
+        case 'puff': this.audio.sfx('puff'); break;
+        case 'kill': this.audio.sfx('kill'); this.float('+$' + e.value, e.x!, e.y! - 1, C.gold); break;
+        case 'steal': this.audio.sfx('steal'); this.float('-' + e.value + ' crate' + (e.value === 1 ? '' : 's'), e.x!, e.y! - 1, C.ember); break;
+        case 'recover': this.float('+' + e.value + ' back', e.x!, e.y! - 1.6, C.lime); break;
+        case 'escape': this.float(e.value + ' lost', e.x!, e.y! - 1, C.red); break;
+        case 'sell': this.audio.sfx('coin'); this.float('+$' + e.value, g.world.angler.x, g.world.angler.y - 1, C.gold); break;
+        case 'deploy': this.audio.sfx('splash', 0.7); break;
+        case 'lure': this.audio.sfx('lure'); break;
+        case 'buy': this.audio.sfx('coin'); break;
+        case 'callEarly': if (e.value) this.float('+$' + e.value + ' early', g.world.angler.x, g.world.angler.y - 1, C.gold); break;
+        case 'waveStart': this.audio.sfx('wave'); this.save(); break;
+        case 'waveEnd': this.save(); break;
+        case 'won': this.audio.sfx('win'); this.endRun(); break;
+        case 'lost': this.audio.sfx('lose'); this.endRun(); break;
+        case 'defenderLost': this.float(SPECIES[e.id as SpeciesId].name + ' lost', e.x!, e.y! - 1, C.red); break;
+      }
+      const l = LESSONS.find((q) => q.on === e.type);
+      if (l && !this.seen.has(l.on) && !this.bot) {
+        this.seen.add(l.on);
+        this.saveMeta();
+        this.lessonQueue.push(l);
+      }
+    }
+    if (!this.lesson && this.lessonQueue.length) this.lesson = this.lessonQueue.shift()!;
+    if (this.game.over && this.screen === 'play') this.endRun();
   }
 
-  setPixel(on: boolean) {
-    this.view.pixel = on;
+  private endRun() {
+    this.screen = 'end';
+    this.mode = { k: 'idle' };
+    deleteSave(1);
   }
 
-  setSonarOnly(on: boolean) {
-    this.sonarOnly = on;
+  /** A floating number over the board; one starting near another stacks above it. */
+  float(text: string, x: number, y: number, col: string) {
+    while (this.floaters.some((f) => f.t < 0.6 && Math.abs(f.x - x) < 2 && Math.abs(f.y - y) < 0.55)) y -= 0.6;
+    this.floaters.push({ text, x, y, t: 0, col });
   }
 
-  /** A first school of n fish (same seed, same time); grows its instanced mesh if needed. */
-  setFishCount(n: number) {
-    this.fishCount = n;
-    const ticks = this.game.tick;
-    this.game = new Game({ seed: this.seed, fish: n });
-    for (let i = 0; i < ticks; i++) this.game.step();
-    if (n > this.view.fish[0].capacity) this.view.setFishCapacity(this.game, 0, n);
+  say(text: string) {
+    this.toast = { text, t: 0 };
   }
 
-  /**
-   * A deterministic frame: a fresh game from the seed stepped `ticks` times, the loop paused, the
-   * view synced and drawn. Every animation reads sim time, so the same ticks give the same pixels.
-   */
-  freeze(ticks = 600) {
-    this.game = new Game({ seed: this.seed, fish: this.fishCount });
-    for (let i = 0; i < ticks; i++) this.game.step();
-    this.loop.paused = true;
-    this.game.sonar.only = this.sonarOnly;
-    this.view.sync(this.game, this.game.time, !this.sonarOnly);
-    this.view.render();
-    this.drawHud(1 / 60);
+  /** Give the sim a command; say why not if it can't. */
+  act(c: Command): boolean {
+    const r = this.game.act(c);
+    if (!r.ok) {
+      this.say(r.why ?? 'Can\'t do that.');
+      this.audio.sfx('error');
+    }
+    return r.ok;
   }
 
-  resume() {
-    this.loop.paused = false;
+  // ---------------------------------------------------------------- input
+
+  private keys() {
+    const i = this.input;
+    if (i.wasPressed('debug')) this.debug = !this.debug;
+    if (this.screen !== 'play') return;
+    if (this.lesson) return;
+    if (i.wasPressed('pause')) this.paused = !this.paused;
+    if (i.wasPressed('faster')) this.speed = this.speed >= 3 ? 1 : this.speed + 1;
+    if (i.wasPressed('hud')) this.showHud = !this.showHud;
+    if (i.wasPressed('cancel')) this.cancel();
+    for (let s = 0; s < 6; s++) if (i.wasPressed(('slot' + (s + 1)) as 'slot1')) this.pick(s);
+    if (i.wasPressed('sell')) this.sellSelected();
+    if (i.wasPressed('deploy')) this.deploySelected();
+    if (i.wasPressed('lure')) this.toggleLure();
+    if (i.wasPressed('callWave')) this.act({ k: 'call' });
+    // camera: pan with the keys, zoom by whole steps
+    const c = this.renderer.cam;
+    const sp = 6 / c.zoom * 60 * (1 / 60) * TILE * 0.25;
+    if (i.isDown('panLeft')) c.x -= sp;
+    if (i.isDown('panRight')) c.x += sp;
+    if (i.isDown('panUp')) c.y -= sp;
+    if (i.isDown('panDown')) c.y += sp;
+    if (i.wasPressed('zoomIn')) this.zoom(1);
+    if (i.wasPressed('zoomOut')) this.zoom(-1);
+    if (i.mouse.wheel && !this.ui.captured) this.zoom(-Math.sign(i.mouse.wheel));
+    this.renderer.clampCam(this.game.world.w, this.game.world.h);
   }
 
+  zoom(d: number) {
+    const c = this.renderer.cam;
+    c.zoom = Math.max(c.fitZoom, Math.min(c.fitZoom + 3, c.zoom + d));
+    this.renderer.clampCam(this.game.world.w, this.game.world.h);
+  }
+
+  cancel() {
+    this.mode = { k: 'idle' };
+  }
+
+  pick(slot: number) {
+    if (!this.game.liveWell[slot]) { this.selected = null; return; }
+    this.selected = this.selected === slot ? null : slot;
+    if (this.mode.k === 'deploy') this.mode = this.selected === null ? { k: 'idle' } : { k: 'deploy', slot: this.selected };
+  }
+
+  sellSelected() {
+    if (this.selected === null) return;
+    if (this.act({ k: 'sell', slot: this.selected })) { this.selected = null; this.mode = { k: 'idle' }; }
+  }
+
+  deploySelected() {
+    if (this.selected === null || !this.game.liveWell[this.selected]) return;
+    this.mode = this.mode.k === 'deploy' ? { k: 'idle' } : { k: 'deploy', slot: this.selected };
+  }
+
+  toggleLure() {
+    if (this.mode.k === 'lure') { this.mode = { k: 'idle' }; return; }
+    if (this.game.worms < 1) { this.say('No worms left. Buy a pack, or a worm bed.'); return; }
+    this.mode = { k: 'lure' };
+  }
+
+  /** Clicks on the board: cast, deploy, lure. */
+  private worldClick() {
+    const m = this.input.mouse;
+    if (this.ui.overUI) return;
+    if (m.pressed[2]) { this.cancel(); this.selected = null; return; }
+    if (!m.pressed[0] || !this.hover) return;
+    const { x, y } = this.hover;
+    const g = this.game;
+    if (this.mode.k === 'deploy') {
+      if (this.act({ k: 'deploy', slot: this.mode.slot, x, y })) { this.mode = { k: 'idle' }; this.selected = null; }
+      return;
+    }
+    if (this.mode.k === 'lure') {
+      if (this.act({ k: 'lure', x, y }) && (!this.input.shift || g.worms < 1)) this.mode = { k: 'idle' };
+      return;
+    }
+    const t = g.world.at(x, y);
+    if (isWater(t)) this.act({ k: 'cast', x, y });
+    else if (t === Tile.Road && g.worms > 0 && g.canLure(x, y).ok) this.say('Press L (or the Lure button) to cast a worm on the road.');
+  }
+
+  // ---------------------------------------------------------------- the debug handle
+
+  /** Stop ticking (a test drives the sim itself). */
+  freeze() { this.frozen = true; }
+  resume() { this.frozen = false; }
+  /** Run n sim ticks now, with the bot thinking if one is set. */
+  step(n: number) {
+    for (let i = 0; i < n && !this.game.over; i++) {
+      if (this.bot && this.game.tick % 10 === 0) this.bot.think();
+      this.game.step();
+    }
+  }
+  autoplay(strategy: Strategy | null, opts = {}) {
+    this.bot = strategy ? new Bot(this.game, strategy, opts) : null;
+  }
+  dismissLesson() {
+    this.lesson = null;
+  }
   stats() {
     const g = this.game;
-    return {
-      fps: this.loop.fps, ...this.view.stats,
-      fishSeen: g.schools.reduce((a, s) => a + s.seenCount, 0), fishTotal: g.schools.reduce((a, s) => a + s.n, 0),
-      seenBy: Object.fromEntries(g.schools.map((s) => [s.def.species, s.seenCount])),
-      drawn: this.view.fishDrawn, rig: this.rigSource, preset: this.view.rig.preset, integer: this.view.pipeline.integer,
-    };
+    return { screen: this.screen, phase: g.phase, wave: g.wave, tick: g.tick, money: g.money, crates: g.crates, worms: g.worms, well: [...g.liveWell], defenders: g.defenders.length, thieves: g.thieves.filter((t) => t.mode !== 'dead' && t.mode !== 'gone').length, zoom: this.renderer.cam.zoom, uiScale: this.uiScale, lesson: this.lesson?.on ?? null };
+  }
+  /** Screen position (CSS pixels) of a tile's centre, for scripted clicks. */
+  tileToCss(x: number, y: number) {
+    const p = this.renderer.toScreen(x + 0.5, y + 0.5);
+    const k = this.canvas.width / (this.canvas.clientWidth || this.canvas.width);
+    return { x: p.x / k, y: p.y / k };
+  }
+  thiefName(id: string) {
+    return THIEVES[id as keyof typeof THIEVES]?.name ?? id;
   }
 }

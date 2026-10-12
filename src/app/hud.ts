@@ -1,98 +1,344 @@
-// The HUD, drawn with the IMGUI kit on the 2D overlay canvas: the clock and the water temperature
-// (the one number PLAN.md says is always shown), the sonar's returns by band (only what it sees:
-// no species and no hidden total, which would give away what vision hides), the frame's cost, the
-// band legend and the keys. Station tags name each rod's band and hook depth when the camera is close.
-import { BANDS, BandId } from '../data/lake';
-import { bandOf } from '../sim/lake';
-import { BAND_COLOR, C } from '../data/palette';
-import { ICON, textWidth } from '../ui/font';
-import type { UI } from '../ui/ui';
-import type { Game } from '../sim/Game';
-import { clockLabel } from '../sim/systems/clock';
-import type { View } from '../render/view';
+// The HUD, drawn with the IMGUI kit over the board in UI pixels: the top bar (money, crates,
+// worms, rod, wave clock, call-early), the live well with sell / deploy, the shop, the status line
+// (what the line is doing, or what the current mode wants), floating numbers, toasts, lesson cards,
+// tooltips over the board, and the title and end screens.
+import type { App } from './app';
+import { C, rgba } from '../data/palette';
+import { ICON, textWidth, wrapText, LINE_H } from '../ui/font';
+import { SPECIES, type SpeciesId } from '../data/species';
+import { DEFENDERS } from '../data/defenders';
+import { THIEVES } from '../data/thieves';
+import { WAVES } from '../data/waves';
+import { RODS } from '../data/rods';
+import { WORMS } from '../data/bait';
+import { RULES } from '../data/rules';
+import { TITLE, FIRST_HINT } from '../data/lessons';
+import { sheet, drawSprite } from '../render/sprites';
+import { isSlot } from '../render/ground';
+import { Tile, isWater } from '../sim/world';
+import type { TipLine } from '../ui/ui';
 
-export interface HudState {
-  fps: number;
-  paused: boolean;
-  sonarOnly: boolean;
-  showKeys: boolean;
-}
+const BAR_H = 18;
+const PANEL_H = 44;
 
-const BAND_LABEL: Record<string, string> = { surface: 'surface 0-2 m', mid: 'mid 2-4 m', bottom: 'bottom 4 m+' };
+export class Hud {
+  constructor(public app: App) {}
 
-function k(n: number): string {
-  return n >= 10000 ? (n / 1000).toFixed(1) + 'k' : String(n);
-}
-
-export function drawHud(ui: UI, g: Game, v: View, s: HudState) {
-  // top left: the lake
-  const lines: [string, string][] = [
-    [`${ICON.clock} ${clockLabel(g.clock.minute)}   day ${g.clock.day}${s.paused ? '   PAUSED' : ''}`, C.bone],
-    [`Water ${g.clock.waterTemp.toFixed(1)}°C`, C.ice],
-  ];
-  // the sonar's returns, counted by the band each one is in
-  const returns: Record<BandId, number> = { surface: 0, mid: 0, bottom: 0 };
-  let total = 0;
-  for (const sc of g.schools) {
-    total += sc.n;
-    for (let i = 0; i < sc.n; i++) if (sc.seen[i] > 0) returns[bandOf(sc.d[i])]++;
+  draw(dt: number) {
+    const a = this.app;
+    if (a.screen === 'title') return this.title();
+    // floating numbers belong to the live board, not under a card or the end screen
+    if (a.screen === 'play' && !a.lesson) this.floaters(dt);
+    if (a.screen === 'play') {
+      this.topBar();
+      this.liveWell();
+      this.shop();
+      this.status();
+      this.boardTip();
+      if (a.paused && !a.lesson) this.banner('Paused', 'Space to carry on');
+      this.toast(dt);
+      if (a.lesson) this.lessonCard();
+    } else this.endScreen();
+    if (a.debug) this.debugLine();
   }
-  const parts: [string, string][] = s.sonarOnly
-    ? [[`${ICON.ping} Sonar returns `, C.cyan], ...BANDS.map((b): [string, string] => [`${b.id} ${returns[b.id]}  `, BAND_COLOR[b.id]])]
-    : [[`${ICON.fish} All ${total} fish shown (sonar off)`, C.amber]];
-  const partsW = parts.reduce((a, [t]) => a + textWidth(t) + 1, 0);
-  let w = Math.max(textWidth('TROTLINE  proof of concept'), partsW);
-  for (const [t] of lines) w = Math.max(w, textWidth(t));
-  ui.panel(4, 4, w + 12, 16 + (lines.length + 1) * 11, 'glass');
-  ui.text('TROTLINE', 10, 9, C.gold, { shadow: C.ink });
-  ui.text('proof of concept', 10 + textWidth('TROTLINE  '), 9, C.steel);
-  lines.forEach(([t, c], i) => ui.text(t, 10, 21 + i * 11, c, { shadow: C.ink }));
-  let px = 10;
-  for (const [t, c] of parts) px += ui.text(t.trimEnd(), px, 21 + lines.length * 11, c, { shadow: C.ink }) + (textWidth(t) - textWidth(t.trimEnd())) + 1;
 
-  // top right: what the frame cost
-  const st = v.stats;
-  const perf: [string, string][] = [
-    [`fps ${Math.round(s.fps)}`, s.fps >= 55 ? C.lime : s.fps >= 30 ? C.amber : C.ember],
-    [`draw calls ${st.sceneCalls}  (frame ${st.calls})`, st.sceneCalls <= 100 ? C.bone : C.ember],
-    [`triangles ${k(st.sceneTriangles)}  (frame ${k(st.triangles)})`, st.sceneTriangles <= 150000 ? C.bone : C.ember],
-    [`${st.internal[0]}x${st.internal[1]} ${v.pixel ? 'pixel pass' : 'no pass'}`, v.pixel ? C.cyan : C.amber],
-  ];
-  let pw = 0;
-  for (const [t] of perf) pw = Math.max(pw, textWidth(t));
-  ui.panel(ui.w - pw - 16, 4, pw + 12, 8 + perf.length * 11, 'glass');
-  perf.forEach(([t, c], i) => ui.text(t, ui.w - 10, 9 + i * 11, c, { align: 'right', shadow: C.ink }));
+  // ---------------------------------------------------------------- top bar
 
-  // camera preset, under the perf panel (centred at the top it ran into the lake panel at 1024 wide)
-  const cam = v.rig.preset === 'free' ? 'camera: free' : `camera: ${v.rig.preset}`;
-  ui.text(cam, ui.w - 10, 16 + perf.length * 11, C.fog, { align: 'right', shadow: C.ink });
-
-  // bottom left: the bands
-  const legendY = ui.h - (s.showKeys ? 52 : 40);
-  ui.panel(4, legendY, 84, 36, 'glass');
-  BANDS.forEach((b, i) => {
-    ui.fill(9, legendY + 6 + i * 10, 6, 6, BAND_COLOR[b.id]);
-    ui.text(BAND_LABEL[b.id], 19, legendY + 5 + i * 10, C.bone, { shadow: C.ink });
-  });
-
-  // station tags near the camera: band and hook depth above each band ring
-  if (v.rig.pose.dist < 45 && !v.rig.underwater) {
-    for (const st2 of g.stations) {
-      const p = v.project(st2.hookX, st2.hookY, 0);
-      if (!p) continue;
-      const sx = Math.round(p.x / (ui.ctx.canvas.clientWidth / ui.w)), sy = Math.round(p.y / (ui.ctx.canvas.clientHeight / ui.h));
-      const label = `${st2.band.toUpperCase()} ${st2.hookDepth.toFixed(1)} m`;
-      const tw = textWidth(label) + 6;
-      if (sx - tw / 2 < 2 || sx + tw / 2 > ui.w - 2 || sy < 70 || sy > ui.h - 60) continue;
-      ui.panel(sx - tw / 2, sy - 22, tw, 12, 'dark', false);
-      ui.text(label, sx, sy - 20, BAND_COLOR[st2.band], { align: 'center' });
+  private topBar() {
+    const { ui, game: g } = this.app;
+    ui.panel(0, 0, ui.w, BAR_H);
+    let x = 6;
+    const y = 5;
+    const item = (s: string, col: string, tip: string) => {
+      const w = textWidth(s);
+      ui.text(s, x, y, col, { shadow: C.ink });
+      if (ui.hover(x - 2, 0, w + 4, BAR_H)) ui.tip([{ text: tip }]);
+      x += w + 12;
+    };
+    item(ICON.coin + ' ' + g.money, C.gold, 'Money. From selling fish and from every thief you stop. Spend it on worms, the worm bed and a better rod.');
+    item('Crates ' + g.crates + '/' + RULES.crates, g.crates <= 5 ? C.ember : C.shell, 'The season\'s catch in the smokehouse. Thieves carry crates off; stop a thief on its way out and you get them back. At 0 the season is over.');
+    item('Worms ' + g.worms + (g.wormBed ? ' (bed)' : ''), C.rose, 'Bait. Every fish you catch takes a worm, and so does every lure on the road.' + (g.wormBed ? ` The worm bed makes one every ${WORMS.period} s.` : ''));
+    item('Rod ' + g.rodTier, C.mist, `${g.rod.name}: casts ${g.rod.range} tiles, lands ${g.rod.line} fish, reel x${g.rod.reel}.`);
+    // the wave clock
+    const wave = g.phase === 'build'
+      ? `Wave ${g.wave + 1}/${WAVES.length} in ${Math.ceil(g.phaseTime)}s`
+      : `Wave ${g.wave}/${WAVES.length}: ${g.spawnQueue.length + g.thieves.filter((t) => t.mode !== 'dead' && t.mode !== 'gone').length} thieves`;
+    item(wave, g.phase === 'wave' ? C.ember : C.bone, g.phase === 'build' ? this.nextWaveTip() : 'Thieves are on the road. Fishing runs at half speed while you watch them.');
+    // right side: call early, pause, speed
+    const a = this.app;
+    let rx = ui.w - 4;
+    const btn = (id: string, w: number, label: string, tip: string, active = false) => {
+      rx -= w;
+      const hit = ui.button(id, rx, 2, w, BAR_H - 4, label, { tip, active });
+      rx -= 3;
+      return hit;
+    };
+    if (btn('speed', 22, 'x' + a.speed, 'Game speed (Tab).', a.speed > 1)) a.speed = a.speed >= 3 ? 1 : a.speed + 1;
+    if (btn('pause', 22, a.paused ? '>' : 'II', 'Pause (Space).', a.paused)) a.paused = !a.paused;
+    if (g.phase === 'build') {
+      const bonus = g.callBonus();
+      const label = 'Send wave' + (bonus ? ' +$' + bonus : '');
+      if (btn('call', textWidth(label) + 12, label, 'Start the next wave now (N) and take a bonus for the time left on the clock.')) a.act({ k: 'call' });
     }
   }
 
-  // bottom: the keys
-  if (s.showKeys) {
-    const keys = '1-4 camera   drag orbit   right-drag pan   wheel zoom   P pixel   V sonar   H hud   Space pause';
-    ui.panel(4, ui.h - 15, Math.min(ui.w - 8, textWidth(keys) + 10), 12, 'dark', false);
-    ui.text(keys, 9, ui.h - 13, C.fog);
+  private nextWaveTip(): string {
+    const g = this.app.game;
+    const w = WAVES[g.wave];
+    if (!w) return '';
+    const who = w.groups.map(([id, n]) => `${n} ${THIEVES[id].name.toLowerCase()}${n > 1 ? 's' : ''}`).join(', ');
+    return `Next: ${who}. Fish, sell and deploy until the clock runs out.`;
+  }
+
+  // ---------------------------------------------------------------- live well
+
+  private liveWell() {
+    const a = this.app, { ui, game: g } = a;
+    const n = g.liveWell.length;
+    const W = n * 26 + 8, x = 4, y = ui.h - PANEL_H - 4;
+    ui.panel(x, y, W, PANEL_H);
+    const used = g.liveWell.filter(Boolean).length;
+    ui.text(`Live well ${used}/${n}`, x + 5, y + 4, used === n ? C.ember : C.bone);
+    if (ui.hover(x, y, W, 12)) ui.tip([{ text: 'Your catch. Click a fish (or press 1-6), then sell it or deploy it. A full live well stops your fishing.' }]);
+    for (let i = 0; i < n; i++) {
+      const sx = x + 4 + i * 26, sy = y + 15;
+      const s = g.liveWell[i];
+      const sel = a.selected === i;
+      const hov = ui.hover(sx, sy, 24, 25);
+      ui.fill(sx, sy, 24, 25, sel ? C.blue : hov && s ? C.iron : C.night);
+      ui.fill(sx, sy, 24, 1, sel ? C.sky : C.slate);
+      ui.block(sx, sy, 24, 25);
+      if (s) {
+        const sh = sheet(s);
+        drawSprite(ui.ctx, sh, 0, sx + 12 - Math.floor(sh.w / 2) + sh.ax, sy + 13 - Math.floor(sh.h / 2) + sh.ay);
+        if (hov) ui.tip(this.fishTip(s));
+        if (hov && ui.clicked) { ui.eat(); a.pick(i); a.audio.sfx('click'); }
+      }
+      ui.text(String(i + 1), sx + 2, sy + 1, s ? C.ash : C.iron);
+    }
+    // the picked fish's choice
+    if (a.selected !== null && g.liveWell[a.selected]) {
+      const s = g.liveWell[a.selected]!;
+      const sp = SPECIES[s], d = DEFENDERS[s];
+      const label = sp.name + ': ' + (d.kind === 'mine' ? 'mine' : d.kind === 'zap' ? 'zapper' : 'wall');
+      const bw = Math.max(W, textWidth(label) + 10);
+      const by = y - 36;
+      ui.panel(x, by, bw, 34);
+      ui.text(label, x + 5, by + 4, C.gold);
+      if (ui.button('sell', x + 4, by + 15, 60, 16, `Sell $${sp.sell}`, { tip: `Sell it now for $${sp.sell} (X).` })) a.sellSelected();
+      const dep = a.mode.k === 'deploy';
+      if (ui.button('deploy', x + 68, by + 15, 60, 16, dep ? 'Cancel' : 'Deploy', { active: dep, tip: this.deployTip(s) })) a.deploySelected();
+    }
+  }
+
+  private fishTip(s: SpeciesId): TipLine[] {
+    const sp = SPECIES[s], d = DEFENDERS[s];
+    return [
+      { text: sp.name + ' (' + sp.real + ')', color: C.gold },
+      { text: d.job },
+      { text: `Sells for $${sp.sell}. ${d.hp} HP.`, color: C.ash },
+    ];
+  }
+
+  private deployTip(s: SpeciesId): string {
+    const d = DEFENDERS[s];
+    return d.place === 'road'
+      ? 'Deploy (F): put it on any road tile. Walkers stop and chew; gulls fly over.'
+      : `Deploy (F): light shallow water within ${d.maxRoadDist} tile${d.maxRoadDist > 1 ? 's' : ''} of the road. The lit tiles are where it fits.`;
+  }
+
+  // ---------------------------------------------------------------- shop
+
+  private shop() {
+    const a = this.app, { ui, game: g } = a;
+    const W = 168, x = ui.w - W - 4, y = ui.h - PANEL_H - 4;
+    ui.panel(x, y, W, PANEL_H);
+    const bed = g.price('wormbed'), rod = g.price('rod'), pack = g.price('worms')!;
+    const bw = 78, bh = 18;
+    if (ui.button('bed', x + 4, y + 4, bw, bh, bed === null ? 'Worm bed' : `Worm bed $${bed}`, {
+      disabled: bed === null || g.money < bed,
+      tip: bed === null ? `Your worm bed makes a worm every ${WORMS.period} s.` : `Dig a worm bed: a worm every ${WORMS.period} s, for good. Bait for fishing and for lures.`,
+    })) a.act({ k: 'buy', item: 'wormbed' });
+    const next = RODS[g.rodTier];
+    if (ui.button('rod', x + 86, y + 4, bw, bh, rod === null ? 'Surf rod' : `Surf rod $${rod}`, {
+      disabled: rod === null || g.money < rod,
+      tip: next ? `${next.name}: casts ${next.range} tiles (reaches the point), lands turtles, reel x${next.reel}.` : 'Your best rod.',
+    })) a.act({ k: 'buy', item: 'rod' });
+    if (ui.button('pack', x + 4, y + 24, bw, bh, `${WORMS.packSize} worms $${pack}`, { disabled: g.money < pack, tip: 'A pack of worms from the bait shop.' })) a.act({ k: 'buy', item: 'worms' });
+    const lure = a.mode.k === 'lure';
+    if (ui.button('lure', x + 86, y + 24, bw, bh, lure ? 'Cancel' : 'Lure (L)', { active: lure, disabled: g.worms < 1 && !lure, tip: 'Cast a worm onto the road in reach. Raccoons and bears within 4 tiles leave the road to eat it. Shift-click to cast more.' })) a.toggleLure();
+  }
+
+  // ---------------------------------------------------------------- status line
+
+  private status() {
+    const a = this.app, { ui, game: g } = a;
+    const left = 4 + g.liveWell.length * 26 + 8 + 4, right = ui.w - 168 - 8;
+    const W = right - left;
+    if (W < 60) return;
+    const y = ui.h - PANEL_H - 4;
+    ui.panel(left, y, W, PANEL_H);
+    let l1: string, l2 = '', c1: string = C.bone;
+    if (a.mode.k === 'deploy') {
+      const s = g.liveWell[a.mode.slot]!;
+      l1 = `Deploy the ${SPECIES[s].name.toLowerCase()}: click a lit tile.`;
+      l2 = 'Right-click or Esc to cancel.';
+      c1 = C.gold;
+    } else if (a.mode.k === 'lure') {
+      l1 = 'Cast a worm: click a pink road tile.';
+      l2 = 'Right-click or Esc to cancel.';
+      c1 = C.rose;
+    } else if (!g.fishing) {
+      l1 = FIRST_HINT;
+    } else {
+      const block = g.fishBlock();
+      l1 = 'Fishing: ' + g.zoneName(g.fishZone) + (g.phase === 'wave' ? ' (half speed)' : '');
+      if (block) { l2 = block + '.'; c1 = C.ember; }
+      else l2 = g.biteTable().map((b) => `${SPECIES[b.s].name} ${b.rate ? b.rate.toFixed(1) + '/min' : '(' + b.why + ')'}`).join(', ');
+    }
+    const lines = [...wrapText(l1, W - 10), ...(l2 ? wrapText(l2, W - 10) : [])].slice(0, 4);
+    lines.forEach((s, i) => ui.text(s, left + 5, y + 4 + i * LINE_H, i === 0 ? c1 : C.ash));
+  }
+
+  // ---------------------------------------------------------------- the board under the mouse
+
+  private boardTip() {
+    const a = this.app, { ui, game: g } = a;
+    const h = a.hover;
+    if (!h || ui.captured || a.mode.k !== 'idle') return;
+    const near = (x: number, y: number) => Math.hypot(x - h.x - 0.5, y - h.y - 0.5) < 0.8;
+    const t = g.thieves.find((q) => q.mode !== 'dead' && q.mode !== 'gone' && near(q.x, q.y));
+    if (t) {
+      const d = THIEVES[t.kind];
+      const doing = t.mode === 'eat' ? 'Eating a worm.' : t.mode === 'queue' ? 'Waiting for the worm.' : t.mode === 'chew' ? 'Chewing a turtle.' : t.mode === 'toLure' ? 'Going for the worm!' : t.dir < 0 ? `Making off with ${t.carrying} crate${t.carrying === 1 ? '' : 's'}.` : 'Heading for the smokehouse.';
+      ui.tip([{ text: `${d.name}  ${Math.ceil(t.hp)}/${d.hp} HP`, color: C.ember }, { text: doing }, { text: d.note, color: C.ash }]);
+      return;
+    }
+    const d = g.defenders.find((q) => q.x === h.x && q.y === h.y);
+    if (d) {
+      ui.tip([{ text: `${SPECIES[d.species].name}  ${Math.ceil(d.hp)}/${d.maxHp} HP`, color: C.gold }, { text: DEFENDERS[d.species].job }]);
+      return;
+    }
+    const tile = g.world.at(h.x, h.y);
+    if (isWater(tile)) {
+      const z = g.world.zone[g.world.idx(h.x, h.y)];
+      const lines: TipLine[] = [{ text: g.zoneName(z), color: C.ice }];
+      if (z) lines.push({ text: 'Bites: ' + g.biteTable(z).map((b) => `${SPECIES[b.s].name} ${b.rate ? b.rate.toFixed(1) + '/min' : '(' + b.why + ')'}`).join(', ') });
+      else lines.push({ text: 'Nothing bites out here yet.', color: C.ash });
+      if (isSlot(g.world, h.x, h.y)) {
+        const dist = g.world.roadDist[g.world.idx(h.x, h.y)];
+        lines.push({ text: dist <= 1 ? 'A slot: pufferfish or eel.' : 'A slot: eel only (pufferfish need the road within 1).', color: C.lime });
+      } else if (tile === Tile.Reeds) lines.push({ text: 'Reeds: no room for a fish.', color: C.ash });
+      const reach = g.world.castDist(h.x, h.y) <= g.rod.range;
+      lines.push({ text: reach ? 'Click to cast here.' : `Out of reach (your rod casts ${g.rod.range} tiles).`, color: reach ? C.bone : C.ember });
+      ui.tip(lines);
+    } else if (tile === Tile.Road) {
+      ui.tip([{ text: 'The road', color: C.tan }, { text: 'Thieves walk it to the smokehouse. Turtles sit on it; lures land on it.' }]);
+    } else if (tile === Tile.House) {
+      ui.tip([{ text: 'The smokehouse', color: C.copper }, { text: `${g.crates} crates of the season's catch.` }]);
+    }
+  }
+
+  // ---------------------------------------------------------------- floaters, toast, banners
+
+  private floaters(dt: number) {
+    const a = this.app, { ui } = a;
+    const k = a.uiScale;
+    for (const f of a.floaters) {
+      f.t += a.paused || a.lesson ? 0 : dt;
+      const p = a.renderer.toScreen(f.x, f.y);
+      const y = p.y / k - f.t * 12;
+      ui.text(f.text, p.x / k, y, f.col, { align: 'center', shadow: C.ink });
+    }
+    a.floaters = a.floaters.filter((f) => f.t < 1.4);
+  }
+
+  private toast(dt: number) {
+    const a = this.app, { ui } = a;
+    if (!a.toast) return;
+    a.toast.t += dt;
+    if (a.toast.t > 2.5) { a.toast = null; return; }
+    const w = Math.min(ui.w - 20, textWidth(a.toast.text) + 14);
+    const lines = wrapText(a.toast.text, w - 10);
+    const h = lines.length * LINE_H + 8;
+    const x = Math.floor((ui.w - w) / 2), y = ui.h - PANEL_H - 12 - h;
+    ui.panel(x, y, w, h, 'dark', false);
+    lines.forEach((l, i) => ui.text(l, x + 5, y + 5 + i * LINE_H, C.shell));
+  }
+
+  private banner(title: string, sub: string) {
+    const { ui } = this.app;
+    const w = Math.max(textWidth(title) * 2, textWidth(sub)) + 24;
+    const x = Math.floor((ui.w - w) / 2), y = Math.floor(ui.h / 2) - 24;
+    ui.panel(x, y, w, 40, 'dark', false);
+    ui.text(title, ui.w / 2, y + 6, C.bone, { scale: 2, align: 'center', shadow: C.ink });
+    ui.text(sub, ui.w / 2, y + 26, C.ash, { align: 'center' });
+  }
+
+  private lessonCard() {
+    const a = this.app, { ui } = a;
+    const l = a.lesson!;
+    const w = Math.min(280, ui.w - 20);
+    const lines = wrapText(l.text, w - 16);
+    const h = 26 + lines.length * LINE_H + 26;
+    const x = Math.floor((ui.w - w) / 2), y = Math.max(BAR_H + 4, Math.floor((ui.h - h) / 2) - 30);
+    ui.fill(0, 0, ui.w, ui.h, C.ink, 0.35);
+    ui.panel(x, y, w, h);
+    ui.text(l.title, x + 8, y + 7, C.gold, { shadow: C.ink });
+    lines.forEach((s, i) => ui.text(s, x + 8, y + 22 + i * LINE_H, C.bone));
+    if (ui.button('lesson', x + w - 62, y + h - 22, 54, 16, 'Got it') || a.input.keyPressed('Enter') || a.input.keyPressed('Escape')) {
+      a.lesson = null;
+      a.input.pressed.delete('Escape');
+    }
+  }
+
+  // ---------------------------------------------------------------- title and end
+
+  private title() {
+    const a = this.app, { ui } = a;
+    ui.fill(0, 0, ui.w, ui.h, C.ink, 0.45);
+    const w = Math.min(300, ui.w - 20);
+    const lines = TITLE.lines.flatMap((s) => wrapText(s, w - 20));
+    const save = a.hasSave();
+    const h = 50 + lines.length * LINE_H + 34;
+    const x = Math.floor((ui.w - w) / 2), y = Math.floor((ui.h - h) / 2);
+    ui.panel(x, y, w, h);
+    ui.text(TITLE.name, ui.w / 2, y + 10, C.gold, { scale: 3, align: 'center', shadow: C.rust });
+    lines.forEach((s, i) => ui.text(s, ui.w / 2, y + 44 + i * LINE_H, i < wrapText(TITLE.lines[0], w - 20).length ? C.bone : C.mist, { align: 'center' }));
+    const by = y + h - 24;
+    if (save) {
+      if (ui.button('continue', x + w / 2 - 98, by, 92, 18, 'Continue')) a.continueRun();
+      if (ui.button('new', x + w / 2 + 6, by, 92, 18, 'New season')) a.newRun();
+    } else if (ui.button('new', x + w / 2 - 50, by, 100, 18, 'Start fishing') || a.input.keyPressed('Enter')) a.newRun();
+    ui.text('Back Bay, a brackish shore. Placeholder art.', ui.w / 2, ui.h - 12, C.ash, { align: 'center', shadow: C.ink });
+  }
+
+  private endScreen() {
+    const a = this.app, { ui, game: g } = a;
+    const won = g.phase === 'won';
+    const st = g.stats;
+    const caught = g.caught.puffer + g.caught.eel + g.caught.turtle;
+    const rows = [
+      won ? `${g.crates} of ${RULES.crates} crates saved.` : `Lost on wave ${g.wave} of ${WAVES.length}.`,
+      `Fish caught: ${caught} (${g.caught.puffer} puffer, ${g.caught.eel} eel, ${g.caught.turtle} turtle).`,
+      `Deployed ${st.deployed}, sold ${st.sold}. Lures cast: ${st.lures}.`,
+      `Thieves stopped: ${st.killed}. Reached the smokehouse: ${st.leaks}.`,
+      `Crates taken back from fleeing thieves: ${st.recovered}.`,
+    ];
+    const w = Math.min(300, ui.w - 20), h = 34 + rows.length * LINE_H + 30;
+    const x = Math.floor((ui.w - w) / 2), y = Math.floor((ui.h - h) / 2);
+    ui.fill(0, 0, ui.w, ui.h, C.ink, 0.4);
+    ui.panel(x, y, w, h);
+    ui.text(won ? 'The season\'s catch is safe' : 'The smokehouse is empty', ui.w / 2, y + 8, won ? C.gold : C.ember, { scale: 1, align: 'center', shadow: C.ink });
+    rows.forEach((s, i) => ui.text(s, x + 10, y + 26 + i * LINE_H, i === 0 ? C.bone : C.mist));
+    if (ui.button('again', x + w / 2 - 50, y + h - 24, 100, 18, 'Fish again') || a.input.keyPressed('Enter')) a.newRun();
+  }
+
+  private debugLine() {
+    const a = this.app, { ui, game: g } = a;
+    const s = `fps ${a.loop.fps.toFixed(0)}  tick ${g.tick}  ms ${a.loop.tickMs.toFixed(2)}/${a.loop.frameMs.toFixed(2)}  zoom ${a.renderer.cam.zoom}  ui ${a.uiScale}  thieves ${g.thieves.length}`;
+    ui.fill(0, BAR_H, textWidth(s) + 8, 11, C.ink, 0.8);
+    ui.text(s, 4, BAR_H + 1, C.lime);
+    void rgba;
   }
 }

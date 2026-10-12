@@ -1,5 +1,5 @@
-// The sim is pure (CLAUDE.md): nothing under src/sim/, and nothing it imports, may import three or
-// touch the DOM, timers or audio. The test follows every relative import from src/sim/ and checks
+// The sim is pure (CLAUDE.md): nothing under src/sim/, and nothing it imports, may touch the DOM,
+// canvas, timers or audio. The test follows every relative import from src/sim/ and checks
 // each file it reaches, so a pure-looking import of a browser module is caught too (the first
 // review found Game.ts taking DT from the rAF loop).
 import { describe, expect, it } from 'vitest';
@@ -38,10 +38,9 @@ describe('sim purity', () => {
     expect(REACHED.length).toBeGreaterThan(SIM.length);
   });
   for (const f of REACHED) {
-    it(`${f.replace(/\\/g, '/')} imports no three and uses no browser APIs`, () => {
+    it(`${f.replace(/\\/g, '/')} uses no browser APIs`, () => {
       const src = strip(fs.readFileSync(f, 'utf8'));
-      expect(src).not.toMatch(/from\s+['"]three/);
-      expect(src).not.toMatch(/\b(window|document|requestAnimationFrame|cancelAnimationFrame|setTimeout|setInterval|AudioContext|localStorage|performance)\b/);
+      expect(src).not.toMatch(/\b(window|document|requestAnimationFrame|cancelAnimationFrame|setTimeout|setInterval|AudioContext|localStorage|performance|HTMLCanvasElement|CanvasRenderingContext2D|Image)\b/);
       expect(f.replace(/\\/g, '/')).not.toMatch(/src\/(render|app|ui)\//);
     });
   }

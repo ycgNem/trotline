@@ -44,7 +44,8 @@ export class UI {
     this.auditLog.push({ kind, x, y, w, h, s, clip: this.clips[this.clips.length - 1], layer: this.auditLayer, seq: this.auditLog.length });
   }
 
-  begin(ctx: CanvasRenderingContext2D, input: Input, scale: number, dt: number) {
+  /** Start a UI frame. With `clear` false the UI draws over what is already on the canvas. */
+  begin(ctx: CanvasRenderingContext2D, input: Input, scale: number, dt: number, clear = true) {
     this.ctx = ctx;
     this.input = input;
     this.scale = scale;
@@ -68,9 +69,14 @@ export class UI {
       this.clips = [];
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    if (clear) ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     ctx.setTransform(scale, 0, 0, scale, 0, 0);
     ctx.imageSmoothingEnabled = false;
+  }
+
+  /** Is this UI-pixel point under something the last finished frame drew? (Call before begin.) */
+  blockedAt(x: number, y: number) {
+    return this.blocks.some((b) => x >= b.x && y >= b.y && x < b.x + b.w && y < b.y + b.h);
   }
 
   /** mouse captured by UI drawn this frame (call after drawing) */

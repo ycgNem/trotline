@@ -43,26 +43,30 @@ describe('saves', () => {
 });
 
 describe('event queue', () => {
-  it('drains oldest first and caps its length', () => {
+  it('drains oldest first and caps its length by dropping the oldest', () => {
     const q = new EventQueue();
     q.max = 3;
     for (let i = 0; i < 5; i++) q.push({ type: 't', tick: i });
-    expect(q.drain().map((e) => e.tick)).toEqual([0, 1, 2]);
+    expect(q.drain().map((e) => e.tick)).toEqual([2, 3, 4]);
     expect(q.length).toBe(0);
   });
 });
 
 describe('font', () => {
   // every literal the HUD can draw must be in the glyph table (an unknown char draws as '?')
-  it('covers the HUD strings', () => {
-    const src = fs.readFileSync('src/app/hud.ts', 'utf8');
+  it('covers the HUD strings and every name and line in the data', () => {
+    const files = ['src/app/hud.ts', 'src/app/app.ts', ...fs.readdirSync('src/data').map((f) => 'src/data/' + f)];
+    // derivation strings are for DESIGN.md, never drawn
+    const src = files.map((f) => fs.readFileSync(f, 'utf8')).join('\n')
+      .replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '').replace(/\s\/\/ .*$/gm, '')
+      .split('\n').filter((l) => !l.includes('derivation:')).join('\n');
     const literals = [...src.matchAll(/'([^'\\]*)'|`([^`]*)`/g)].map((m) => (m[1] ?? m[2]).replace(/\$\{[^}]*\}/g, ''));
     const chars = new Set(literals.join('') + '0123456789.:-x%°');
     for (const ch of chars) {
       if (ch === "'" || ch === '\\' || /\s/.test(ch)) continue;
       expect(hasGlyph(ch), `glyph for ${JSON.stringify(ch)}`).toBe(true);
     }
-    expect(textWidth('Water 22.4°C')).toBeGreaterThan(0);
+    expect(textWidth('Crates 20/20')).toBeGreaterThan(0);
   });
 });
 
