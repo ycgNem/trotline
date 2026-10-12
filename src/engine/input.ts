@@ -4,7 +4,7 @@
 export const ACTIONS = [
   'panUp', 'panDown', 'panLeft', 'panRight', 'zoomIn', 'zoomOut',
   'slot1', 'slot2', 'slot3', 'slot4', 'slot5', 'slot6',
-  'sell', 'deploy', 'lure', 'callWave', 'cancel', 'pause', 'faster', 'hud', 'debug',
+  'sell', 'deploy', 'lure', 'callWave', 'cancel', 'pause', 'faster', 'help', 'mute', 'hud', 'debug',
 ] as const;
 export type Action = (typeof ACTIONS)[number];
 
@@ -17,7 +17,7 @@ export const ACTION_LABELS: Record<Action, string> = {
   panUp: 'Pan up', panDown: 'Pan down', panLeft: 'Pan left', panRight: 'Pan right', zoomIn: 'Zoom in', zoomOut: 'Zoom out',
   slot1: 'Live well slot 1', slot2: 'Live well slot 2', slot3: 'Live well slot 3', slot4: 'Live well slot 4', slot5: 'Live well slot 5', slot6: 'Live well slot 6',
   sell: 'Sell the picked fish', deploy: 'Deploy the picked fish', lure: 'Cast a worm lure on the road', callWave: 'Call the next wave early',
-  cancel: 'Cancel', pause: 'Pause', faster: 'Fast forward (toggle)', hud: 'HUD on/off', debug: 'Debug readout',
+  cancel: 'Cancel', pause: 'Pause', faster: 'Fast forward (toggle)', help: 'Help and keys', mute: 'Sound on/off', hud: 'HUD on/off', debug: 'Debug readout',
 };
 
 export const DEFAULT_BINDS: Record<Action, string[]> = {
@@ -25,7 +25,7 @@ export const DEFAULT_BINDS: Record<Action, string[]> = {
   zoomIn: ['Equal', 'NumpadAdd', 'KeyE'], zoomOut: ['Minus', 'NumpadSubtract', 'KeyQ'],
   slot1: ['Digit1'], slot2: ['Digit2'], slot3: ['Digit3'], slot4: ['Digit4'], slot5: ['Digit5'], slot6: ['Digit6'],
   sell: ['KeyX'], deploy: ['KeyF'], lure: ['KeyL'], callWave: ['KeyN'], cancel: ['Escape'],
-  pause: ['Space', 'KeyP'], faster: ['Tab'], hud: ['KeyH'], debug: ['Backquote'],
+  pause: ['Space', 'KeyP'], faster: ['Tab'], help: ['Slash', 'F1'], mute: ['KeyM'], hud: ['KeyH'], debug: ['Backquote'],
 };
 
 export function keyLabel(code: string): string {
@@ -64,7 +64,7 @@ export class Input {
       this.down.add(e.code);
       this.ctrl = e.ctrlKey || e.metaKey;
       this.shift = e.shiftKey;
-      if (e.code === 'Tab' || e.code === 'Space' || e.code.startsWith('Arrow') || e.code === 'Backquote') e.preventDefault();
+      if (e.code === 'Tab' || e.code === 'Space' || e.code.startsWith('Arrow') || e.code === 'Backquote' || e.code === 'F1' || e.code === 'Slash') e.preventDefault();
     });
     window.addEventListener('keyup', (e) => {
       this.down.delete(e.code);

@@ -19,6 +19,21 @@ import { Tile, isWater } from '../sim/world';
 import type { TipLine } from '../ui/ui';
 
 const BAR_H = 18;
+
+/** The help card: [keys, what they do]. */
+const HELP: [string, string][] = [
+  ['Goal', 'Keep crates in the smokehouse through 8 waves of hungry thieves.'],
+  ['Click', 'Cast into the water near the dock. Every catch takes a worm.'],
+  ['1-6', 'Pick a fish in the live well.'],
+  ['X', 'Sell it for money.'],
+  ['F', 'Deploy it: pale water by the road for pufferfish and eels, the road itself for a turtle.'],
+  ['L', 'Cast a worm on the road. Raccoons and bears stop to eat it. Shift-click for more.'],
+  ['N', 'Send the next wave early for a bonus.'],
+  ['Space', 'Pause. Tab speeds up (x1 to x3).'],
+  ['Esc', 'Cancel (or right-click).'],
+  ['Wheel', 'Zoom (or Q / E); WASD or the arrows pan.'],
+  ['M / H', 'Sound on or off / hide the HUD.'],
+];
 const PANEL_H = 44;
 
 export class Hud {
@@ -28,7 +43,7 @@ export class Hud {
     const a = this.app;
     if (a.screen === 'title') return this.title();
     // floating numbers belong to the live board, not under a card or the end screen
-    if (a.screen === 'play' && !a.lesson) this.floaters(dt);
+    if (a.screen === 'play' && !a.lesson && !a.help) this.floaters(dt);
     if (a.screen === 'play') {
       this.topBar();
       this.liveWell();
@@ -38,6 +53,7 @@ export class Hud {
       if (a.paused && !a.lesson) this.banner('Paused', 'Space to carry on');
       this.toast(dt);
       if (a.lesson) this.lessonCard();
+      else if (a.help) this.helpCard();
     } else this.endScreen();
     if (a.debug) this.debugLine();
   }
@@ -73,6 +89,7 @@ export class Hud {
       rx -= 3;
       return hit;
     };
+    if (btn('help', 18, '?', 'Help and keys (/).', a.help)) a.help = !a.help;
     if (btn('speed', 22, 'x' + a.speed, 'Game speed (Tab).', a.speed > 1)) a.speed = a.speed >= 3 ? 1 : a.speed + 1;
     if (btn('pause', 22, a.paused ? '>' : 'II', 'Pause (Space).', a.paused)) a.paused = !a.paused;
     if (g.phase === 'build') {
@@ -292,6 +309,25 @@ export class Hud {
     }
   }
 
+  private helpCard() {
+    const a = this.app, { ui } = a;
+    const w = Math.min(330, ui.w - 20);
+    const rows = HELP.flatMap(([k, t]) => {
+      const lines = wrapText(t, w - 76);
+      return lines.map((l, i) => [i === 0 ? k : '', l] as const);
+    });
+    const h = 24 + rows.length * LINE_H + 26;
+    const x = Math.floor((ui.w - w) / 2), y = Math.max(BAR_H + 2, Math.floor((ui.h - h) / 2) - 20);
+    ui.fill(0, 0, ui.w, ui.h, C.ink, 0.35);
+    ui.panel(x, y, w, h);
+    ui.text('How to fish this shore', x + 8, y + 7, C.gold, { shadow: C.ink });
+    rows.forEach(([k, t], i) => {
+      if (k) ui.text(k, x + 8, y + 22 + i * LINE_H, C.ice);
+      ui.text(t, x + 70, y + 22 + i * LINE_H, C.bone);
+    });
+    if (ui.button('helpClose', x + w - 62, y + h - 22, 54, 16, 'Close')) a.help = false;
+  }
+
   // ---------------------------------------------------------------- title and end
 
   private title() {
@@ -310,7 +346,7 @@ export class Hud {
       if (ui.button('continue', x + w / 2 - 98, by, 92, 18, 'Continue')) a.continueRun();
       if (ui.button('new', x + w / 2 + 6, by, 92, 18, 'New season')) a.newRun();
     } else if (ui.button('new', x + w / 2 - 50, by, 100, 18, 'Start fishing') || a.input.keyPressed('Enter')) a.newRun();
-    ui.text('Back Bay, a brackish shore. Placeholder art.', ui.w / 2, ui.h - 12, C.ash, { align: 'center', shadow: C.ink });
+    ui.text('Back Bay, a brackish shore.  Press / in play for help and keys.', ui.w / 2, ui.h - 12, C.ash, { align: 'center', shadow: C.ink });
   }
 
   private endScreen() {

@@ -26,7 +26,8 @@ const STATES = {
   full: () => { const a = window.__app; const g = a.game; g.liveWell = ['puffer', 'eel', 'turtle', 'eel', 'puffer', 'eel']; g.worms = 0; a.selected = 2; },
   lesson: () => { const a = window.__app; a.lesson = { on: 'firstDeploy', title: 'A fish on guard', text: 'Thieves walk the road to the smokehouse and carry off crates. Fish do the most where the road bends past them. Now press L and cast a worm onto the road beside your fish: raccoons leave the road to eat it.' }; },
   paused: () => { const a = window.__app; a.lesson = null; a.paused = true; },
-  won: () => { const a = window.__app; a.paused = false; a.game.phase = 'won'; a.screen = 'end'; },
+  help: () => { const a = window.__app; a.paused = false; a.help = true; },
+  won: () => { const a = window.__app; a.help = false; a.game.phase = 'won'; a.screen = 'end'; },
   lost: () => { const a = window.__app; a.game.phase = 'lost'; a.game.wave = 6; a.screen = 'end'; },
 };
 const out = 'e2e/out/screens';

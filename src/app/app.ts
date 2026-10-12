@@ -45,6 +45,7 @@ export class App {
   paused = false;
   speed = 1;
   showHud = true;
+  help = false;
   debug = false;
   floaters: Floater[] = [];
   toast: { text: string; t: number } | null = null;
@@ -134,17 +135,25 @@ export class App {
     try {
       const m = JSON.parse(store()?.getItem(META_KEY) ?? '{}');
       for (const s of m.seen ?? []) this.seen.add(s);
+      this.audio.muted = !!m.muted;
     } catch { /* a bad meta save just means the lessons show again */ }
   }
 
   private saveMeta() {
-    try { store()?.setItem(META_KEY, JSON.stringify({ seen: [...this.seen] })); } catch { /* private window */ }
+    try { store()?.setItem(META_KEY, JSON.stringify({ seen: [...this.seen], muted: this.audio.muted })); } catch { /* private window */ }
+  }
+
+  toggleMute() {
+    this.audio.muted = !this.audio.muted;
+    this.audio.applySettings(this.audio.vol);
+    this.saveMeta();
+    this.say(this.audio.muted ? 'Sound off (M).' : 'Sound on (M).');
   }
 
   // ---------------------------------------------------------------- the loop
 
   private tick() {
-    if (this.screen !== 'play' || this.paused || this.lesson || this.frozen) return;
+    if (this.screen !== 'play' || this.paused || this.lesson || this.help || this.frozen) return;
     for (let i = 0; i < this.speed; i++) {
       if (this.bot && this.game.tick % 10 === 0) this.bot.think();
       this.game.step();
@@ -169,10 +178,10 @@ export class App {
       lure: this.mode.k === 'lure',
       range: this.mode.k === 'idle' && !!this.hover && isWater(this.game.world.at(this.hover.x, this.hover.y)),
     };
-    this.renderer.draw(this.game, this.paused || this.lesson ? 0 : dt, ov);
+    this.renderer.draw(this.game, this.paused || this.lesson || this.help ? 0 : dt, ov);
     this.ui.begin(this.ctx, this.input, this.uiScale, dt, false);
     if (this.showHud || this.screen !== 'play') this.hud.draw(dt);
-    if (this.screen === 'play' && !this.lesson) this.worldClick();
+    if (this.screen === 'play' && !this.lesson && !this.help) this.worldClick();
     this.ui.end();
     this.input.endFrame();
     this.audio.update(0.3);
@@ -246,7 +255,10 @@ export class App {
   private keys() {
     const i = this.input;
     if (i.wasPressed('debug')) this.debug = !this.debug;
+    if (i.wasPressed('mute')) this.toggleMute();
     if (this.screen !== 'play') return;
+    if (i.wasPressed('help')) this.help = !this.help;
+    if (this.help) { if (i.wasPressed('cancel')) this.help = false; return; }
     if (this.lesson) return;
     if (i.wasPressed('pause')) this.paused = !this.paused;
     if (i.wasPressed('faster')) this.speed = this.speed >= 3 ? 1 : this.speed + 1;
