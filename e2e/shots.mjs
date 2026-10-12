@@ -6,10 +6,9 @@
 //        GPU=hw npm run shots     (the real GPU)
 import fs from 'node:fs';
 import { launch, openGame } from './launch.mjs';
+import { SHOT_TICKS } from './ticks.mjs';
 
 const PRESETS = ['overview', 'cove', 'dock', 'underwater-mid'];
-/** 34 s in: the sweep is on the school (428 of 500 seen) */
-export const SHOT_TICKS = 2040;
 const out = 'e2e/out/shots';
 fs.mkdirSync(out, { recursive: true });
 fs.mkdirSync('e2e/baseline', { recursive: true });
@@ -40,6 +39,11 @@ for (const p of PRESETS) {
   await frame(`${p}-raw`, { preset: p, pixel: false });
 }
 await frame('overview-allfish', { preset: 'overview', all: true });
+// the integer-upscale option (?pixels=int) for comparison: 240 lines at 720p
+await page.evaluate(() => { const a = window.__app; a.view.pipeline.integer = true; a.resize(); });
+await frame('overview-int', { preset: 'overview' });
+await frame('dock-int', { preset: 'dock' });
+await page.evaluate(() => { const a = window.__app; a.view.pipeline.integer = false; a.resize(); });
 
 // pixel-diff the overview against the stored baseline, in the page (no image library needed)
 const base = 'e2e/baseline/overview.png';
@@ -55,7 +59,7 @@ if (!fs.existsSync(base) || gpu !== 'swiftshader') {
     const [ia, ib] = await Promise.all([load(a), load(b)]);
     const c = document.createElement('canvas');
     c.width = ia.width; c.height = ia.height;
-    const x = c.getContext('2d');
+    const x = c.getContext('2d', { willReadFrequently: true });
     x.drawImage(ia, 0, 0);
     const da = x.getImageData(0, 0, c.width, c.height).data;
     x.clearRect(0, 0, c.width, c.height);

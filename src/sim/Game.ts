@@ -1,14 +1,14 @@
-// The proof of concept's simulation: a lake, a clock, one school and the rod stations' sonar.
+// The proof of concept's simulation: a lake, a clock, two schools and the rod stations' sonar.
 // Pure (no three, no DOM); stepped at 60 Hz by the engine loop, or as fast as a test likes.
-// Systems run in a fixed order each tick: clock -> school -> sonar. Vision (sonar) runs last
-// and anything that wants to know whether a fish is seen reads school.seen; nothing else tests cones.
-import { DT } from '../engine/loop';
+// Systems run in a fixed order each tick: clock -> schools -> sonar. Vision (sonar) runs last
+// and anything that wants to know whether a fish is seen reads school.seen; nothing else tests fans.
+import { DT } from '../engine/time';
 import { Rng } from '../engine/rng';
 import { EventQueue } from '../engine/events';
 import { BandId, POC_STATIONS } from '../data/lake';
 import { ROD_STATION, SONAR } from '../data/rigs';
-import { BIGHEAD, SchoolDef } from '../data/species';
-import { Lake, buildLake, depthAt, holdDepth, northShoreY } from './lake';
+import { POC_SCHOOLS, SchoolDef } from '../data/species';
+import { Lake, buildLake, depthAt, hookDepth, northShoreY } from './lake';
 import { Clock, clockTick, newClock } from './systems/clock';
 import { School, newSchool, schoolTick } from './systems/school';
 import { Sonar, newSonar, sonarTick } from './systems/sonar';
@@ -33,8 +33,9 @@ export interface Station {
 
 export interface GameOptions {
   seed?: number;
+  /** the first school's count (the perf test's knob); the others keep their own */
   fish?: number;
-  school?: SchoolDef;
+  schools?: SchoolDef[];
   /** the clock's start, minutes after midnight */
   startMinute?: number;
 }
@@ -47,7 +48,7 @@ export class Game {
   readonly events = new EventQueue();
   readonly clock: Clock;
   readonly stations: Station[];
-  readonly school: School;
+  readonly schools: School[];
   readonly sonar: Sonar;
 
   constructor(o: GameOptions = {}) {
@@ -56,8 +57,14 @@ export class Game {
     this.lake = buildLake();
     this.clock = newClock(o.startMinute ?? 8 * 60);
     this.stations = POC_STATIONS.map((s) => this.placeStation(s.x, s.band, s.sonar));
-    this.school = newSchool(o.school ?? BIGHEAD, o.fish ?? 500, new Rng(this.seed ^ 0x5eed), this.lake);
+    this.schools = (o.schools ?? POC_SCHOOLS).map((def, i) =>
+      newSchool(def, i === 0 && o.fish !== undefined ? o.fish : def.count, new Rng((this.seed ^ 0x5eed) + i * 7919), this.lake));
     this.sonar = newSonar(this.stations.filter((s) => s.sonar), SONAR);
+  }
+
+  /** the first school (bighead carp in the proof of concept) */
+  get school(): School {
+    return this.schools[0];
   }
 
   /** seconds of simulated time */
@@ -67,8 +74,8 @@ export class Game {
 
   step() {
     clockTick(this.clock, DT);
-    schoolTick(this.school, this.lake, this.time, DT);
-    sonarTick(this.sonar, this.school, this.time, DT, this.events, this.tick);
+    for (const s of this.schools) schoolTick(s, this.lake, this.time, DT);
+    sonarTick(this.sonar, this.schools, this.time, DT, this.events, this.tick);
     this.tick++;
   }
 
@@ -80,6 +87,8 @@ export class Game {
     const hookX = x + Math.cos(facing) * ROD_STATION.tipForward;
     const hookY = y + Math.sin(facing) * ROD_STATION.tipForward;
     const bed = depthAt(this.lake, hookX, hookY);
-    return { x, y, ground: Math.max(0, -depthAt(this.lake, x, y)), facing, band, hookX, hookY, hookDepth: holdDepth(band, bed), bed, sonar };
+    const hook = hookDepth(band, bed);
+    if (hook === null) throw new Error(`no ${band} band under the rod station at x ${x} (bed ${bed.toFixed(1)} m)`);
+    return { x, y, ground: Math.max(0, -depthAt(this.lake, x, y)), facing, band, hookX, hookY, hookDepth: hook, bed, sonar };
   }
 }

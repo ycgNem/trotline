@@ -43,7 +43,8 @@ https://threejs.org/docs/ and `node_modules/three/src` as the source of truth).
 8. **Transparency order** bites: anything transparent (water, sonar cones, salvinia) gets an
    explicit `renderOrder` and `depthWrite = false`. Sonar cones are additive-blended.
 9. **Resize and DPI**: `renderer.setPixelRatio(Math.min(devicePixelRatio, 2))`; the pixel pass
-   sets the internal resolution, so the window size only changes the upscale.
+   sets the internal resolution from a `pixelSize` you compute from the drawing buffer (see
+   "Found in r186"), so the window size only changes the upscale.
 10. **Dispose** geometries, materials and textures when a run ends; WebGL memory does not
     garbage-collect itself.
 11. **Perf budget**, measured by `e2e/perf.mjs` every milestone: ≤ 100 draw calls, ≤ 150k
@@ -65,12 +66,53 @@ shader; rigs animate by moving parts (a line dropping is a scaled cylinder).
 
 ## Testing 3D headlessly
 
-Playwright's Chromium has no GPU. Launch with
-`--use-angle=swiftshader --enable-unsafe-swiftshader` (and `--ignore-gpu-blocklist`);
-Claude verifies which flags the pinned Chromium needs on the first run and writes them into
-`e2e/launch.mjs`. Screenshots from **named camera presets** (`overview`, `cove`, `dock`,
-`underwater-mid`) so "does this look right" has fixed angles. Pixel-diff the overview preset
-against a stored baseline to catch rendering regressions. The sim is tested without three.
+*(Corrected 2026-10-12 after the first run; the original said Playwright's Chromium has no GPU
+and needs SwiftShader flags.)* On this PC Playwright 1.48.2's bundled Chromium (`chromium-1140`)
+does not start at all (`spawn UNKNOWN`), so `e2e/launch.mjs` uses the installed Chrome
+(`channel: 'chrome'`, 154). Its headless mode **does** use the GPU: with no flags it renders on the
+RTX 5070 (ANGLE D3D11). With `--use-angle=swiftshader --enable-unsafe-swiftshader
+--ignore-gpu-blocklist` it renders in software (ANGLE Vulkan on SwiftShader), which is the
+2020-laptop proxy and gives the same pixels on any machine, so shots and the baseline use it and
+perf measures both. Add `--disable-gpu-vsync --disable-frame-rate-limit` to measure past 60 fps.
+Screenshots from **named camera presets** (`overview`, `cove`, `dock`, `underwater-mid`) so "does
+this look right" has fixed angles, taken from a frozen, seeded sim (`__app.freeze(ticks)`; every
+shader animation reads sim time) so they are deterministic. The overview is pixel-diffed against
+`e2e/baseline/overview.png`. The sim is tested without three.
+
+## Found in r186 (2026-10-12)
+
+- **`RenderPixelatedPass` renders the scene twice**: once for colour and depth, once with a
+  `MeshNormalMaterial` override for the edge outline. A frame's draw calls and triangles are about
+  twice the scene's (plus two full-screen quads); the budget in rule 11 is per scene render, and
+  the HUD shows both. Our subclass (`src/render/pixel.ts`) leaves transparent objects out of the
+  normals render, or the water's and cones' normals draw edges over what is under them.
+- It sets its internal size as `floor(devicePixels / pixelSize)`: for exactly 270 lines, pass
+  `pixelSize = drawingBufferHeight / 270`. At 1280 x 720 that is a 2.667x upscale, so on-screen
+  pixels are 2 or 3 wide; integer at 1080p (4x).
+- It writes linear colour with no conversion, so `OutputPass` must follow it in the composer.
+- Its constructor reads `options.normalEdgeStrength || 0.3`: a 0 can't be passed in; set the
+  property after construction.
+- `@types/three` 0.186.0 still declares its internals as `beautyRenderTarget`, `fsQuad` etc.; the
+  r186 JavaScript renamed them `_beautyRenderTarget`, `_fsQuad`, `_normalMaterial`,
+  `_renderResolution`. Reach them through a cast, not the declared names.
+- **Anything thinner than an internal pixel breaks up** (at the overview one pixel is ~0.15 m):
+  a 3 cm fishing line turns into dots. Lines are drawn as GL lines, which stay exactly one pixel.
+- **Its edge shader compares raw perspective depth**, so with a near plane of 0.3 m a depth edge
+  at 86 m needs a ~250 m step and never fires. `TrotPixelPass` swaps in a copy that linearizes
+  depth (`perspectiveDepthToViewZ`) and thresholds the step relative to distance.
+- **A transparent `DoubleSide` material is drawn twice** (back faces, then front) unless
+  `forceSinglePass = true`. Anything made transparent only for draw order (the fish, drawn after
+  the water) pays double triangles without it.
+- `onBeforeCompile` programs are cached by the callback's source text: when one helper closure
+  injects different code into different materials, set `customProgramCacheKey` or two materials
+  share the wrong program.
+- Vertex colours are linear: convert palette hex with `color.setHex(hex, SRGBColorSpace)`.
+- With `flatShading`, Lambert takes the normal from screen derivatives, so face winding doesn't
+  matter for lighting; for a smooth bed under the pixel pass, give the mesh normals from the height
+  field, or the normal-edge outline draws every triangle seam.
+- Blender 5.2's glTF exporter writes `minFilter` NEAREST_MIPMAP_NEAREST for 'Closest' textures;
+  `art/rigs/build_rod_station.py` patches the glb's sampler to NEAREST (9728) so three builds no
+  mipmaps. The loader side forces Nearest too.
 
 ## Things that look like good ideas and aren't
 

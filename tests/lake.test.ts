@@ -3,7 +3,7 @@
 // the band each one fishes.
 import { describe, expect, it } from 'vitest';
 import { BANDS, LAKE, LAKE_GRID, charDepth } from '../src/data/lake';
-import { bandOf, bounds, buildLake, depthAt, holdDepth, northShoreY } from '../src/sim/lake';
+import { bandExists, bandOf, bounds, buildLake, depthAt, holdDepth, hookDepth, northShoreY } from '../src/sim/lake';
 import { Game } from '../src/sim/Game';
 
 const lake = buildLake();
@@ -44,6 +44,25 @@ describe('lake grid', () => {
     for (const b of BANDS) expect(max).toBeGreaterThan(b.contour);
   });
 
+  it('never overshoots: between grid points the bed stays within the cell corners', () => {
+    for (let r = 0; r + 1 < LAKE.rows; r++)
+      for (let c = 0; c + 1 < LAKE.cols; c++) {
+        const k = [LAKE_GRID[r][c], LAKE_GRID[r][c + 1], LAKE_GRID[r + 1][c], LAKE_GRID[r + 1][c + 1]].map(charDepth);
+        const lo = Math.min(...k), hi = Math.max(...k);
+        for (const fx of [0.25, 0.5, 0.75])
+          for (const fy of [0.25, 0.5, 0.75]) {
+            const d = depthAt(lake, LAKE.x0 + (c + fx) * LAKE.cell, LAKE.y0 + (r + fy) * LAKE.cell);
+            expect(d).toBeGreaterThanOrEqual(lo - 1e-6);
+            expect(d).toBeLessThanOrEqual(hi + 1e-6);
+          }
+      }
+  });
+
+  it('is flat between equal neighbours, so a band edge on the grid draws a straight contour', () => {
+    // the y -12 row from x -6 to +6 is all 8 m
+    for (let x = -6; x <= 6; x += 0.5) expect(depthAt(lake, x, -12)).toBeCloseTo(8, 6);
+  });
+
   it('bandOf and holdDepth agree with the band table', () => {
     expect(bandOf(1)).toBe('surface');
     expect(bandOf(3)).toBe('mid');
@@ -51,8 +70,26 @@ describe('lake grid', () => {
     expect(holdDepth('surface', 8)).toBe(1);
     expect(holdDepth('mid', 8)).toBe(3);
     expect(holdDepth('bottom', 8)).toBe(7);
-    // never below the bed in shallow water
-    expect(holdDepth('mid', 1.5)).toBeLessThan(1.5);
+    expect(hookDepth('bottom', 8)).toBeCloseTo(7.7, 6);
+  });
+
+  it('never puts a fish or a hook in the wrong band, at any bed depth (null where the band is absent)', () => {
+    for (const b of BANDS)
+      for (let bed = 0.3; bed <= 9.5; bed += 0.05) {
+        for (const f of [holdDepth, hookDepth]) {
+          const d = f(b.id, bed);
+          if (!bandExists(b.id, bed)) expect(d).toBeNull();
+          else {
+            expect(d).not.toBeNull();
+            expect(bandOf(d!)).toBe(b.id);
+            expect(d!).toBeLessThan(bed);
+          }
+        }
+      }
+    // the two cases the review found: a bottom fish over 4.5 m is in the bottom band; there is no
+    // mid band over 1.5 m
+    expect(bandOf(holdDepth('bottom', 4.5)!)).toBe('bottom');
+    expect(holdDepth('mid', 1.5)).toBeNull();
   });
 });
 

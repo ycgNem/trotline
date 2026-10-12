@@ -11,6 +11,11 @@ export class Lights {
   /** 0 night .. 1 full day, for the water's brightness and the sky */
   daylight = 1;
   sky = new THREE.Color();
+  // the palette colours it mixes, made once (set() runs every frame)
+  private k = {
+    bone: col(C.bone), gold: col(C.gold), ice: col(C.ice), cyan: col(C.cyan), deep: col(C.deep),
+    clay: col(C.clay), dusk: col(C.dusk), orange: col(C.orange), night: col(C.night),
+  };
 
   constructor(scene: THREE.Scene) {
     this.sun.name = 'sun';
@@ -29,17 +34,17 @@ export class Lights {
     if (elev > -0.1) {
       // azimuth swings east -> south -> west; keep the sun a little south so the bluff faces it
       this.sun.position.set(Math.cos(a) * 60, Math.max(8, elev * 90), 25);
-      this.sun.color.copy(col(C.bone)).lerp(col(C.gold), low * 0.7);
+      this.sun.color.copy(this.k.bone).lerp(this.k.gold, low * 0.7);
       this.sun.intensity = 0.4 + 2.0 * day;
     } else {
       // the moon: a cool low light from the south-west
       this.sun.position.set(-40, 50, 30);
-      this.sun.color.copy(col(C.ice));
+      this.sun.color.copy(this.k.ice);
       this.sun.intensity = 0.45;
     }
-    this.hemi.color.copy(col(C.cyan)).lerp(col(C.deep), 1 - day);
-    this.hemi.groundColor.copy(col(C.clay)).lerp(col(C.dusk), 1 - day);
+    this.hemi.color.copy(this.k.cyan).lerp(this.k.deep, 1 - day);
+    this.hemi.groundColor.copy(this.k.clay).lerp(this.k.dusk, 1 - day);
     this.hemi.intensity = 0.55 + 0.6 * day;
-    this.sky.copy(col(C.cyan)).lerp(col(C.orange), low * day * 0.5).lerp(col(C.night), 1 - day);
+    this.sky.copy(this.k.cyan).lerp(this.k.orange, low * day * 0.5).lerp(this.k.night, 1 - day);
   }
 }

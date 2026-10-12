@@ -38,6 +38,7 @@ export class App {
     this.game = new Game({ seed: this.seed, fish: this.fishCount });
     this.view = new View(canvas);
     if (params.get('pixel') === '0') this.view.pixel = false;
+    if (params.get('pixels') === 'int') this.view.pipeline.integer = true;
     this.hudCtx = hud.getContext('2d')!;
     this.input.attach(hud);
     this.ui.sfx = (id) => this.audio.sfx(id);
@@ -130,13 +131,13 @@ export class App {
     this.sonarOnly = on;
   }
 
-  /** A new school of n fish (same seed); grows the instanced mesh if needed. */
+  /** A first school of n fish (same seed, same time); grows its instanced mesh if needed. */
   setFishCount(n: number) {
     this.fishCount = n;
     const ticks = this.game.tick;
     this.game = new Game({ seed: this.seed, fish: n });
     for (let i = 0; i < ticks; i++) this.game.step();
-    if (n > this.view.fish.capacity) this.view.setFishCapacity(this.game, n);
+    if (n > this.view.fish[0].capacity) this.view.setFishCapacity(this.game, 0, n);
   }
 
   /**
@@ -158,6 +159,12 @@ export class App {
   }
 
   stats() {
-    return { fps: this.loop.fps, ...this.view.stats, fishSeen: this.game.school.seenCount, fishTotal: this.game.school.n, drawn: this.view.fish.drawn, rig: this.rigSource, preset: this.view.rig.preset };
+    const g = this.game;
+    return {
+      fps: this.loop.fps, ...this.view.stats,
+      fishSeen: g.schools.reduce((a, s) => a + s.seenCount, 0), fishTotal: g.schools.reduce((a, s) => a + s.n, 0),
+      seenBy: Object.fromEntries(g.schools.map((s) => [s.def.species, s.seenCount])),
+      drawn: this.view.fishDrawn, rig: this.rigSource, preset: this.view.rig.preset, integer: this.view.pipeline.integer,
+    };
   }
 }

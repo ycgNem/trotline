@@ -52,7 +52,7 @@ const fragmentShader = /* glsl */ `
     float ts = floor(d / 2.0) / 4.0;
     t = mix(t, clamp(ts + 0.08, 0.0, 1.0), uSteps);
     vec3 c = t < 0.5 ? mix(uShallow, uMid, t * 2.0) : mix(uMid, uDeep, (t - 0.5) * 2.0);
-    float a = mix(0.28, 0.58, t);
+    float a = mix(0.15, 0.58, t);
     // glints: where the two swells peak together, a pixel of sky
     float g = sin(vWorld.x * 4.1 + uTime * 1.1) * sin(vWorld.z * 3.7 - uTime * 0.8 + vWorld.x * 0.9);
     float g2 = sin(vWorld.x * 0.31 - vWorld.z * 0.27 + uTime * 0.2);
@@ -100,7 +100,7 @@ export function buildWater(l: Lake) {
       uTime: { value: 0 },
       uDepth: { value: null },
       uExtent: { value: new THREE.Vector4(x0, y0, w, h) },
-      uShallow: { value: col(C.cyan) },
+      uShallow: { value: col(C.sky) },
       uMid: { value: col(C.blue) },
       uDeep: { value: col(C.abyss) },
       uFoam: { value: col(C.ice) },
@@ -112,6 +112,8 @@ export function buildWater(l: Lake) {
   uniforms.uDepth.value = tex;
   const mat = new THREE.ShaderMaterial({
     uniforms, vertexShader, fragmentShader, transparent: true, depthWrite: false, side: THREE.DoubleSide, fog: true,
+    // one pass: a flat plane has nothing to sort against itself
+    forceSinglePass: true,
   });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.name = 'water';

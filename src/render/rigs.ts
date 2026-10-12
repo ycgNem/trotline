@@ -1,8 +1,10 @@
 // Rod stations from public/models/rigs.glb (built by art/rigs/build_rod_station.py in Blender).
 // Each station is a clone placed on the bank from the sim; its line drops from the rod tip to the
-// hook's band, where a ring in the band's colour marks the depth it fishes. The line is also drawn
-// as a GL line, which stays exactly one pixel wide through the pixel pass at any zoom (a 3 cm mesh
-// line is thinner than a pixel at 480x270 and would flicker away).
+// hook's band, where a ring in the band's colour marks the depth it fishes. Rigged the way they
+// are fished: a float rig (surface, mid) has its bobber floating at the surface and the hook hanging
+// below it; a bottom rig has no bobber and its sinker lying on the bed. The line and the rod blank
+// are also drawn as GL lines, which stay exactly one pixel wide through the pixel pass at any
+// zoom (a 3 cm line or a 4 cm blank is thinner than a pixel at 480x270 and breaks up).
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { BAND_COLOR, C } from '../data/palette';
@@ -94,12 +96,18 @@ function placeholder(): RigTemplate {
 export class RigsView {
   group = new THREE.Group();
   private lines: THREE.LineSegments;
+  private rods: THREE.LineSegments;
   /** world positions of each station's rod tip (for the sonar cone) */
   tips: THREE.Vector3[] = [];
 
   constructor(t: RigTemplate, stations: Station[]) {
     this.group.name = 'rigs';
     const linePos: number[] = [];
+    const rodPos: number[] = [];
+    const at = (st: THREE.Object3D, name: string, fallback: [number, number, number]) => {
+      const n = st.getObjectByName(name);
+      return n ? n.getWorldPosition(new THREE.Vector3()) : st.localToWorld(new THREE.Vector3(...fallback));
+    };
     for (const s of stations) {
       const st = t.root.clone(true);
       st.name = 'rod_station';
@@ -120,15 +128,29 @@ export class RigsView {
         line.scale.y = tip.y - hook.y;
         line.visible = false;
       }
+      const float = s.band !== 'bottom';
+      const bobber = st.getObjectByName('bobber');
+      if (bobber) {
+        bobber.visible = float;
+        // its centre on the water, where the line enters it
+        bobber.position.copy(st.worldToLocal(new THREE.Vector3(tip.x, 0, tip.z)));
+      }
       const sinker = st.getObjectByName('sinker');
       if (sinker) {
-        sinker.position.copy(sinker.parent!.worldToLocal(hook.clone()));
+        // a float rig's sinker sits just above the hook; a bottom rig's lies on the bed
+        const y = float ? hook.y + 0.15 : -s.bed + 0.08;
+        sinker.position.copy(st.worldToLocal(new THREE.Vector3(tip.x, y, tip.z)));
       }
-      linePos.push(tip.x, tip.y, tip.z, hook.x, hook.y, hook.z);
+      const end = float ? hook : new THREE.Vector3(tip.x, -s.bed + 0.08, tip.z);
+      linePos.push(tip.x, tip.y, tip.z, end.x, end.y, end.z);
+      // the blank as a polyline butt -> mid -> tip (node positions from the glb; the fallbacks are
+      // the same points measured from it)
+      const butt = at(st, 'rod_butt', [0, 1.036, 1.573]), mid = at(st, 'rod_mid', [0, 1.829, 2.666]);
+      rodPos.push(butt.x, butt.y, butt.z, mid.x, mid.y, mid.z, mid.x, mid.y, mid.z, tip.x, tip.y, tip.z);
       // the band marker: a flat ring in the band's colour at the hook
       const ring = new THREE.Mesh(
         new THREE.RingGeometry(0.3, 0.55, 20).rotateX(-Math.PI / 2),
-        new THREE.MeshBasicMaterial({ color: col(BAND_COLOR[s.band]), transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide }),
+        new THREE.MeshBasicMaterial({ color: col(BAND_COLOR[s.band]), transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide, forceSinglePass: true }),
       );
       ring.position.copy(hook);
       ring.renderOrder = 2;
@@ -141,5 +163,10 @@ export class RigsView {
     this.lines = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: col(C.bone) }));
     this.lines.name = 'fishing_lines';
     this.group.add(this.lines);
+    const rg = new THREE.BufferGeometry();
+    rg.setAttribute('position', new THREE.Float32BufferAttribute(rodPos, 3));
+    this.rods = new THREE.LineSegments(rg, new THREE.LineBasicMaterial({ color: col(C.iron) }));
+    this.rods.name = 'rod_blanks';
+    this.group.add(this.rods);
   }
 }

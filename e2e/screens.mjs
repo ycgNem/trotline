@@ -4,6 +4,7 @@
 // (report.md and PNGs). Needs the dev server. Usage: npm run screens
 import fs from 'node:fs';
 import { launch, openGame } from './launch.mjs';
+import { SHOT_TICKS } from './ticks.mjs';
 
 const SIZES = [[1280, 720], [1920, 1080], [1024, 640]];
 const PRESETS = ['overview', 'cove', 'dock', 'underwater-mid'];
@@ -23,9 +24,9 @@ for (const [w, h] of SIZES) {
     for (const all of [false, true]) {
       const name = `${w}x${h}-${p}${all ? '-all' : ''}`;
       await page.mouse.move(w - 1, h - 1);
-      await page.evaluate(([p, all]) => { const a = window.__app; a.setPreset(p); a.setSonarOnly(!all); a.freeze(2040); }, [p, all]);
+      await page.evaluate(([p, all, ticks]) => { const a = window.__app; a.setPreset(p); a.setSonarOnly(!all); a.freeze(ticks); }, [p, all, SHOT_TICKS]);
       // a second frozen frame: the audit keeps the last complete frame's records
-      await page.evaluate(() => window.__app.freeze(2040));
+      await page.evaluate((t) => window.__app.freeze(t), SHOT_TICKS);
       await page.screenshot({ path: `${out}/${name}.png` });
       const { issues, k } = await page.evaluate(() => {
         const ui = window.__app.ui;

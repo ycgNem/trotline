@@ -10,22 +10,22 @@ export const ROD_STATION = {
 };
 
 /**
- * A forward-looking sonar on the middle station. Real forward-facing units throw a fan a few tens
- * of degrees wide out to roughly 20-30 m in clear water; this one is a round cone (simpler to
- * read and to test) that sweeps side to side across the water in front of the bluff.
+ * A forward-facing live sonar on the middle station: a fan about 20 degrees wide side to side
+ * that sees every depth from straight ahead down to straight below (real units: ~20 x 135
+ * degrees). It pans side to side on its own across the water in front of the bluff. Real ones see
+ * 20-30 m in clear water; this lake is 60 x 40 m, so the range is compressed to what keeps vision
+ * scarce (the first review measured a 26 m round cone covering ~40% of the lake).
  */
 export const SONAR = {
-  /** half the cone's opening angle (degrees) */
-  halfAngleDeg: 24,
+  /** half the fan's width, side to side (degrees) */
+  halfYawDeg: 10,
   /** how far it sees (m) */
-  range: 26,
-  /** the cone's axis points this far below horizontal (degrees) */
-  tiltDeg: 18,
-  /** it sweeps this far either side of the station's facing (degrees) */
+  range: 14,
+  /** it pans this far either side of the station's facing (degrees) */
   sweepDeg: 40,
-  /** seconds for one full sweep, there and back */
+  /** seconds for one full pan, there and back */
   sweepPeriod: 10,
-  /** a fish stays drawn this long after it leaves the cone (s), so cone edges don't flicker */
+  /** a fish stays drawn this long after it leaves the fan (s), so edges don't flicker */
   linger: 0.35,
   /** the transducer hangs this deep at the rod tip (m) */
   apexDepth: 0.3,

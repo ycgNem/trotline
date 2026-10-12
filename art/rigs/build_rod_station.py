@@ -5,12 +5,17 @@ What it builds
   The cheapest rig in Trotline: a small plank dock pad on the shore with a dark wooden post, a
   white PVC rod holder strapped to the post, one rod (cork grips, spinning reel, a tapered dark
   blank with gold guide wraps and a hi-vis tip) and a minnow bucket with a red band. Plus the
-  three parts the game drives:
+  parts the game drives (all direct children of the rod_station root):
     rod_tip  EMPTY at the very end of the blank, where the line leaves the rod.
+    rod_butt EMPTY on the rod axis where the rod leaves the top of the holder tube.
+    rod_mid  EMPTY on the rod's (bent) axis, halfway along it from rod_butt to rod_tip. At long
+             range the game draws the rod as a 1-px polyline rod_butt -> rod_mid -> rod_tip.
     line     MESH, a 0.03 m square box exactly 1.0 m long, origin at its TOP (at rod_tip),
-             hanging straight down. The game sets line.scale.y = depth of the band it fishes.
-    sinker   MESH, red/white bobber + lead + gold hook (0.15 m), origin at its own top, placed at
-             the bottom of the line. The game moves it to y = rod_tip.y - depth.
+             hanging straight down. The game scales line.scale.y to reach the band.
+    bobber   MESH, the red/white float alone (0.08 m), origin at its CENTRE, placed on the line
+             0.3 m below the tip. The game puts that centre on the water surface.
+    sinker   MESH, lead weight + gold hook (0.072 m), origin at its own top, placed at the bottom
+             of the line. The game moves it to the band (on a bottom rig: onto the bed, no float).
   Everything else is merged into one flat-shaded mesh, rod_station_body. All parts are UV-mapped
   into regions of one 64x64 pixel atlas that this script draws pixel by pixel from the Apollo
   palette, with one material (ts_rigs_atlas: Principled, roughness 1, metallic 0, texture sampled
@@ -39,7 +44,7 @@ Run
 Safety
   Builds only inside the scene "trotline_rigs" (created if missing). On re-run it deletes only
   objects in that scene and datablocks whose names start with "ts_". It never saves the .blend.
-  Deterministic: no randomness except a fixed-seed xorshift for wood grain and cork specks.
+  Deterministic: wood grain is placed by hand; only the cork specks use a fixed-seed xorshift.
 """
 
 import json
@@ -87,21 +92,28 @@ PAL = {
 APOLLO = set(PAL.values())
 
 # Atlas regions: (x, y, w, h) in pixels, origin at the TOP-left of the image.
+# Texel density: the big wooden parts and the bucket are sized to ~9-10 texels per metre so their
+# texels stay near one internal pixel at the overview camera (~7 px/m at 480x270) instead of
+# speckling. Regions of one flat colour (fascia, stringer, inner) have no density to speak of.
 R = {
-    "deck_top":   (0, 0, 32, 32),   # 8 planks running across the deck (along X), 4 px each
-    "deck_end":   (32, 0, 32, 4),   # left/right slab sides: the 8 plank ends
-    "fascia":     (32, 4, 32, 4),   # front/back slab sides: one plank seen edge-on
-    "post":       (32, 8, 8, 32),   # post sides, top row = top of post, wet band at the bottom
-    "leg":        (32, 32, 8, 8),   # bottom quarter of the post texture (stub legs)
-    "post_top":   (40, 8, 8, 8),    # end grain
-    "rope":       (48, 8, 8, 8),    # twisted rope wrap
+    "deck_top":   (0, 0, 11, 14),   # 1.2 x 1.6 m -> 9.2 x 8.8 texels/m: 5 planks (along X),
+                                    # 2 rows each, 1-row seams between them
+    "deck_end":   (0, 16, 14, 1),   # left/right slab sides (1.6 m): the 5 plank ends, 8.8 tx/m
+    "fascia":     (0, 18, 1, 1),    # front/back slab sides: plank edge, flat colour
+    "under":      (0, 20, 1, 14),   # underside: dark planks (constant along X, so 1 column)
+    "stringer":   (2, 20, 1, 1),    # beams under the deck, flat colour
+    "post":       (4, 20, 2, 12),   # post sides, 0.2 x 1.24 m -> 10 x 9.7 tx/m; top row = top
+    "leg":        (4, 30, 1, 2),    # stub legs (0.12 x 0.21 m): bottom of the post texture
+    "post_top":   (8, 20, 2, 2),    # end grain, 0.2 m -> 10 tx/m
+    "leg_top":    (8, 20, 1, 1),
+    "rope":       (8, 23, 2, 1),    # rope band, 0.23 x 0.12 m -> 8.8 x 8.3 tx/m
+    "bucket":     (12, 20, 8, 3),   # bucket wall: 8 faces x 1 px (~9 tx/m), 3 rows (10 tx/m)
+    "bait":       (12, 24, 3, 3),   # bucket contents, 0.25 m across -> 12 tx/m
     "cork":       (56, 8, 8, 8),
     "reel":       (40, 16, 8, 8),   # reel body metal with a red accent ring
     "dark":       (48, 16, 8, 8),   # dark metal: reel seat, butt cap, straps, crank
     "pvc":        (56, 16, 8, 8),   # white PVC holder tube
     "rod":        (40, 24, 8, 32),  # blank: cols 0-1 top, 2-3 side, 4-5 bottom, 6-7 side
-    "bucket":     (48, 24, 16, 8),  # bucket wall: 8 faces x 2 px, red band
-    "bait":       (48, 32, 16, 16), # bucket contents: dark water with silver minnows
     "line":       (48, 48, 4, 4),
     "bob_red":    (52, 48, 4, 4),
     "bob_white":  (56, 48, 4, 4),
@@ -110,8 +122,6 @@ R = {
     "inner":      (52, 52, 4, 4),   # bucket inside wall / bottom
     "spool":      (56, 52, 4, 4),   # pale line wound on the reel spool
     "pvc_cap":    (60, 52, 4, 4),   # top of the holder tube: white ring, dark hole
-    "stringer":   (0, 32, 32, 8),   # beams under the deck
-    "under":      (0, 40, 32, 8),   # deck underside
 }
 
 
@@ -164,68 +174,42 @@ def draw_atlas():
     def px(x, y, c):
         C[y][x] = c
 
-    # Deck top: 8 planks of 4 rows (gap, lit edge, 2 body rows), warm wood, grain, nails over
-    # the two stringers (X = +-0.46 m -> columns 3 and 28), one knot.
-    tones = ["brn2", "brn3", "brn2", "brn2", "brn3", "brn2", "brn2", "brn3"]
+    # Deck top, 11 x 14 texels for 1.2 x 1.6 m (~9 texels/m): 5 bold planks running across the
+    # deck (along X), each 2 rows (~0.23 m) in alternating warm tones, 1-row seams between them,
+    # one or two short grain marks per plank. Row 0 = back of the deck, row 13 = front.
+    tones = ["brn2", "brn3", "brn2", "brn3", "brn2"]
+    grain_marks = [((2, 1, 3), (7, 0, 2)), ((5, 1, 3),), ((1, 0, 2), (8, 1, 3)), ((3, 0, 3),),
+                   ((6, 1, 3), (0, 0, 2))]                    # (x, row in plank, length)
     for i, base in enumerate(tones):
-        y0 = 4 * i
-        lit = "brn3" if base == "brn2" else "brn4"
-        grain = "rust2" if base == "brn2" else "brn2"
-        rect(0, y0, 32, 1, "brn1")
-        rect(0, y0 + 1, 32, 1, lit)
-        rect(0, y0 + 2, 32, 2, base)
-        for _ in range(3):
-            n = rng.randint(3, 7)
-            x = rng.randint(0, 31 - n)
-            rect(x, y0 + 2 + rng.randint(0, 1), n, 1, grain)
-        px(3, y0 + 2, "brn0")
-        px(28, y0 + 2, "brn0")
-    px(18, 22, "brn1"); px(19, 22, "brn0"); px(20, 22, "brn1"); px(19, 23, "brn1")  # knot
+        y0 = 3 * i
+        rect(0, y0, 11, 2, base)
+        if i < 4:
+            rect(0, y0 + 2, 11, 1, "brn1")                    # seam to the next plank
+        for gx, gr, gn in grain_marks[i]:
+            rect(gx, y0 + gr, gn, 1, "rust2" if base == "brn2" else "brn2")
 
-    # Slab sides: plank ends (left/right) and a front/back fascia plank.
-    rect(32, 0, 32, 4, "brn1")
-    rect(32, 0, 32, 1, "brn2")
-    for i in range(8):
-        rect(32 + 4 * i, 0, 1, 4, "brn0")
-        px(32 + 4 * i + 2, 2, "rust2")
-    rect(32, 4, 32, 1, "brn3")
-    rect(32, 5, 32, 2, "brn2")
-    rect(32, 7, 32, 1, "brn1")
-    for _ in range(5):
-        n = rng.randint(3, 6)
-        rect(32 + rng.randint(0, 31 - n), 5 + rng.randint(0, 1), n, 1, "rust2")
+    # Slab sides: the 5 plank ends (left/right, 1.6 m), a flat plank edge (front/back), the dark
+    # underside (5 planks; constant along X so one column), flat dark stringers.
+    for i in range(14):
+        px(i, 16, "brn0" if i % 3 == 2 else "brn1")
+    px(0, 18, "brn2")
+    for i in range(14):
+        px(0, 20 + i, "rust0" if i % 3 == 2 else "brn0")
+    px(2, 20, "rust0")
 
-    # Post sides: dark weathered wood, vertical grain and cracks, lit left edge, shadowed right
-    # edge, lighter top row, a wet green-black band at the foot (the waterline on a piling).
-    rect(32, 8, 8, 32, "brn0")
-    for _ in range(9):
-        n = rng.randint(3, 8)
-        rect(33 + rng.randint(0, 5), 9 + rng.randint(0, 27 - n), 1, n, "brn1")
-    for _ in range(5):
-        n = rng.randint(2, 5)
-        rect(33 + rng.randint(0, 5), 9 + rng.randint(0, 27 - n), 1, n, "rust0")
-    rect(32, 8, 1, 32, "brn1")
-    rect(39, 8, 1, 32, "rust0")
-    rect(32, 8, 8, 1, "brn1")
-    for x in range(32, 40):
-        px(x, 37, "grn0" if x % 2 else "brn0")
-    rect(32, 38, 8, 2, "grn0")
-    px(34, 38, "grn1"); px(37, 39, "grn1")
+    # Post sides, 2 x 12 texels for 0.2 x 1.24 m: dark weathered wood, lighter top row, one grain
+    # streak, one check crack, a wet green-black foot (the waterline on a piling). The stub legs
+    # sample the bottom of the left column.
+    rect(4, 20, 2, 12, "brn0")
+    rect(4, 20, 2, 1, "brn1")
+    rect(4, 22, 1, 3, "brn1")
+    rect(5, 26, 1, 2, "rust0")
+    px(5, 30, "grn0")
+    rect(4, 31, 2, 1, "grn0")
 
-    # Post top: end grain rings with a check crack.
-    rect(40, 8, 8, 8, "brn1")
-    for x in range(41, 47):
-        px(x, 9, "brn0"); px(x, 14, "brn0")
-    for y in range(9, 15):
-        px(41, y, "brn0"); px(46, y, "brn0")
-    rect(43, 11, 2, 2, "rust2")
-    px(44, 10, "rust0"); px(45, 9, "rust0")
-
-    # Rope wrap: diagonal twist stripes.
-    rope = ["brn5", "brn4", "brn3", "brn2"]
-    for y in range(8, 16):
-        for x in range(48, 56):
-            px(x, y, rope[(x + y) % 4])
+    # Post top end grain (2 x 2), rope band (2 x 1: light / darker strand).
+    px(8, 20, "brn1"); px(9, 20, "brn2"); px(8, 21, "brn2"); px(9, 21, "brn1")
+    px(8, 23, "brn4"); px(9, 23, "brn3")
 
     # Cork: tan with pits and specks.
     rect(56, 8, 8, 8, "brn3")
@@ -268,23 +252,16 @@ def draw_atlas():
     rect(40, 26, 8, 2, "red4")
     rect(40, 24, 8, 2, "gry9")
 
-    # Bucket wall (8 faces x 2 px; rows top->bottom): white rim, pale body, red band.
-    for y, c in zip(range(24, 32), ["gry9", "gry8", "red3", "red3", "red2", "gry8", "gry8", "gry7"]):
-        rect(48, y, 16, 1, c)
-
-    # Bait: dark water in the bucket with four silver minnows and a few ripples.
-    rect(48, 32, 16, 16, "grn0")
-    for (x, y) in ((51, 35), (59, 37), (53, 44), (60, 43), (55, 39)):
-        px(x, y, "grn1")
-    def minnow(x, y, dx, dy):
-        px(x, y, "gry4")                       # tail
-        px(x + dx, y + dy, "gry8")
-        px(x + 2 * dx, y + 2 * dy, "gry9")
-        px(x + 3 * dx, y + 3 * dy, "gry8")      # head
-    minnow(50, 38, 1, 0)
-    minnow(56, 34, 1, 1)
-    minnow(61, 41, -1, 0)
-    minnow(53, 45, 1, -1)
+    # Bucket wall, 8 faces x 1 texel around, 3 rows for 0.3 m: pale body, red band, shaded foot
+    # (the rim face uses the white line colour). Bait, 3 x 3 for the 0.25 m water surface: dark
+    # water with three silver minnow flashes.
+    rect(12, 20, 8, 1, "gry8")
+    rect(12, 21, 8, 1, "red3")
+    rect(12, 22, 8, 1, "gry7")
+    for (x, y), c in zip(((12, 24), (13, 24), (14, 24), (12, 25), (13, 25), (14, 25),
+                          (12, 26), (13, 26), (14, 26)),
+                         ("grn0", "grn1", "gry8", "grn0", "gry9", "grn0", "gry8", "grn0", "grn0")):
+        px(x, y, c)
 
     # Small solids.
     rect(48, 48, 4, 4, "gry9")                                  # line
@@ -296,16 +273,6 @@ def draw_atlas():
     for y in range(52, 56):                                     # line on the spool
         rect(56, y, 4, 1, "gry9" if y % 2 == 0 else "gry8")
     rect(60, 52, 4, 4, "gry8"); rect(61, 53, 2, 2, "gry2")      # tube mouth
-
-    # Stringers and underside: shadowed wood.
-    rect(0, 32, 32, 8, "brn0")
-    rect(0, 32, 32, 1, "brn1")
-    rect(0, 39, 32, 1, "rust0")
-    for _ in range(6):
-        n = rng.randint(4, 9)
-        rect(rng.randint(0, 31 - n), 34 + rng.randint(0, 4), n, 1, "rust0")
-    for i in range(8):
-        rect(0, 40 + i, 32, 1, "brn1" if i % 2 == 0 else "brn0")
 
     for row in C:
         for c in row:
@@ -499,7 +466,7 @@ def build_body():
     # Two short stub legs (piling stubs) at the front corners, standing on the ground and
     # poking 6 cm through the deck.
     for sx in (-1, 1):
-        box(b, *sorted((sx * 0.42, sx * 0.54)), 0.0, 0.21, 1.12, 1.26, top="post_top", sides="leg")
+        box(b, *sorted((sx * 0.42, sx * 0.54)), 0.0, 0.21, 1.12, 1.26, top="leg_top", sides="leg")
 
     # Post: 0.2 x 0.2 dock post at the front centre, ground to 1.24 m, low pyramid cap to 1.30.
     px0, px1, pz0, pz1, ptop = -0.1, 0.1, 1.05, 1.25, 1.24
@@ -534,7 +501,22 @@ def build_body():
         pts.append(pts[-1] + V(0.0, math.sin(a), math.cos(a)) * length)
     # Chunkier than a real blank (5 cm -> 3 cm) so it survives the 480x270 pixel pass.
     loft(b, pts, [0.026, 0.022, 0.018, 0.015], 4, "rod", cap0="dark", cap1="line")
-    tip = pts[-1].copy()
+
+    # Anchors for the long-range 1-px rod polyline, on the rod's centreline (straight butt
+    # section, then the three bent blank segments): rod_butt where the rod leaves the top of the
+    # holder tube (s = 0.30 m), rod_mid at the arc-length midpoint between rod_butt and the tip.
+    axis = [S(0.0)] + pts
+    def along(s):
+        for p, q in zip(axis, axis[1:]):
+            seg = (q - p).length
+            if s <= seg + 1e-9:
+                return p + (q - p) * (s / seg)
+            s -= seg
+        return axis[-1].copy()
+    rod_len = sum((q - p).length for p, q in zip(axis, axis[1:]))
+    butt_s = 0.30
+    anchors = {"rod_butt": along(butt_s), "rod_mid": along((butt_s + rod_len) / 2),
+               "rod_tip": pts[-1].copy()}
 
     # Spinning reel hanging under the seat: stem, body, spool of pale line, crank arm and knob.
     e1, _ = frame(d0)                       # 'up' perpendicular to the rod
@@ -552,7 +534,7 @@ def build_body():
     # Minnow bucket on the deck, left of the post: white with a red band, bait showing.
     bucket(b, cx=-0.30, cz=0.66, y0=0.15, y1=0.45, r_bot=0.125, r_top=0.155,
            r_in=0.13, y_water=0.41, r_water=0.127)
-    return b, tip
+    return b, anchors
 
 
 def build_line():
@@ -564,18 +546,25 @@ def build_line():
     return b
 
 
-def build_sinker():
-    """Red/white bobber, lead weight, gold hook: 0.15 m, origin at its top."""
+def build_bobber():
+    """The float alone: a round red-over-white bobber, 0.08 m across and 0.075 m tall, origin at
+    its CENTRE (the game sets that on the water surface, so half rides above, half below)."""
     b = Builder()
-    ys = [0.0, -0.012, -0.0375, -0.063, -0.075]
+    ys = [0.0375, 0.0255, 0.0, -0.0255, -0.0375]
     loft(b, [V(0, y, 0) for y in ys], [0.0, 0.03, 0.04, 0.03, 0.0], 6,
          ["bob_red", "bob_red", "bob_white", "bob_white"])
-    ys = [-0.078, -0.09, -0.105, -0.117]
+    return b
+
+
+def build_sinker():
+    """Lead egg weight + gold hook: 0.072 m, origin at its top (where the line ties on)."""
+    b = Builder()
+    ys = [0.0, -0.012, -0.027, -0.039]
     loft(b, [V(0, y, 0) for y in ys], [0.0, 0.018, 0.018, 0.0], 4, "lead")
     k = 0.004
-    box(b, -k, k, -0.150, -0.117, -k, k, top="hook", bottom="hook", sides="hook")      # shank
-    box(b, -k, 0.026, -0.150, -0.142, -k, k, top="hook", bottom="hook", sides="hook")  # bend
-    box(b, 0.018, 0.026, -0.142, -0.128, -k, k, top="hook", bottom="hook", sides="hook")  # point
+    box(b, -k, k, -0.072, -0.039, -k, k, top="hook", bottom="hook", sides="hook")      # shank
+    box(b, -k, 0.026, -0.072, -0.064, -k, k, top="hook", bottom="hook", sides="hook")  # bend
+    box(b, 0.018, 0.026, -0.064, -0.050, -k, k, top="hook", bottom="hook", sides="hook")  # point
     return b
 
 
@@ -599,7 +588,8 @@ def to_mesh(builder, name, mat):
 # Scene, material, objects
 # --------------------------------------------------------------------------------------------
 
-OUR_OBJECTS = ("rod_station", "rod_station_body", "rod_tip", "line", "sinker")
+OUR_OBJECTS = ("rod_station", "rod_station_body", "rod_tip", "rod_butt", "rod_mid", "line",
+               "bobber", "sinker")
 
 
 def get_clean_scene():
@@ -802,42 +792,49 @@ def main():
     img = make_image(draw_atlas())
     mat = make_material(img)
 
-    body_b, tip = build_body()
-    line_b, sinker_b = build_line(), build_sinker()
-    me_body = to_mesh(body_b, "ts_rod_station_body", mat)
-    me_line = to_mesh(line_b, "ts_line", mat)
-    me_sinker = to_mesh(sinker_b, "ts_sinker", mat)
+    body_b, anchors = build_body()
+    tip = anchors["rod_tip"]
+    meshes = {
+        "body": to_mesh(body_b, "ts_rod_station_body", mat),
+        "line": to_mesh(build_line(), "ts_line", mat),
+        "bobber": to_mesh(build_bobber(), "ts_bobber", mat),
+        "sinker": to_mesh(build_sinker(), "ts_sinker", mat),
+    }
+    tri = {k: sum(len(p.vertices) - 2 for p in me.polygons) for k, me in meshes.items()}
+    assert sum(tri.values()) <= TRI_BUDGET, f"{tri} > budget {TRI_BUDGET}"
+    assert tri["bobber"] <= 100 and tri["sinker"] <= 100, tri
 
+    # Hierarchy: everything is a direct child of the rod_station root (identity transform), so
+    # local positions are station-space positions.
     root = new_object("rod_station", None, coll)
     root.empty_display_type = "PLAIN_AXES"
     root.empty_display_size = 0.3
-    body = new_object("rod_station_body", me_body, coll, root)
-    rod_tip = new_object("rod_tip", None, coll, root, tip)
-    rod_tip.empty_display_type = "SPHERE"
-    rod_tip.empty_display_size = 0.05
-    line = new_object("line", me_line, coll, root, tip)
-    sinker = new_object("sinker", me_sinker, coll, root, tip - V(0, 1.0, 0))
-
-    tris = sum(len(p.vertices) - 2 for me in (me_body, me_line, me_sinker) for p in me.polygons)
-    assert tris <= TRI_BUDGET, f"{tris} triangles > budget {TRI_BUDGET}"
+    objs = [root, new_object("rod_station_body", meshes["body"], coll, root)]
+    for name in ("rod_butt", "rod_mid", "rod_tip"):
+        e = new_object(name, None, coll, root, anchors[name])
+        e.empty_display_type = "SPHERE"
+        e.empty_display_size = 0.05
+        objs.append(e)
+    objs.append(new_object("line", meshes["line"], coll, root, tip))
+    objs.append(new_object("bobber", meshes["bobber"], coll, root, tip - V(0, 0.3, 0)))
+    objs.append(new_object("sinker", meshes["sinker"], coll, root, tip - V(0, 1.0, 0)))
 
     cam, target, eye = staging(sc)
     setup_render(sc)
     sc.view_layers[0].update()
 
-    export_glb(sc, [root, body, rod_tip, line, sinker])
+    export_glb(sc, objs)
     bpy.ops.render.render(write_still=True, scene=sc.name)
     show_in_viewport(sc, cam, target, eye)
 
     # Summary in three.js space.
-    allv = [Vector((v.co.x, v.co.z, -v.co.y)) + Vector((ob.location.x, ob.location.z, -ob.location.y))
-            for ob in (body, line, sinker) for v in ob.data.vertices]
+    to3 = lambda v: Vector((v.x, v.z, -v.y))
+    allv = [to3(v.co) + to3(ob.location) for ob in objs if ob.type == "MESH" for v in ob.data.vertices]
     lo = [min(p[i] for p in allv) for i in range(3)]
     hi = [max(p[i] for p in allv) for i in range(3)]
     print("ROD_STATION_SUMMARY " + json.dumps({
-        "triangles": tris,
-        "rod_tip": [round(c, 4) for c in tip],
-        "line_top": [round(c, 4) for c in tip],
+        "triangles": sum(tri.values()), "triangles_by_mesh": tri,
+        "nodes": {ob.name: [round(c, 4) for c in to3(ob.location)] for ob in objs},
         "line_bottom": [round(c, 4) for c in (tip - V(0, 1.0, 0))],
         "bbox_min": [round(c, 4) for c in lo],
         "bbox_max": [round(c, 4) for c in hi],

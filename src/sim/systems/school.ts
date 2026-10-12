@@ -42,11 +42,13 @@ export function newSchool(def: SchoolDef, n: number, rng: Rng, lake: Lake): Scho
   };
   const band = BANDS.find((b) => b.id === def.band)!;
   const hold = band.hold > 0 ? band.hold : band.top + 1;
+  // a fish never starts outside its band, whatever its spread
+  const lo = band.top + 0.25, hi = Math.min(band.bottom, 99) - 0.25;
   for (let i = 0; i < n; i++) {
     // denser at the front of the school than at its tail
     s.along[i] = Math.pow(rng.next(), 0.8) * def.spreadAlong * Math.PI * 2;
     s.side[i] = (rng.next() * 2 - 1) * def.spreadSide;
-    s.depth[i] = hold + (rng.next() * 2 - 1) * def.spreadDepth;
+    s.depth[i] = Math.max(lo, Math.min(hi, hold + (rng.next() * 2 - 1) * def.spreadDepth));
     s.wf[i] = rng.range(0.15, 0.45);
     s.wp[i] = rng.range(0, Math.PI * 2);
     s.phase[i] = rng.range(0, Math.PI * 2);
@@ -61,9 +63,11 @@ export function schoolTick(s: School, lake: Lake, t: number, _dt: number) {
   // angular speed so the leader's average ground speed is def.speed
   const meanR = Math.sqrt((rx * rx + ry * ry) / 2);
   const lead = (t * s.def.speed) / meanR;
+  // swimming the loop backwards turns every heading round
+  const back = s.def.speed < 0 ? Math.PI : 0;
   for (let i = 0; i < s.n; i++) {
     const w = t * s.wf[i] + s.wp[i];
-    const u = lead - s.along[i] + 0.04 * Math.sin(w * 0.7);
+    const u = lead - Math.sign(s.def.speed) * s.along[i] + 0.04 * Math.sin(w * 0.7);
     const cu = Math.cos(u), su = Math.sin(u);
     // tangent of the ellipse (direction of travel) and its normal
     let tx = -rx * su, ty = ry * cu;
@@ -76,6 +80,6 @@ export function schoolTick(s: School, lake: Lake, t: number, _dt: number) {
     const bed = depthAt(lake, s.x[i], s.y[i]);
     s.d[i] = Math.max(0.2, Math.min(s.depth[i] + 0.15 * Math.sin(w * 1.3 + 1), bed - CLEARANCE));
     // the heading follows the path, turning a little as the fish weaves across it
-    s.heading[i] = Math.atan2(ty, tx) + 0.18 * Math.cos(w);
+    s.heading[i] = Math.atan2(ty, tx) + back + 0.18 * Math.cos(w);
   }
 }

@@ -1,7 +1,7 @@
 // Fixed-timestep simulation loop decoupled from rendering.
+import { DT, TICK_RATE } from './time';
 
-export const TICK_RATE = 60;
-export const DT = 1 / TICK_RATE;
+export { DT, TICK_RATE };
 
 export class GameLoop {
   private acc = 0;

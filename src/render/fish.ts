@@ -1,11 +1,16 @@
-// One species' school as a single InstancedMesh. The body is a stretched low-poly diamond (34
+// One species' school as a single InstancedMesh. The body is a stretched low-poly diamond (33
 // triangles, under the 300 budget) built in code for the proof of concept; its tail swings in the
-// vertex shader (more toward the tail, phase per fish), and it glows in its band's colour (a sonar
-// return). Each frame the instances are packed with
-// only the fish the sonar sees (or all of them in the debug view), so unseen fish cost nothing.
+// vertex shader (more toward the tail, phase per fish). A seen fish is a sonar return: it glows in
+// the colour of the band it is in right now (per instance, from its depth), added after the depth
+// fog so the colour survives, and the school is drawn after the water so the surface doesn't wash
+// it out (the first review measured a gold mid-band fish arriving on screen as grey-beige).
+// Each frame the instances are packed with only the fish the sonar sees (or all of them in the
+// debug view), so unseen fish cost nothing.
 import * as THREE from 'three';
 import type { SchoolDef } from '../data/species';
+import { BANDS } from '../data/lake';
 import { BAND_COLOR } from '../data/palette';
+import { bandOf } from '../sim/lake';
 import type { School } from '../sim/systems/school';
 import { FISH_FOG, addDepthFog, col } from './util';
 
@@ -61,7 +66,10 @@ export function buildFishGeometry(colors: [string, string, string]): THREE.Buffe
 export class FishView {
   mesh: THREE.InstancedMesh;
   private phase: THREE.InstancedBufferAttribute;
+  private glow: THREE.InstancedBufferAttribute;
   private uTime = { value: 0 };
+  private uGlow = { value: 0.6 };
+  private bandRgb = new Map(BANDS.map((b) => [b.id, col(BAND_COLOR[b.id])]));
   readonly capacity: number;
   /** instances drawn last sync */
   drawn = 0;
@@ -72,18 +80,30 @@ export class FishView {
     this.phase = new THREE.InstancedBufferAttribute(new Float32Array(capacity), 1);
     this.phase.setUsage(THREE.DynamicDrawUsage);
     g.setAttribute('aPhase', this.phase);
-    // a seen fish is a sonar return: it glows in its band's colour over its own markings, so which
-    // band it swims in reads at a glance, even at the overview's few pixels per fish
-    const m = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide, emissive: col(BAND_COLOR[def.band]), emissiveIntensity: 0.55 });
-    const uTime = this.uTime;
+    this.glow = new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3), 3);
+    this.glow.setUsage(THREE.DynamicDrawUsage);
+    g.setAttribute('aGlow', this.glow);
+    // transparent only so three draws it after the water (renderOrder 15 > 10); fully opaque, and
+    // it writes depth, so the pixel pass's normals render keeps it
+    const m = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, side: THREE.DoubleSide, transparent: true, depthWrite: true });
+    // three draws a transparent double-sided material twice (back faces, then front) unless told
+    // not to: that doubled every fish's triangles (perf, 2,150 fish: 159k)
+    m.forceSinglePass = true;
+    const uTime = this.uTime, uGlow = this.uGlow;
     const freq = (def.tailHz * Math.PI * 2).toFixed(3);
     addDepthFog(m, 'fish', FISH_FOG, (shader) => {
       shader.uniforms.uTime = uTime;
+      shader.uniforms.uGlow = uGlow;
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', '#include <common>\nvarying vec3 vGlow;\nuniform float uGlow;')
+        // after the depth fog's line, which sits just before opaque_fragment
+        .replace('#include <opaque_fragment>', 'outgoingLight += vGlow * uGlow;\n#include <opaque_fragment>');
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nuniform float uTime;\nattribute float aPhase;')
+        .replace('#include <common>', '#include <common>\nuniform float uTime;\nattribute float aPhase;\nattribute vec3 aGlow;\nvarying vec3 vGlow;')
         .replace(
           '#include <begin_vertex>',
           `#include <begin_vertex>
+          vGlow = aGlow;
           // 0 behind the head, 1 at the tail; the swing grows with the square of that
           float tailK = clamp((0.2 - position.x) / 0.7, 0.0, 1.0);
           transformed.z += sin(uTime * ${freq} + aPhase - tailK * 2.5) * 0.09 * tailK * tailK;`,
@@ -92,7 +112,8 @@ export class FishView {
     this.mesh = new THREE.InstancedMesh(g, m, capacity);
     this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.mesh.frustumCulled = false;
-    this.mesh.name = 'school';
+    this.mesh.name = 'school:' + def.species;
+    this.mesh.renderOrder = 15;
     this.mesh.count = 0;
   }
 
@@ -103,9 +124,10 @@ export class FishView {
    */
   sync(s: School, time: number, all: boolean, camDist = 80) {
     this.uTime.value = time;
-    (this.mesh.material as THREE.MeshLambertMaterial).emissiveIntensity = Math.min(0.6, Math.max(0.12, (camDist - 10) / 90));
+    this.uGlow.value = Math.min(0.75, Math.max(0.15, (camDist - 8) / 80));
     const e = this.mesh.instanceMatrix.array as Float32Array;
     const ph = this.phase.array as Float32Array;
+    const gl = this.glow.array as Float32Array;
     const L = s.def.length;
     let k = 0;
     for (let i = 0; i < s.n && k < this.capacity; i++) {
@@ -118,12 +140,17 @@ export class FishView {
       e[o + 8] = -sn; e[o + 9] = 0; e[o + 10] = c; e[o + 11] = 0;
       e[o + 12] = s.x[i]; e[o + 13] = -s.d[i]; e[o + 14] = s.y[i]; e[o + 15] = 1;
       ph[k] = s.phase[i];
+      const bc = this.bandRgb.get(bandOf(s.d[i]))!;
+      gl[k * 3] = bc.r;
+      gl[k * 3 + 1] = bc.g;
+      gl[k * 3 + 2] = bc.b;
       k++;
     }
     this.mesh.count = k;
     this.drawn = k;
     this.mesh.instanceMatrix.needsUpdate = true;
     this.phase.needsUpdate = true;
+    this.glow.needsUpdate = true;
   }
 
   dispose() {

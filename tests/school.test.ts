@@ -4,7 +4,8 @@ import { describe, expect, it } from 'vitest';
 import { Game } from '../src/sim/Game';
 import { depthAt } from '../src/sim/lake';
 import { SONAR } from '../src/data/rigs';
-import { coneAxis, inCone, sweepHeading } from '../src/sim/systems/sonar';
+import { Cone, aim, inCone, sweepHeading } from '../src/sim/systems/sonar';
+import { bandOf } from '../src/sim/lake';
 import { clockLabel, waterTempAt } from '../src/sim/systems/clock';
 import { CLEARANCE } from '../src/sim/systems/school';
 
@@ -23,62 +24,90 @@ describe('school', () => {
     expect(Array.from(c.school.x)).not.toEqual(Array.from(a.school.x));
   });
 
-  it('holds in the mid band and stays clear of the bed for a whole lap, at 500 and 2,000 fish', () => {
+  it('every school holds in its own band and stays clear of the bed for a whole lap, at 500 and 2,000 bighead', () => {
     for (const n of [500, 2000]) {
       const g = new Game({ fish: n });
+      expect(g.schools.map((s) => s.def.band)).toEqual(['mid', 'surface']);
       for (let t = 0; t < 70 * 60; t += 7) {
         for (let k = 0; k < 7; k++) g.step();
-        const s = g.school;
-        for (let i = 0; i < s.n; i++) {
-          expect(s.d[i]).toBeGreaterThanOrEqual(2);
-          expect(s.d[i]).toBeLessThanOrEqual(4);
-          expect(depthAt(g.lake, s.x[i], s.y[i]) - s.d[i]).toBeGreaterThanOrEqual(CLEARANCE - 1e-4);
-        }
+        for (const s of g.schools)
+          for (let i = 0; i < s.n; i++) {
+            expect(bandOf(s.d[i])).toBe(s.def.band);
+            expect(depthAt(g.lake, s.x[i], s.y[i]) - s.d[i]).toBeGreaterThanOrEqual(CLEARANCE - 1e-4);
+          }
       }
     }
+  });
+
+  it('the silver carp swim the loop the other way, above the bighead', () => {
+    const g = new Game();
+    const [big, silver] = g.schools;
+    expect(silver.def.speed * big.def.speed).toBeLessThan(0);
+    const mean = (a: Float32Array) => a.reduce((x, y) => x + y, 0) / a.length;
+    expect(mean(silver.d)).toBeLessThan(mean(big.d) - 1.5);
   });
 });
 
 describe('sonar', () => {
-  const cone = { x: 0, y: 0, d: 0.3, facing: Math.PI / 2, heading: Math.PI / 2 };
+  const RAD = Math.PI / 180;
+  const fan = (heading = Math.PI / 2): Cone => {
+    const c: Cone = { x: 0, y: 0, d: 0.3, facing: Math.PI / 2, heading: 0, hx: 0, hy: 0 };
+    aim(c, heading);
+    return c;
+  };
 
-  it('sees along its axis and not behind, beside or past its range', () => {
-    const [ax, ay, ad] = coneAxis(SONAR, cone.heading);
-    const at = (r: number) => [cone.x + ax * r, cone.y + ay * r, cone.d + ad * r] as const;
-    expect(inCone(SONAR, cone, ...at(10))).toBe(true);
-    expect(inCone(SONAR, cone, ...at(SONAR.range - 0.1))).toBe(true);
-    expect(inCone(SONAR, cone, ...at(SONAR.range + 0.5))).toBe(false);
-    expect(inCone(SONAR, cone, 0, -10, 3)).toBe(false); // behind
-    expect(inCone(SONAR, cone, 12, 3, 2)).toBe(false); // far off to the side
+  it('sees ahead at every depth from level to straight down, and not up, behind, aside or past its range', () => {
+    const c = fan();
+    expect(inCone(SONAR, c, 0, 10, 0.4)).toBe(true); // level, ahead
+    expect(inCone(SONAR, c, 0, 5, 8)).toBe(true); // steeply down
+    expect(inCone(SONAR, c, 0, 0, 6)).toBe(true); // straight below
+    expect(inCone(SONAR, c, 0, SONAR.range - 0.1, 0.3)).toBe(true);
+    expect(inCone(SONAR, c, 0, SONAR.range + 0.2, 0.3)).toBe(false); // past the range
+    expect(inCone(SONAR, c, 0, -5, 3)).toBe(false); // behind
+    expect(inCone(SONAR, c, 0, 5, 0.1)).toBe(false); // above the transducer
+    const edge = Math.tan(SONAR.halfYawDeg * RAD) * 10;
+    expect(inCone(SONAR, c, edge - 0.05, 10, 3)).toBe(true); // just inside the fan's side
+    expect(inCone(SONAR, c, edge + 0.05, 10, 3)).toBe(false); // just outside
   });
 
-  it('sweeps between facing +/- sweepDeg', () => {
+  it('pans between facing +/- sweepDeg', () => {
     let lo = Infinity, hi = -Infinity;
     for (let t = 0; t < SONAR.sweepPeriod; t += 0.05) {
       const h = sweepHeading(SONAR, Math.PI / 2, t) - Math.PI / 2;
       lo = Math.min(lo, h);
       hi = Math.max(hi, h);
     }
-    expect(hi).toBeCloseTo((SONAR.sweepDeg * Math.PI) / 180, 2);
-    expect(lo).toBeCloseTo((-SONAR.sweepDeg * Math.PI) / 180, 2);
+    expect(hi).toBeCloseTo(SONAR.sweepDeg * RAD, 2);
+    expect(lo).toBeCloseTo(-SONAR.sweepDeg * RAD, 2);
   });
 
-  it('marks exactly the fish inside a cone (plus the linger), and some but not all of the school over a sweep', () => {
+  it('marks exactly the fish inside a fan (plus the linger), and over a minute sees some of each school, never most of it', () => {
     const g = new Game();
-    let most = 0, least = Infinity;
+    let most = 0, least = Infinity, sum = 0, ticks = 0;
+    const seenEver = g.schools.map(() => false);
     for (let i = 0; i < 60 * 60; i++) {
       g.step();
-      const s = g.school;
-      for (let k = 0; k < s.n; k++) {
-        const inside = g.sonar.cones.some((c) => inCone(SONAR, c, s.x[k], s.y[k], s.d[k]));
-        if (inside) expect(s.seen[k]).toBeCloseTo(SONAR.linger, 5);
-        else expect(s.seen[k]).toBeLessThan(SONAR.linger);
-      }
-      most = Math.max(most, s.seenCount);
-      least = Math.min(least, s.seenCount);
+      let tick = 0;
+      g.schools.forEach((s, si) => {
+        for (let k = 0; k < s.n; k++) {
+          const inside = g.sonar.cones.some((c) => inCone(SONAR, c, s.x[k], s.y[k], s.d[k]));
+          if (inside) expect(s.seen[k]).toBeCloseTo(SONAR.linger, 5);
+          else expect(s.seen[k]).toBeLessThan(SONAR.linger);
+        }
+        if (s.seenCount) seenEver[si] = true;
+        tick += s.seenCount;
+      });
+      most = Math.max(most, tick);
+      least = Math.min(least, tick);
+      sum += tick;
+      ticks++;
     }
-    expect(most).toBeGreaterThan(200);
+    const total = g.schools.reduce((a, s) => a + s.n, 0);
+    expect(seenEver).toEqual([true, true]);
     expect(least).toBe(0);
+    // vision is scarce: on average well under a fifth of the fish are on screen
+    expect(sum / ticks / total).toBeLessThan(0.2);
+    expect(most).toBeGreaterThan(20);
   });
 
   it('raises a turn event twice per sweep period', () => {

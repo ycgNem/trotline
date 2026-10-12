@@ -3,10 +3,12 @@ import type { BandId } from './lake';
 
 export interface SchoolDef {
   species: string;
+  /** how many in the proof of concept's school */
+  count: number;
   /** body length drawn (m); oversized a little so a fish is a few pixels at the overview */
   length: number;
   band: BandId;
-  /** cruising speed along the loop (m/s) */
+  /** cruising speed along the loop (m/s); negative swims the loop the other way */
   speed: number;
   /** the loop the school swims: an ellipse over the basin (center and radii, m) */
   loop: { cx: number; cy: number; rx: number; ry: number };
@@ -29,6 +31,7 @@ export interface SchoolDef {
  */
 export const BIGHEAD: SchoolDef = {
   species: 'bighead carp',
+  count: 500,
   length: 1.1,
   band: 'mid',
   speed: 1.1,
@@ -39,3 +42,26 @@ export const BIGHEAD: SchoolDef = {
   tailHz: 1.4,
   colors: ['#394a50', '#819796', '#c7cfcc'],
 };
+
+/**
+ * Silver carp: PLAN.md's surface-band invasive. Adults commonly 0.5-0.9 m; they school near the
+ * surface filtering plankton, and are the carp that leap when a motor spooks them. Silvery all
+ * over with a darker olive-grey back. Swims the loop the other way, above the bighead, so the
+ * proof of concept has two bands to tell apart.
+ */
+export const SILVER: SchoolDef = {
+  species: 'silver carp',
+  count: 150,
+  length: 0.95,
+  band: 'surface',
+  speed: -1.5,
+  loop: { cx: 7, cy: -5.5, rx: 7, ry: 3.5 },
+  spreadAlong: 0.22,
+  spreadSide: 2.2,
+  spreadDepth: 0.4,
+  tailHz: 1.8,
+  colors: ['#577277', '#c7cfcc', '#ebede9'],
+};
+
+/** the proof of concept's schools, one InstancedMesh each */
+export const POC_SCHOOLS: SchoolDef[] = [BIGHEAD, SILVER];

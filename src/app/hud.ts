@@ -1,7 +1,9 @@
 // The HUD, drawn with the IMGUI kit on the 2D overlay canvas: the clock and the water temperature
-// (the one number PLAN.md says is always shown), what the sonar sees, the frame's cost, the band
-// legend and the keys. Station tags name each rod's band and hook depth when the camera is close.
-import { BANDS } from '../data/lake';
+// (the one number PLAN.md says is always shown), the sonar's returns by band (only what it sees:
+// no species and no hidden total, which would give away what vision hides), the frame's cost, the
+// band legend and the keys. Station tags name each rod's band and hook depth when the camera is close.
+import { BANDS, BandId } from '../data/lake';
+import { bandOf } from '../sim/lake';
 import { BAND_COLOR, C } from '../data/palette';
 import { ICON, textWidth } from '../ui/font';
 import type { UI } from '../ui/ui';
@@ -27,16 +29,26 @@ export function drawHud(ui: UI, g: Game, v: View, s: HudState) {
   const lines: [string, string][] = [
     [`${ICON.clock} ${clockLabel(g.clock.minute)}   day ${g.clock.day}${s.paused ? '   PAUSED' : ''}`, C.bone],
     [`Water ${g.clock.waterTemp.toFixed(1)}°C`, C.ice],
-    s.sonarOnly
-      ? [`${ICON.ping} Sonar sees ${g.school.seenCount} of ${g.school.n} ${g.school.def.species}`, C.cyan]
-      : [`${ICON.fish} All ${g.school.n} fish shown (sonar off)`, C.amber],
   ];
-  let w = textWidth('TROTLINE  proof of concept');
+  // the sonar's returns, counted by the band each one is in
+  const returns: Record<BandId, number> = { surface: 0, mid: 0, bottom: 0 };
+  let total = 0;
+  for (const sc of g.schools) {
+    total += sc.n;
+    for (let i = 0; i < sc.n; i++) if (sc.seen[i] > 0) returns[bandOf(sc.d[i])]++;
+  }
+  const parts: [string, string][] = s.sonarOnly
+    ? [[`${ICON.ping} Sonar returns `, C.cyan], ...BANDS.map((b): [string, string] => [`${b.id} ${returns[b.id]}  `, BAND_COLOR[b.id]])]
+    : [[`${ICON.fish} All ${total} fish shown (sonar off)`, C.amber]];
+  const partsW = parts.reduce((a, [t]) => a + textWidth(t) + 1, 0);
+  let w = Math.max(textWidth('TROTLINE  proof of concept'), partsW);
   for (const [t] of lines) w = Math.max(w, textWidth(t));
-  ui.panel(4, 4, w + 12, 16 + lines.length * 11, 'glass');
+  ui.panel(4, 4, w + 12, 16 + (lines.length + 1) * 11, 'glass');
   ui.text('TROTLINE', 10, 9, C.gold, { shadow: C.ink });
   ui.text('proof of concept', 10 + textWidth('TROTLINE  '), 9, C.steel);
   lines.forEach(([t, c], i) => ui.text(t, 10, 21 + i * 11, c, { shadow: C.ink }));
+  let px = 10;
+  for (const [t, c] of parts) px += ui.text(t.trimEnd(), px, 21 + lines.length * 11, c, { shadow: C.ink }) + (textWidth(t) - textWidth(t.trimEnd())) + 1;
 
   // top right: what the frame cost
   const st = v.stats;
@@ -51,9 +63,9 @@ export function drawHud(ui: UI, g: Game, v: View, s: HudState) {
   ui.panel(ui.w - pw - 16, 4, pw + 12, 8 + perf.length * 11, 'glass');
   perf.forEach(([t, c], i) => ui.text(t, ui.w - 10, 9 + i * 11, c, { align: 'right', shadow: C.ink }));
 
-  // camera preset, top centre
+  // camera preset, under the perf panel (centred at the top it ran into the lake panel at 1024 wide)
   const cam = v.rig.preset === 'free' ? 'camera: free' : `camera: ${v.rig.preset}`;
-  ui.text(cam, Math.floor(ui.w / 2), 6, C.fog, { align: 'center', shadow: C.ink });
+  ui.text(cam, ui.w - 10, 16 + perf.length * 11, C.fog, { align: 'right', shadow: C.ink });
 
   // bottom left: the bands
   const legendY = ui.h - (s.showKeys ? 52 : 40);

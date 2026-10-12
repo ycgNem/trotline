@@ -1,6 +1,7 @@
 // The 3D view: one WebGLRenderer, the lake scene, the orbit camera and the pixel pipeline. It
 // reads the sim each frame (fish, sonar, clock) and never writes to it. Draw order: bed and
-// contours, band rings, fish (opaque), water (transparent, depthWrite off), sonar cones (additive).
+// contours, band rings, water (transparent, depthWrite off), fish (after the water, so its tint
+// doesn't wash out their band glow; they write depth), sonar fans (additive).
 import * as THREE from 'three';
 import type { Game } from '../sim/Game';
 import { C } from '../data/palette';
@@ -31,7 +32,8 @@ export class View {
   readonly pipeline: PixelPipeline;
   readonly lights: Lights;
   pixel = true;
-  fish!: FishView;
+  /** one per school, in the sim's order */
+  fish: FishView[] = [];
   rigs: RigsView | null = null;
   sonar!: SonarView;
   private water!: ReturnType<typeof buildWater>;
@@ -41,7 +43,7 @@ export class View {
   private cssH = 1;
 
   constructor(canvas: HTMLCanvasElement) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance', preserveDrawingBuffer: true });
+    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: false, powerPreference: 'high-performance' });
     this.renderer.info.autoReset = false;
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     this.rig = new OrbitRig(16 / 9);
@@ -55,20 +57,28 @@ export class View {
     this.scene.add(buildBed(g.lake), buildSkirt(), buildContours(g.lake));
     this.water = buildWater(g.lake);
     this.scene.add(this.water.mesh);
-    this.setFishCapacity(g, fishCapacity);
+    g.schools.forEach((s, i) => this.setFishCapacity(g, i, i === 0 ? fishCapacity : s.n));
     this.rigs = new RigsView(rigTemplate, g.stations);
     this.scene.add(this.rigs.group);
     this.sonar = new SonarView(g.sonar.def, g.sonar.cones);
     this.scene.add(this.sonar.group);
   }
 
-  setFishCapacity(g: Game, n: number) {
-    if (this.fish) {
-      this.scene.remove(this.fish.mesh);
-      this.fish.dispose();
+  /** (Re)build school i's instanced mesh with room for n fish. */
+  setFishCapacity(g: Game, i: number, n: number) {
+    const old = this.fish[i];
+    if (old) {
+      this.scene.remove(old.mesh);
+      old.dispose();
     }
-    this.fish = new FishView(g.school.def, Math.max(n, g.school.n));
-    this.scene.add(this.fish.mesh);
+    const s = g.schools[i];
+    this.fish[i] = new FishView(s.def, Math.max(n, s.n));
+    this.scene.add(this.fish[i].mesh);
+  }
+
+  /** fish drawn last frame, all schools */
+  get fishDrawn() {
+    return this.fish.reduce((a, f) => a + f.drawn, 0);
   }
 
   resize(cssW: number, cssH: number) {
@@ -86,8 +96,8 @@ export class View {
   /** Read the sim. `time` drives every shader animation, so a frozen sim gives a frozen frame. */
   sync(g: Game, time: number, allFish: boolean) {
     this.lights.set(g.clock.minute);
-    this.fish.sync(g.school, time, allFish, this.rig.pose.dist);
-    this.sonar.sync(g.sonar.def, g.sonar.cones, time);
+    g.schools.forEach((s, i) => this.fish[i].sync(s, time, allFish, this.rig.pose.dist));
+    this.sonar.sync(g.sonar.cones, time);
     const wu = this.water.mat.uniforms;
     wu.uTime.value = time;
     wu.uLight.value = this.lights.daylight;

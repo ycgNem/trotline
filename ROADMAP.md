@@ -30,6 +30,8 @@ Prove the 3D pipeline end to end and find out whether the look works. Not the ga
    `e2e/perf.mjs` (fps with 500 and 2,000 fish). Run, looked at, problems named.
 9. Deployed to GitHub Pages (after the owner's yes and the name check).
 
+**Status (2026-10-12): items 1-8 done and reviewed; item 9 waits for the owner's yes.**
+
 Exit: all nine done; the owner orbits it for an evening and answers the four questions in
 `START-HERE.md` (does the water read; can you see fish at different depths at a glance; does
 the pixel pass make it look like a game; does a rod with a line dropping to a band mean

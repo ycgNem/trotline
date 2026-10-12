@@ -8,8 +8,8 @@ import { fbm } from '../engine/rng';
 import { Lake, bounds, depthAt } from '../sim/lake';
 import { addDepthFog, col } from './util';
 
-/** how far the detailed terrain reaches beyond the lake grid on each side (m) */
-export const TERRAIN = { x0: -46, x1: 46, y0: -34, y1: 34, step: 1 };
+/** how far the detailed terrain reaches beyond the lake grid on each side (m); mesh step and colour texel */
+export const TERRAIN = { x0: -46, x1: 46, y0: -34, y1: 34, step: 1, texel: 0.25 };
 
 /** Depth below the water (negative = height above) anywhere in the terrain. */
 export function terrainDepth(l: Lake, x: number, y: number): number {
@@ -22,16 +22,18 @@ export function terrainDepth(l: Lake, x: number, y: number): number {
   return d - rise * (0.6 + 2.4 * fbm(x * 0.05, y * 0.05, 7, 3));
 }
 
+// Underwater it runs darker than sand on purpose: a pale bed under thin water read as ice in the
+// first shots (the review sampled the cove as #798186).
 const RAMP: [number, string][] = [
   [-1.0, C.leaf], // land
   [-0.5, C.green],
   [-0.12, C.lime], // the grassy bank
   [0.05, C.dune], // wet sand at the water's edge
-  [1.0, C.sand],
-  [2.0, C.tan],
-  [4.0, C.clay], // mid band floor
-  [6.0, C.mud], // bottom band
-  [99, C.bark], // the creek channel
+  [1.0, C.tan],
+  [2.0, C.clay], // the surface band's floor
+  [4.0, C.mud], // the mid band's floor
+  [6.0, C.bark], // the bottom band
+  [99, '#241527'], // the creek channel
 ];
 
 function bedColor(d: number, x: number, y: number): string {
@@ -41,41 +43,69 @@ function bedColor(d: number, x: number, y: number): string {
   return C.bark;
 }
 
+/**
+ * The bed's colours as a nearest-filtered texture, one texel every 0.25 m: depth classes step in
+ * small square pixels (1 m cells were 17-pixel blocks at the cove preset) with no extra triangles.
+ */
+export function buildBedTexture(l: Lake): THREE.DataTexture {
+  const { x0, x1, y0, y1, texel } = TERRAIN;
+  const w = Math.round((x1 - x0) / texel), h = Math.round((y1 - y0) / texel);
+  const data = new Uint8Array(w * h * 4);
+  const cache = new Map<string, [number, number, number]>();
+  for (let j = 0; j < h; j++)
+    for (let i = 0; i < w; i++) {
+      const x = x0 + (i + 0.5) * texel, y = y0 + (j + 0.5) * texel;
+      const hex = bedColor(terrainDepth(l, x, y), x, y);
+      let c = cache.get(hex);
+      if (!c) {
+        const n = parseInt(hex.slice(1), 16);
+        c = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+        cache.set(hex, c);
+      }
+      const o = (j * w + i) * 4;
+      data[o] = c[0];
+      data[o + 1] = c[1];
+      data[o + 2] = c[2];
+      data[o + 3] = 255;
+    }
+  const tex = new THREE.DataTexture(data, w, h, THREE.RGBAFormat);
+  tex.magFilter = THREE.NearestFilter;
+  tex.minFilter = THREE.NearestFilter;
+  tex.generateMipmaps = false;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
 export function buildBed(l: Lake): THREE.Mesh {
   const { x0, x1, y0, y1, step } = TERRAIN;
   const nx = Math.round((x1 - x0) / step), ny = Math.round((y1 - y0) / step);
+  const W = x1 - x0, H = y1 - y0;
   const pos: number[] = [];
   const nrm: number[] = [];
-  const colr: number[] = [];
+  const uv: number[] = [];
   const hgt = (x: number, y: number) => -terrainDepth(l, x, y);
   // smooth normals from the height field itself (central differences), so the pixel pass's
   // normal-edge outline marks real slopes and not every triangle's seam
-  const normal = (x: number, y: number) => {
+  const vert = (x: number, y: number) => {
+    pos.push(x, hgt(x, y), y);
     const e = 0.5;
     const nx2 = hgt(x - e, y) - hgt(x + e, y), nz = hgt(x, y - e) - hgt(x, y + e);
     const len = Math.hypot(nx2, 2 * e, nz);
-    return [nx2 / len, (2 * e) / len, nz / len];
-  };
-  const tri = (c: THREE.Color, ax: number, ay: number, bx: number, by: number, cx: number, cy: number) => {
-    pos.push(ax, hgt(ax, ay), ay, bx, hgt(bx, by), by, cx, hgt(cx, cy), cy);
-    nrm.push(...normal(ax, ay), ...normal(bx, by), ...normal(cx, cy));
-    for (let k = 0; k < 3; k++) colr.push(c.r, c.g, c.b);
+    nrm.push(nx2 / len, (2 * e) / len, nz / len);
+    uv.push((x - x0) / W, (y - y0) / H);
   };
   for (let j = 0; j < ny; j++)
     for (let i = 0; i < nx; i++) {
       const xa = x0 + i * step, xb = xa + step, ya = y0 + j * step, yb = ya + step;
-      // one colour per 1 m cell (both triangles), so depth classes step in square pixels like
-      // pixel art instead of the sawtooth a per-triangle colour makes on a steep bank
-      const mx = xa + step / 2, my = ya + step / 2;
-      const c = col(bedColor(terrainDepth(l, mx, my), mx, my));
-      tri(c, xa, ya, xa, yb, xb, ya);
-      tri(c, xb, ya, xa, yb, xb, yb);
+      vert(xa, ya); vert(xa, yb); vert(xb, ya);
+      vert(xb, ya); vert(xa, yb); vert(xb, yb);
     }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
-  g.setAttribute('color', new THREE.Float32BufferAttribute(colr, 3));
-  const m = new THREE.MeshLambertMaterial({ vertexColors: true });
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  const m = new THREE.MeshLambertMaterial({ map: buildBedTexture(l) });
   addDepthFog(m, 'bed');
   const mesh = new THREE.Mesh(g, m);
   mesh.name = 'bed';
