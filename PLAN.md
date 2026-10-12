@@ -1,107 +1,126 @@
-# Trotline — Plan
+# Trotline — Plan (2D)
 
-*Working title (a trotline is a long line with many baited hooks: a line of defense). Rename
-freely; check itch.io, Steam and the domain before the first public build.*
+*Working title kept: a trotline is one line with many hooks, which is now literally what your
+defense is. Rename freely; check itch.io, Steam and the domain before the first public build.
+This supersedes the 3D plan; THREEJS-NOTES.md is dead and can be deleted.*
 
 ## The hook
 
-A 3D browser tower defense about **fishing an invasive run out of a lake before it spreads**.
-Your "towers" are rigs: rod stations, trotlines, cast nets, traps, jug lines, an electrofishing
-skiff. The "waves" are runs of invasive fish moving up the lake toward the spawning cove.
-You can only see what your **sonar** sees, fish hold at **depths** that change with time,
-weather and water temperature, and every rig needs **bait** flowing to it from a bait works you
-build and scale. Natives swim in the same water, and catching them costs you.
+A top-down pixel-art tower defense where **you don't buy towers, you catch them**. A fishing
+village on a shore. Hungry thieves (gulls, raccoons, otters, herons, bears, pelicans, poachers)
+come down the shore road to raid the smokehouse where your season's catch is stored. You stand
+on the dock with a rod. What you catch goes in the live well, and every fish in it is a choice:
+**sell it for money, or put it in the water beside the road as a defender.** Pufferfish
+explode, eels zap, turtles block the road, catfish slap, gar pierce. Bait does double duty:
+it decides what you catch, and cast onto the road it lures thieves (they're hungry) into stalls,
+traps and kill zones. A fleet of boats off to the side fishes the lake for you and, later,
+fights from the water. The map is water and shore, and you dig canals so fish can defend
+further inland.
 
-3D is not decoration. Depth is the core mechanic, and the one thing 2D can't show: a
-translucent lake surface with fish holding at three visible depth bands beneath it, sonar
-cones sweeping through the water, a rig's line dropping to the band it's set for.
+Typical TD shape (a road, waves, HP, damage, upgrades, money per kill), with fishing as the
+tower shop, the economy, the pathing control and the map.
 
 ## Pillars
 
-1. **Depth is the puzzle.** Three bands (surface, mid, bottom). Every species has a preferred
-   band that shifts with time of day, fronts and temperature. Every rig fishes one band (some
-   can be re-set). A rig in the wrong band catches nothing. The screen shows this.
-2. **You see what sonar sees.** Fish are invisible outside sonar coverage: the outpost's
-   finder, sonar buoys, the skiff's unit. Weed rafts block sonar. Vision is something you
-   build and place, like range in a normal TD.
-3. **Bait is a flow.** Rigs consume bait per catch and sit idle without it. Bait comes from a
-   works you build (worm beds, shad traps, a lure bench) and scale, with bait *types* that
-   change what a rig attracts. The works is the automation half; the rigs are the wall.
-   (This is the energy-flow idea from Candlepower, re-derived for bait: capital buys rigs,
-   bait decides which ones work.)
-4. **Selectivity over damage.** There is no "damage". A rig has a catch rate per species per
-   band per bait. Natives are bycatch: catching them costs reputation and, past a line, the
-   run. The skill is choosing what you catch, not how hard you hit.
-5. **Fishing is true.** Mechanics come from how fishing actually works (depth, structure,
-   fronts, bait, bycatch, spoilage, ice), simplified but never faked. No fantasy fish. The
-   game's authority is the owner's own time on the water.
+1. **Every fish is money or a tower.** The live well is the core decision. Selling funds bait,
+   rods, boats and canals; deploying stops the wave. Nothing is bought from a menu that could
+   have been caught.
+2. **Fishing is true (and funny).** Species hold at depths and bite at times; bait matches
+   species; rods have cast range and line strength; boats fish zones. Simplified, never faked.
+   Defenders are real animals doing cartoonish versions of real things. No fantasy species.
+3. **Bait moves trouble.** Thieves are animals that want food. Bait on the road pulls them off
+   their line toward it, stalls them while they eat, and sorts them (worms pull raccoons, chum
+   pulls gulls and pelicans). You decide where the fight happens; the fish decide how it goes.
+4. **Water is the build space.** Fish defend from water. Shallows, pools and canals beside the
+   road are where towers can go, so the map is a fishing map first and a TD map second, and
+   digging a canal is a tower-placement decision. (Buckets come later: a fish on land, on a
+   timer.)
+5. **Boats are the factory.** The fleet automates catching (rowboats, skiffs, a trawler),
+   supplies bait (shad traps, chum boats) and, with upgrades, fights (harpoon skiffs on the
+   water lanes). Scaling the fleet is the automation half.
 
 ## Currencies (four is the ceiling)
 
 | Currency | Kind | Comes from | Spent on |
 |---|---|---|---|
-| Money | stock | selling catch at the dock (needs ice; fish spoil), bounty per invasive stopped | rigs, rig upgrades, bait works, buoys, ice, the skiff |
-| Bait | flow, typed | the bait works | consumed per catch by rigs |
-| Reputation | stock, can go negative | natives released, locals' requests | unlocks dock tiers; negative ends the run |
-| Spread | the loss meter | invasives reaching the cove | at 100% the lake is lost |
+| Money | stock | selling fish at market, bounty per thief stopped | bait, rod tiers, boats, docks, canals, buckets, smokehouse upgrades |
+| Fish (the live well) | typed stock, capped | rod, boats | deploy as defender (one each) or sell |
+| Bait | typed flow | bait works, chum boats, a little from kills (scraps) | each cast consumes one; road lures consume one |
+| Crates | the loss meter | the season's stored catch | thieves steal them on a leak; at 0 the run ends |
 
-## Depth, time and weather
+## The two models (decided)
 
-Day/night cycle per run (one run = one season, ~12–15 waves). Fronts roll through: a cold
-front pushes everything deep and slows the bite; a warm evening pulls bait to the surface.
-Water temperature is one number the HUD always shows. Every species card lists its band by
-condition. This is the knowledge layer: a player who fishes will know it already.
+- **Thieves have HP and defenders deal damage.** Normal TD arithmetic.
+- **Fishing is catch rates, never HP.** A rod or boat in a zone rolls per tick against a rate
+  (per species × bait × depth/time × rod tier). A fish is caught or it isn't. No reeling
+  minigame as the core (an optional one-button tension verb for rare fish only).
 
-## Rigs (first set)
+## Defenders (first set — real species, cartoon jobs)
 
-| Rig | Band | Shape | Bait | Note |
-|---|---|---|---|---|
-| Rod station | any one, re-settable | single target | yes | the Lamp: cheap, flexible |
-| Trotline | bottom or mid | a line across a lane, N hooks | yes, N | passive, high throughput, bycatch-prone |
-| Cast net | surface | area burst, cooldown | no | a verb as much as a rig |
-| Trap | bottom | small area, slow, selective | yes | the clean option |
-| Jug lines | surface, drift | move with wind | yes | cheap, chaotic |
-| Sonar buoy | — | vision cone | no | the node |
-| Electrofishing skiff | all, mobile | stuns an area, catches everything, including natives | no | the keeper's emergency verb, with a reputation price |
+| Fish | Job | Where | Note |
+|---|---|---|---|
+| Pufferfish | mine: explodes once when a thief is adjacent | water or bucket | the cheap first catch |
+| Eel | zap: chains to 3 thieves within 3 tiles | water only | the DPS backbone, wants water near the road |
+| Turtle | blocker: sits on the road, thieves must chew through | road (it walks) | the wall; slow to catch |
+| Catfish | slap: single target, heavy | water, bottom bait | the big-hitter, needs line strength |
+| Gar | pierce: line attack along the road | water | needs cast range to catch |
+| Bass | jump: leaps at a thief carrying a crate, makes it drop it | water | the recovery tool |
 
-## Enemies (first set; real invasive species, invented stats)
+Each defender has a stat line that is the species' real traits turned up: pufferfish inflate,
+eels are electric, turtles are armored, gar are long. A fish out of water (bucket) runs a
+timer; back in water it rests. Defenders can be eaten: herons snipe them, pelicans swallow
+them, otters raid water tiles. Losing a defender hurts because it was a fish you could have sold.
 
-Silver carp (surface, fast, jump when stunned), bighead carp (mid, tanky), snakehead (bottom,
-hunts natives on the way: a run with snakeheads costs reputation if ignored), tilapia swarm
-(many, small, surface, breed if they reach the cove: spread ×2), armored catfish / plecos
-(bottom, immune to nets), zebra mussel raft (static, drifts, blocks a lane and fouls rigs),
-giant salvinia mat (plant; blocks sonar, must be cleared). Natives: bass, crappie, catfish,
-white bass, gar.
+## Thieves (first set)
 
-## Keeper verbs
+Gull (fast, flies over turtles, low HP, 1 crate), raccoon (medium, 1 crate, loves worms),
+otter (swims: takes the water lanes, attacks defenders), heron (ranged, picks off defenders in
+water), bear (tank, 5 crates, bait holds it longest), pelican (swallows a defender whole, then
+is slow), poacher (human, cuts a line, immune to bait). Bosses later: the Old Bear, the
+Pelican Flock, a game warden who confiscates (a joke boss).
 
-Set a rig's band. Re-bait. Cast (manual single catch with a short tension minigame: optional,
-one button). Run the skiff. Drop a sonar ping (one-shot full reveal, cooldown). Release a
-native for reputation.
+## Fishing (the real part)
+
+Zones: dock shallows, the point, the channel, the flats, open water. Each zone has species by
+depth band (surface, mid, bottom) and by time of day (dawn/dusk bite), and a bait table. Rod:
+cast range (which zones you reach from the dock), line strength (max fish size), reel (catch
+rate). Boats reach zones the rod can't and fish on their own. Bait works turns money or scraps
+into bait types. Weather: a front slows the bite for a wave; rain fills a dry pool.
+
+## Depth: three trees and the verbs
+
+- **Rod tree** (money): cast range, line strength, reel speed, a second rod, a net.
+- **Fleet and works** (money): boats, docks, bait works, canals, buckets, the smokehouse.
+- **Catch log** (catching): the first catch of each species unlocks it as a defender and its
+  entry teaches its depth/bait; variants (big, rare, golden) with stronger stats.
+- **Lore** (between runs): things a fisherman learns, as rule changes (a bigger live well,
+  bait lures last longer, a rowboat from day one). No flat stat boosts.
+- **Verbs**: cast (fish), cast bait (lure thieves), deploy, sell, dig, run the skiff, the
+  tension pull on rare fish.
+
+Rule: **every upgrade node has a fishing column.** A node that doesn't touch what, where or how
+you catch is rejected.
 
 ## Structure
 
-Runs on hand-made lakes (a Texas-feeling reservoir first: flooded timber, creek channels,
-a dam, a spawning cove). One run is one season. Reputation and a between-run skill tree
-("lore": things a fisherman learns) persist. Lakes unlock.
+Runs on hand-made shores (a reservoir first), a run is a season of 12–15 waves with the catch
+log and lore persisting. Call the next wave early for bonus money. Day/night per wave.
 
 ## The not-list
 
-- Not a damage-and-HP TD with fish skins: no HP bars, no DPS. Catch rates and selectivity.
-- Not Candlepower in water: bait is typed and consumed per catch, not a wattage; the
-  satisfaction rule does not apply.
-- Not a fishing sim (no stardew-style cast-and-reel loop as the core; the manual cast is one
-  verb among many).
-- No fantasy or invented species. Invasives and natives are real; numbers are ours.
-- No borrowed rosters, numbers or UI from any shipped game.
+- Not Plants vs Zombies with fish: no lanes, no sun; a road with luring, a water map, catch
+  rates, sell-or-deploy.
+- Not a fishing sim: catching is a rate, not a minigame; the one tension verb is for rare fish.
+- Not Candlepower: bait is typed and consumed per cast, not a wattage; no satisfaction rule.
+- Not Kingdom Rush / Bloons towers: no tower that isn't an animal you caught; no fixed path
+  mazing (luring moves thieves).
+- No fantasy species; no borrowed rosters, numbers or UI from any shipped game.
 - Nothing past Milestone 1 before the Milestone 2 gate.
 
-## Tech (decided — see THREEJS-NOTES.md)
+## Tech (decided)
 
-TypeScript strict + Vite + **Three.js** (WebGL), pixel textures on low-poly models with a
-pixelated post-process at 480×270 internal resolution, fixed 60 Hz pure sim (no three in
-`sim/`), HUD on a 2D canvas overlay using the IMGUI kit from Sprocket & Sprout, Blender →
-glTF via the Blender MCP, Vitest + Playwright, GitHub Pages. Reused from S&S: the engine
-layer (loop, input, rng, events, audio, saves, IMGUI, font, e2e harness, deploy). Reused
-from Candlepower: the doc discipline (PLAN / DESIGN / CLAUDE / STYLE / ROADMAP / DECISIONS
-/ PROGRESS / IDEAS), the derivation-string rule, the pace-test rule, the gate.
+Same as Sprocket & Sprout and Candlepower: TypeScript strict + Vite, one Canvas 2D at 16 px
+tiles with integer zoom, fixed 60 Hz pure sim, IMGUI canvas UI with the bitmap font, Web Audio,
+Vitest + Playwright, GitHub Pages. Engine layer extracted from S&S; nothing from its `sim/`,
+`data/` or `render/art`. Art through PixelLab with a new palette (not Resurrect 64), decided by
+a six-sprite test: water at three depths, a gull, a raccoon, a pufferfish, an eel and the dock.

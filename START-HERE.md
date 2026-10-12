@@ -1,78 +1,93 @@
-# Start here — Trotline
+# Start here — Trotline (2D)
 
-## Before anything: which project goes first
+## The folder
 
-You now have two planned games. Candlepower (2D, energy flow, the engine you already know) and
-Trotline (3D, fishing, Three.js you don't know yet). Pick one to take to its slice gate before
-the other starts; running both is how both stall. Either order is defensible. Candlepower
-first means learning nothing new while proving the doc-and-gate discipline. Trotline first
-means the project you're most excited about gets your best energy, at the cost of a steeper
-first two weeks. The proof-of-concept prompt below is cheap enough to run either way: it is a
-weekend, it proves the 3D pipeline end to end, and it tells you whether the look excites you.
+`PLAN.md`, `DESIGN.md`, `CLAUDE.md`, `ROADMAP.md`, this file, and the seeded `DECISIONS.md`,
+`PROGRESS.md`, `IDEAS.md`. `THREEJS-NOTES.md` is from the abandoned 3D version: delete it.
+`STYLE.md` gets written in Milestone 0 after the palette test, because this game's look
+(water in three readable depths, animals recognizable at 16–24 px) needs a test before rules.
 
-## What to do by hand (15 minutes)
+## By hand, before Prompt 1 (10 minutes)
 
-1. Make `C:\Users\jacks\Documents\trotline` and put `PLAN.md`, `THREEJS-NOTES.md` and this
-   file in it. Copy `CLAUDE.md`, `ROADMAP.md`, `DECISIONS.md`, `PROGRESS.md` and `IDEAS.md`
-   from the Candlepower folder as starting points (Prompt 0 rewrites them).
-2. `git init` there.
-3. Check the Blender MCP still shows as connected in a Code session (`/mcp`).
-4. Decide the first lake's name and three things that make it feel like a real Texas reservoir
-   to you (flooded timber, a creek channel, a dam face, a boat ramp, a marina...). Write them
-   under "Lake 1" at the bottom of `PLAN.md`. This is the part only you can do.
+1. Keep or change the name. Check itch.io, Steam and the domain before the first public build.
+2. `git init` in this folder.
+3. Read `DESIGN.md` once as a fisherman. The species' bands, baits and jobs are the part
+   where your knowledge beats mine; change anything that's wrong and write why. After this
+   point the docs are law for Claude Code.
+4. Candlepower is in the same state (docs done, no code). Pick one to take to its slice gate
+   first. Don't run both.
 
-## Prompt 0 — proof of concept (one session, stop when it runs)
+## Prompt 1 — Milestone 0, the foundation
 
 ```
-Read PLAN.md and THREEJS-NOTES.md first. Then rewrite CLAUDE.md, ROADMAP.md, DECISIONS.md,
-PROGRESS.md and IDEAS.md (copied from the Candlepower project as templates) for Trotline:
-same discipline, same definition of done, same gate rule, with the 3D rules from
-THREEJS-NOTES.md added to CLAUDE.md and a ROADMAP whose Milestone 0 is this proof of
-concept and whose Milestone 1 is the slice described in PLAN.md. Keep STYLE.md for later.
+Read PLAN.md, DESIGN.md, CLAUDE.md and ROADMAP.md in that order before doing anything. Then
+do Milestone 0 only.
 
-Then build the proof of concept, and nothing else:
+Build this repo's foundation by extracting the engine layer from
+C:\Users\jacks\Documents\sprocket-and-sprout: src/engine (loop, input, keybinds, rng, math,
+events, audio engine incl. the jsfxr bank loader), the bitmap font and IMGUI kit from src/ui,
+render/atlas.ts and the sheet loader, the camera, chunked ground rendering, the lighting
+buffer, the save/migration scaffolding, scripts/ (art importers, pixellab.mjs and helpers,
+make-icons), the e2e harness (screens.mjs with its overlap report, shots.mjs, smoke.mjs),
+Play.bat, Package for web.bat, the GitHub Pages workflow, vite/vitest/tsconfig and
+package.json with the same scripts. Do NOT copy, adapt, read for ideas, or reference anything
+under its src/sim, src/data, src/app or src/render/art generators, and in particular not its
+fishing minigame or fish data; this game's rules come from DESIGN.md only. Strip every
+Sprocket & Sprout name, string, color alias and asset. Keep the code style and the test setup.
 
-1. Vite + TypeScript strict + three (pin the current release and record it in DECISIONS.md),
-   Vitest, Playwright, the GitHub Pages workflow, Play.bat and Package for web.bat, taken
-   from C:\Users\jacks\Documents\sprocket-and-sprout. Extract its engine layer (loop, input,
-   keybinds, rng, events, audio, saves/migrations, bitmap font, IMGUI kit, e2e harness) the
-   same way the Candlepower plan describes. Nothing from its sim, data or render/art.
-2. A scene: a 60x40 m lake bed with a creek channel and a shallow cove (heightmap from a
-   hand-written array), a translucent water plane with a depth tint and a small vertex wobble,
-   three faint depth-band contour lines on the bed, one directional light and a hemisphere
-   light, the orbit camera from THREEJS-NOTES.md with four named presets.
-3. RenderPixelatedPass at 480x270 upscaled to the window. Show me the scene with and without
-   the pass so I can see what it does.
-4. One asset built through the Blender MCP by a script saved in art/rigs/build_rod_station.py:
-   a low-poly rod station (dock post, rod, line down to a band) with a 64x64 pixel texture
-   using NearestFilter. Export .glb, load it with GLTFLoader, place three on the shore.
-   Preview in Blender's viewport before exporting and show me the screenshot.
-5. A school of 500 fish as an InstancedMesh (a stretched low-poly body, one species) swimming
-   a sim-driven loop at the mid band under the water plane, with a procedural tail wobble in
-   the vertex shader. Fish positions come from a pure sim module that has no three import.
-6. A sonar cone from one rod station: an additive-blended translucent cone; fish outside any
-   cone are not drawn.
-7. The HUD on a 2D canvas overlay using the IMGUI kit: water temperature, time of day, fps,
-   draw calls, triangles.
-8. e2e/launch.mjs with the SwiftShader flags that work on this Chromium, e2e/shots.mjs that
-   screenshots the four camera presets, e2e/perf.mjs that reports fps with 500 and 2,000 fish.
-   Run them and show me the screenshots. Look at them yourself first and say what's wrong.
-9. Deploy to GitHub Pages and give me the URL.
+Copy .claude/agents/ (art-director, indie-critic, qa-screens) and rewrite each one's project
+section for Trotline from PLAN.md and CLAUDE.md, including the standing instruction to flag
+anything derivative (Plants vs Zombies especially). Add a balance-auditor agent as described
+in CLAUDE.md. The indie-critic must hold the build to the not-list in PLAN.md and know tower
+defense, fishing games and cozy games.
 
-Record every decision (version, flags, camera numbers, resolution) in DECISIONS.md and what
-exists in PROGRESS.md. If something in THREEJS-NOTES.md turns out wrong for the pinned three
-version, fix the note and tell me. Do not start the game itself.
+Then: a 48x32-tile shore map from a hand-written array (water at three depth tints, a road
+along the shore with two bends, a dock, a smokehouse footprint, the point), camera pan and
+zoom at integer factors, a HUD strip with placeholder money / crates / live-well slots, a
+title screen with the working title. Have the art director run the six-sprite palette test
+from ROADMAP.md on two candidate palettes (not Resurrect 64), render each sprite on each
+water depth in a contact sheet, show me the sheet, and wait for my pick before writing
+STYLE.md.
+
+Finish with: typecheck and tests clean, npm run screens report inspected, a screenshot of the
+shore that you have looked at, PROGRESS.md describing exactly what exists, DECISIONS.md with
+the first entries (palette pending, anything you decided), one commit. Stop there. Do not
+begin Milestone 1.
 ```
 
-## After the proof of concept
+## Prompt 2 — Milestone 1, the slice (after the palette is picked and STYLE.md exists)
 
-Spend an evening orbiting it. The questions: does the water read, can you see fish at
-different depths at a glance, does the pixel pass make it look like a game or like a blurry
-render, and does a rod station with a line dropping to a band feel like it means something?
-If the answers are good, the next step is `DESIGN.md` for Trotline, built the Candlepower
-way: catch rates as the unit (catches per minute per rig per species per band per bait),
-bait flow in units per minute, a slice of one lake, three rigs, three invasives, two natives,
-one bait type, ten waves, and the pace tests that encode the lessons (wrong band catches
-nothing; no bait, no catch; a trotline across the cove mouth is throughput with a bycatch
-bill; a front at wave 5 moves everything down a band). I'll write that with you after the PoC,
-with your Lake 1 notes in hand.
+```
+Read PLAN.md, DESIGN.md, CLAUDE.md, STYLE.md, ROADMAP.md, PROGRESS.md and DECISIONS.md.
+Build Milestone 1, the vertical slice, exactly as DESIGN.md specifies and nothing more.
+
+Order of work, each step tested before the next: (1) the fishing system — zones, species,
+bands, bait match, reel tier, per-tick rate rolls, the live well, the worm bed — with unit
+tests that check the expected catches per 45 s phase from DESIGN.md §3 over many seeded runs;
+(2) the slice map with its road, shallows, point and smokehouse, and the rule for which water
+tiles accept a defender; (3) thieves and waves with call-early, crates, stealing and the walk
+back; (4) defenders: pufferfish, eel, turtle, placement rules, HP, being eaten (stub), the
+chained zap; (5) bait lures on the road with species preference, eat time and the queue;
+(6) sell and deploy from the live well, rod tier 2, the worm bed purchase; (7) run end, win
+after wave 8, restart, the three lesson cards; (8) the pace tests from DESIGN.md §7 and the
+bot that plays deploy-all, sell-all and the "good" run; (9) placeholder art replaced through
+the art director within the budget noted in PROGRESS.md.
+
+Every stat in src/data must carry a derivation string naming its DESIGN.md section; the data
+validation test enforces this and the fishing-column rule. If a number from DESIGN.md turns
+out to produce a lesson that doesn't hold (for example deploy-all leaks more than 3 in wave
+1), do not tune silently: write the new derivation in DESIGN.md, explain it in DECISIONS.md,
+then change the data. If you catch yourself writing a mechanic that resembles a specific
+shipped game, stop and tell me.
+
+Send me screenshots at: first catch, first deploy, a raccoon leaving the road for a worm, a
+bear chewing a turtle, the win screen. Finish with the Definition of Done from CLAUDE.md,
+PROGRESS.md updated, and then run the indie-critic against DESIGN.md §8 and paste its ranked
+findings. Do not start Milestone 3.
+```
+
+## After the slice
+
+Play it for an evening before reading the critic's report. The three questions in
+`DESIGN.md` §8 are the only thing that matters at that point. If the answers are good, mark
+the gate passed in `ROADMAP.md` and go one milestone per session. If not, change the model.
