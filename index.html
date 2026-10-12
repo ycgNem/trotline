@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#172038" />
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <meta name="description" content="A 3D tower defense about fishing an invasive run out of a lake before it spreads." />
+    <title>Trotline</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #090a14; overflow: hidden; }
+      canvas { position: absolute; inset: 0; display: block; width: 100vw; height: 100vh; }
+      #hud { image-rendering: pixelated; cursor: default; }
+    </style>
+  </head>
+  <body>
+    <canvas id="view"></canvas>
+    <canvas id="hud"></canvas>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
