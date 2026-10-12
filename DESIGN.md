@@ -22,133 +22,202 @@ Leaks steal crates. Between waves the market pays out and the catch log updates.
 
 ## 3. Fishing (slice)
 
-Zones in the slice: **dock shallows** (reachable at rod tier 1) and **the point** (needs cast
-range tier 2). Bait: **worm** only in the slice (chum arrives in Milestone 3).
+The slice's shore is a brackish back bay on the Gulf (§10). Zones: **the shallows** (every
+shallow tile; the tier-1 cast reaches the bowl around the dock) and **the point** (open sand
+off the peninsula's tip, tier 2 only). Bait: **worm** only (chum arrives in Milestone 3).
 
-| Species | Zone | Band | Base rate /min (worm) | Size | Sell |
-|---|---|---|---|---|---|
-| Pufferfish | shallows | surface | 2.0 | small | 10 |
-| Eel | shallows, point | bottom | 1.5 (shallows), 1.0 (point) | medium | 25 |
-| Turtle | point | surface | 0.5 | large | 15 |
+| Species | Real animal | Zone | Base rate /min (worm) | By structure | Open sand | Size | Sell |
+|---|---|---|---|---|---|---|---|
+| Pufferfish | least puffer | shallows | 2.0 | ×1.3 | ×0.8 | small | 8 |
+| Electric ray | lesser electric ray | shallows, point | 1.5 | ×0.5 | ×1.3 | medium | 15 |
+| Terrapin | Mississippi diamondback terrapin | shallows | 0.5 | by reeds only | none | large | 12 |
 
-Rod tier 1: reel ×1.0, range = shallows (a 9-tile cast, §10), line = medium (turtles need
-tier 2, cost 60). Tier 2 (the surf rod): a 14-tile cast that reaches the point, large line,
-reel ×1.5 (with the point's turtles and eels that is the "roughly doubles" below).
-Live well: 6 slots. Bait works: worms, 1 per 10 s, 5 money each batch of 3 (slice: a worm
-bed you buy once for 40 and that produces on its own, up to 30 worms; the bait shop still
-sells a pack of 3 for 5 so a broke player is never stuck). Every catch takes the worm off the
-hook. **Starting worms: 8**: two build phases of fishing (~2.6 catches each at tier 1) plus a
-lure and a spare, so the worm bed is a wave-2 decision, not a wave-1 emergency.
+**Where the line sits matters** (2026-10-12, the critic's review: casting was a vending machine,
+every tile of a zone the same). "By structure" is a water tile within a tile (Chebyshev) of the
+dock or of reeds; everything else is open sand. Least puffers pick bait off pilings and grass,
+so they thicken by structure; lesser electric rays lie buried in open sand, so they thin out by
+it; diamondback terrapins live on the marsh edge, so they bite only within a tile of reeds.
+The point is all open sand, rays only. The tooltip over any water tile shows its rates.
 
-**Eel 1.0 → 1.5/min in the shallows (2026-10-12, the first pace run).** At 1.0/min a 45 s
-phase catches no eel 47% of the time (e^-0.75), and without an eel nothing kills a 40 HP
-raccoon in wave 1 (a pufferfish does 30): deploy-all averaged 3.8 leaks over 200 seeds, not
-the ≤ 3 §7 expects, and the lesson ("deploy, don't sell") read as luck. At 1.5/min the miss is
-32% (e^-1.125) and deploy-all averages 2.75. The point keeps 1.0/min. Eels are real brackish
-shallows fish (American eel) and take a worm on the bottom readily.
+Rod tier 1: reel ×1.0, a 9-tile cast (§10), medium line. Tier 2 (the surf rod, 60): a
+14-tile cast that reaches the point, large line (terrapins), reel ×1.5. Live well: 6 slots.
+Every catch takes the worm off the hook. **Starting worms: 8**: two build phases of fishing
+plus a lure. **The worm bed** (40, bought once) makes a worm every 15 s up to 12; the bait
+shop sells a pack of 3 for 5 so a broke player is never stuck. 4 worms a minute can't keep a
+tier-2 line fed (~5/min on open sand, below), so packs stay a running cost: the bed is a
+saving, not a tap.
 
-**Derived**: in one 45 s build phase at tier 1 in the shallows you expect ~1.5 pufferfish and
-~1.1 eels: two or three fish. That is the whole early economy, by design: scarcity makes
-sell-or-deploy a real decision. Over 8 waves at tier 1 you catch ~20 fish; a tier-2 rod by
-wave 3 roughly doubles it and opens turtles.
+**Derived** (tier 1, worm):
+
+- Open sand off the dock: 1.6 puffers + 1.95 rays = 3.55/min, **~2.7 fish a 45 s build**.
+- By the dock: 2.6 puffers + 0.75 rays = 3.35/min, nearly all puffers.
+- Tier 2 on open sand: ×1.5 = 5.3/min (~4 a build); at the point, rays only at 2.9/min;
+  by the reeds 3.9 puffers, 1.1 rays and 0.75 terrapins a minute.
+
+So the choice of tile is a choice of defender: puffers by the dock, rays out on the sand,
+terrapins (rare, slow) at the reeds with the surf rod. Over a run the good bot catches ~35 fish.
+
+**The eel became the electric ray (2026-10-12).** American eels are not electric (the
+critic: "fishing has to be true"); a zapper that is a real Gulf back-bay fish is the lesser
+electric ray (*Narcine bancroftii*), which lives on shallow sand and really does shock. The
+rate history stays: the shallows rate went 1.0 → 1.5 in the first pace run because at 1.0 a
+45 s phase caught no zapper 47% of the time and wave 1 read as luck.
 
 ## 4. Defenders (slice)
 
-| Fish | Place on | HP | Action | Numbers |
+| Fish | Place on | HP | What it does | Numbers |
 |---|---|---|---|---|
-| Pufferfish | water tile ≤ 1 from road, or bucket | 10 | explodes when a thief is within 1 tile; one use | 30 damage in radius 1.5 |
-| Eel | water tile ≤ 2 from road | 20 | zaps nearest thief within 3 tiles, chains to 2 more at 50% | 4 damage/s, 0.5 s pulse |
-| Turtle | the road itself | 100 | blocks; thieves stop and chew (5 dmg/s each) | gulls fly over it |
+| Pufferfish | shallow tile ≤ 1 from road | 10 | snatched and eaten by the first thief within 1 tile, which retches and sickens; one use | 40 poison over 3 s, 2 s stun |
+| Electric ray | shallow tile ≤ 2 from road | 20 | shocks the nearest thief within 3 tiles; the shock jumps to 2 more within 2 tiles at 50%; spent after 140 damage a wave | 4 damage/s in 0.5 s pulses |
+| Terrapin | the road itself | 100 | walkers stop and worry it one at a time while the rest wait in line behind; only a bear's jaws crack it; gulls fly over | raccoon 2 s, bear 20 s; bear cracks 5 HP/s |
 
-Defenders in water regenerate 1 HP/s between waves. A defender killed is a fish lost.
+**Re-derived from the animals (2026-10-12, the critic's review).** The first build's
+pufferfish *exploded* when a thief came near and the turtle was a *wall* every thief chewed at
+once: those were Plants vs Zombies' Potato Mine and Wall-nut with fish sprites (DECISIONS.md
+flagged both). Re-derived:
 
-How the slice reads the table (2026-10-12): "within 1 tile" is Chebyshev (any of the 8 tiles
-around), so a pufferfish diagonal to the road still triggers; distances to the road are
-Chebyshev too. A water tile means a *shallow* tile (mid and deep water is too deep to set a
-fish in; reeds are too thick). An eel's chain hops reach 2 tiles from the last thief it hit.
-The turtle also rests 1 HP/s between waves (it hauls out at the road's edge), or a chewed
-turtle could never be whole again and the bear lesson would only work once.
+- **Pufferfish: poison you get eaten for.** A puffer's defense is tetrodotoxin; the thief has
+  to *eat* it. The first thief within a tile (Chebyshev; gulls too, they pick fish at the
+  surface) snatches it, stands retching 2 s (stunned, the fish in its mouth) and takes 40
+  poison over 3 s. 40 is a raccoon's HP: one puffer is one raccoon, a gull twice over, a fifth
+  of a bear (and 2 s of it standing in a ray's reach).
+- **Electric ray: a battery.** Real electric rays tire with repeated discharges. 4 damage/s,
+  chained, until it has dealt **140 damage in a wave** (3.5 raccoons' worth), then it is spent
+  and recharges over the build phase. Without the charge, rays stacked at the road's entrance
+  killed every thief of every late wave one at a time (§7): defense grew with how long fish had
+  sat there, not with how many you had caught.
+- **Terrapin: bait with a shell.** Raccoons and bears worry a terrapin as they would a meal,
+  one at a time; the rest stand in line behind it (0.7 tiles back, then 0.6 per animal) and
+  wait their turn. A raccoon gives up after 2 s and walks on past it; a bear spends 20 s on it
+  and its jaws crack 5 HP/s, so one bear and one shell use each other up. Gulls fly over. It is
+  a lure that never runs out for raccoons and is only consumed by bears.
+
+**Claws** (2026-10-12): raccoons and bears fish the water's edge. A walker within a tile
+(Chebyshev) of a ray claws at it for 5 damage/s as it passes or stands; a raccoon walking past
+a ray one tile out spends ~2 s in reach (10 damage, half the ray), so two raccoons eat it.
+Two tiles out it is safe, at the cost of a little road in reach. Pufferfish aren't clawed:
+they are snatched whole. Gulls don't claw.
+
+Defenders regenerate 1 HP/s between waves (the terrapin hauls out at the road's edge to rest).
+"Within 1 tile" is Chebyshev; distances to the road are Chebyshev; a water tile means a
+*shallow* tile (mid and deep water is too deep to set a fish in; reeds are too thick).
 Variants (big, rare, golden) arrive with the catch log in Milestone 4: ×1.5 stats, rarer rates.
 
 ## 5. Thieves (slice)
 
-| Thief | HP | Speed | Crates stolen | Bounty | Behavior |
+| Thief | Real animal | HP | Speed | Crates | Bounty | Behavior |
+|---|---|---|---|---|---|---|
+| Gull | laughing gull | 20 | 2.5 t/s | 1 | 1 | flies over terrapins; swallows a worm lure within 2 tiles whole |
+| Raccoon | raccoon | 40 | 1.2 t/s | 1 | 1 | pulled by worms within 4 tiles, eats 6 s; claws fish within 1 tile |
+| Bear | Louisiana black bear | 200 | 0.7 t/s | 5 | 5 | pulled by worms within 4 tiles, eats 10 s; claws fish; cracks terrapins |
+
+**Bounty is 1 per 40 HP, at least 1** (2026-10-12; was 3/8/40 and then 1/2/10). Every thief
+stopped over the 8 waves pays 166, against 30 to start and 100 of shop (bed and rod): money
+stays short enough that selling a fish to buy the rod sooner is a real trade (§7).
+
+Smokehouse starts with **20 crates**. At 0 the run ends. **A thief that takes crates leaves
+another way** (2026-10-12, the critic: walking back up the road through the kill zone made
+leaks cheap and doubled every defender's work): walkers go south from the smokehouse door
+down the woods path (x 34) and off the map; gulls fly straight north over the bay. A thief
+stopped before it gets away puts its crates back; mostly that means one already poisoned or
+half-dead as it reached the door.
+
+Road length 39 tiles. Spawns 1.5 s apart, faster in the late waves. Slice waves:
+
+| Wave | Composition | Gap | Total HP | HP/s arriving | Bounty |
 |---|---|---|---|---|---|
-| Gull | 20 | 2.5 t/s | 1 | 3 | flies: ignores turtles, pulled by chum (not worms) |
-| Raccoon | 40 | 1.2 t/s | 1 | 8 | pulled hard by worms; eats a lure for 6 s |
-| Bear | 200 | 0.7 t/s | 5 | 40 | pulled by any bait, eats a lure for 10 s |
+| 1 | 6 Raccoon | 1.5 s | 240 | 27 | 6 |
+| 2 | 8 Raccoon | 1.5 s | 320 | 27 | 8 |
+| 3 | 10 Gull | 1.2 s | 200 | 17 | 10 |
+| 4 | 6 Raccoon, 1 Bear | 1.5 s | 440 | 42 | 11 |
+| 5 | 14 Gull, 8 Raccoon | 1.0 s | 600 | 27 | 22 |
+| 6 | 12 Raccoon, 3 Bear | 1.0 s | 1,080 | 72 | 27 |
+| 7 | 20 Gull, 12 Raccoon | 0.8 s | 880 | 34 | 32 |
+| 8 | 16 Raccoon, 14 Gull, 4 Bear | 0.7 s | 1,720 | 72 | 50 |
 
-Smokehouse starts with **20 crates**. At 0 the run ends. A thief that reaches the smokehouse
-takes its crates and leaves by the road (killing it on the way back recovers the crates: the
-bass's job in Milestone 4, and the eel's chance in the slice).
-
-Road length 40 tiles, spawns 1.5 s apart. Slice waves:
-
-| Wave | Composition | Total HP | Bounty |
-|---|---|---|---|
-| 1 | 6 Raccoon | 240 | 48 |
-| 2 | 8 Raccoon | 320 | 64 |
-| 3 | 10 Gull | 200 | 30 |
-| 4 | 6 Raccoon, 1 Bear | 440 | 88 |
-| 5 | 12 Gull, 4 Raccoon | 400 | 68 |
-| 6 | 8 Raccoon, 2 Bear | 720 | 144 |
-| 7 | 16 Gull, 6 Raccoon | 560 | 96 |
-| 8 | 10 Raccoon, 10 Gull, 2 Bear | 1,000 | 190 |
+(HP/s arriving: total HP over the seconds it takes the wave to spawn.) **Waves 5-8 grew and
+quickened** (2026-10-12): the first late waves (400-1,000 HP at 1.5 s) let the good bot
+through with nothing stolen, because everything you deploy stays and a wave doesn't. The
+charge (§4) makes each ray worth ~140 damage a wave; the late waves ask for roughly the fish a
+good player has caught by then.
 
 Starting money: **30**. Starting live well: empty. The first 45 s is fishing.
 
 ## 6. Bait lures (slice)
 
-Cast a worm onto any road tile within rod range (shallows reach = the first 15 tiles of road).
-Thieves of a matching species within 4 tiles leave the road for it, eat for their eat time,
-then return to the road at the nearest point. One lure feeds one thief at a time; a queue
-forms (that's the stall). A lure costs one bait, so luring competes with fishing for worms.
+Cast a worm onto any road tile within the rod's cast. Raccoons and bears within 4 tiles
+leave the road for it, eat for their eat time, then return to the road at the nearest point.
+One lure feeds one thief at a time; the rest stand in line back along the road (0.7 tiles,
+then 0.6 per animal, so they don't stack into one sprite). That's the stall. A lure costs one
+worm, so luring competes with fishing.
 
-**A lure holds 36 thief-seconds of eating** (2026-10-12): §7's luring lesson has the one
-midpoint worm stall *each* of wave 1's six raccoons for 6 s, so the worm must feed six 6 s
-meals (or 3.6 bears' 10 s meals). Thieves already fed by a lure aren't pulled by it again; a
-lure that runs out sends its queue back to the road. A lure lies on the road until eaten, so
-it can be set in the build phase. The lure's reach is the rod's cast: tier 1 reaches road
-tiles 9 to 23 (15 tiles around the dock's foot, §10), not the first 15 of the road.
+**A lure holds 36 thief-seconds of eating**: §7's luring lesson has the one midpoint worm
+stall each of wave 1's six raccoons for 6 s (or 3.6 bears' 10 s meals). Thieves already fed by
+a lure aren't pulled by it again; a lure that runs out sends its line back to the road.
+
+**Gulls swallow worms** (2026-10-12): gulls follow ploughs for worms. A gull within 2 tiles
+of a worm swoops on it and swallows the whole lure, line or no line. **A lure spoils when the
+wave ends** (worms left in the sun): lures are cast for a wave, at the right moment, not
+placed once for the run. Together: in the gull-led waves (5, 7) a worm cast before the gulls
+pass is a worm thrown away; cast it once they're through, ahead of the walkers.
+
+The lure's reach is the rod's cast: tier 1 reaches road tiles 9 to 23 (15 tiles around the
+dock's foot, §10).
 
 ## 7. Derived checks (these become pace tests)
 
-**Wave 1, the intended lesson: deploy, don't sell.** Phase 1 yields ~2 fish (expected: 1–2
-pufferfish, 0–1 eel). 6 raccoons = 240 HP. Raccoons are spaced ~1.8 tiles apart, so each
-pufferfish usually hits one: two pufferfish take two raccoons to 10 HP. An eel beside the road
-has ~5 tiles of a raccoon's path in range → 4 s × 4 dmg/s = 16 per raccoon, chained to two
-more at 8. The eel finishes the two wounded raccoons and leaves the other four at ~24–32 HP.
-Nothing clears wave 1 with zero leaks; **two or three leaks is the expected result**, costing 2–3 of
-20 crates, and the bounty (up to 48) buys the worm bed. Selling the fish instead (≤ 45 money)
-means ~6 leaks. The lesson is the live well's purpose.
+**Wave 1, the intended lesson: deploy, don't sell.** Phase 1 yields ~2.7 fish on open sand
+(~1.2 puffers, ~1.5 rays). Each puffer kills one raccoon outright (40 poison, 40 HP). A ray
+beside a straight has ~5 road tiles in reach: a raccoon at 1.2 t/s spends ~4 s there, 16
+damage plus chained hits on the next one in line, and the ray's 140 charge covers 3.5
+raccoons, so in wave 1 a ray is limited by time in reach, not charge. Two leaks or three is
+the expected result. **Measured** (200 seeds): deploy-all leaks **2.62**; selling everything
+leaks **6.0**. The lesson is the live well's purpose.
 
-**Wave 1, the luring lesson.** One worm lure at the road's midpoint beside the eel stalls each
-raccoon for 6 s inside the eel's range: 6 s × 4 dmg/s = 24 extra damage each, which with the
-pufferfish turns 2–3 leaks into 0–1. One worm, cast on the road instead of into the water,
-is the single best move in the game's first minute. The tutorial card says exactly that.
+**Wave 1, the luring lesson.** One worm at the road's midpoint beside a ray stalls each
+raccoon 6 s in its reach and lines the others up behind for the chain. **Measured** over the
+171 of 200 seeds whose layout has a ray: **3.04 → 0.77 leaks** with the lure. One worm cast on
+the road instead of into the water is the best move of the first minute.
 
-**Wave 3, gulls teach the eel over the pufferfish.** 10 gulls at 2.5 t/s cross an eel's 5-tile
-window in 2 s: 8 damage each, chain to 3 → the eel handles ~3 gulls per pass; two eels and a
-pufferfish clear it. Turtles are useless here (gulls fly). Worm lures don't pull gulls. The
-player who stacked turtles after wave 2 leaks.
+**Wave 3, gulls.** 10 gulls at 2.5 t/s cross a ray's 5-tile window in 2 s (8 damage each,
+chained to two more at 4). Terrapins are useless (gulls fly); a worm on the road is swallowed;
+a puffer kills a gull outright. **Measured**: three terrapins and nothing else leak **≥ 6**.
 
-**Wave 4, the bear teaches the turtle and the stall.** 200 HP at 0.7 t/s. A turtle costs it
-20 s of chewing (100 HP ÷ 5 dmg/s), inside eel range: 80 damage. A worm lure adds 10 s: 40
-more. Two eels, a turtle and one lure kill it on the road. The tier-2 rod (60 money) must be
-bought by wave 3 to have caught a turtle, which the wave 1–2 bounty (112) affords with the
-worm bed (40). The money model closes.
+**Wave 4, the bear.** 200 HP at 0.7 t/s. A terrapin holds it 20 s and is cracked doing it:
+inside two rays' reach that is 2 × 4 × 20 = 160 damage plus chains, and a worm adds 10 s
+more. Raccoons behind it wait in the line (2 s each once the bear is through), bunched for the
+chain. The surf rod has to be bought for terrapins, and the bounty alone pays for it only by
+wave 4-6: that is the money decision (below).
 
-Pace tests assert: deploy-all layout leaks ≤ 3 in wave 1; sell-all leaks ≥ 5; one midpoint
-lure cuts wave-1 leaks by ≥ 2; a turtle-only wave 3 leaks ≥ 6; the scripted "good" run reaches
-wave 8 with ≥ 8 crates.
+**The late waves.** Before the charge and the quicker gaps, the good bot let nothing through
+waves 5-8 even with the waves doubled, every kill on the road's first tiles: thieves arrive
+one at a time, so a wall of rays kills each alone and wave size doesn't matter. With 140
+charge a ray and gaps down to 0.7 s, the measured good run loses ~0.5 crates in wave 6 and
+~0.3 in wave 8: the late waves press, they don't sweep.
 
-How they are measured (`tests/pace.test.ts`, 2026-10-12): every lesson is the mean over 200
-seeds, because catches are rolls. The luring lesson compares the same layout (the eel beside
-the road's midpoint) with and without the lure, **over the seeds whose layout has an eel**:
-the lesson is "a lure beside the eel", and a seed with no eel has no lure lesson to teach.
-The bots are in `src/sim/bot.ts`: deploy-all puts every fish on the best tile by road in
-reach and never lures; sell-all sells everything; "good" buys the worm bed then the rod,
-keeps up to 8 eels, 6 pufferfish and 2 turtles, sells the rest, and lures into its kill zone.
+**Money and selling.** Bounty for every thief is 166 a run; the shop is 100 plus worm packs.
+The good bot deploys almost everything (34.8 of 35 fish) and buys the rod from bounty at
+wave ~5.7, ending with **$78**. Selling fish until the bed is bought (1.6 sold) wins 37/40 with
+12.3 crates; selling until the rod is bought (rod by wave 1.3) wins **5/40**. Sell-or-deploy is
+a timing call whose outcomes are close, not a dominated choice. The terrapin is what the rod
+buys: deploy every fish with the bed but never buy the rod, and the run wins **11/40**.
+
+**The whole run, measured** (40 seeds): the good bot wins **36/40** with **14.6** crates;
+deploy-with-bed-never-rod 11/40; deploy-all (no bed, no rod) 0/40, out of worms by wave 4;
+sell-all 0/40, lost by wave 3 with $165 in hand.
+
+Pace tests assert (floors say the lesson is there; ceilings say the game hasn't gone soft):
+deploy-all leaks ≤ 3 in wave 1; sell-all leaks ≥ 5; one midpoint lure cuts leaks by ≥ 2 over
+seeds with a ray; a terrapin-only wave 3 leaks ≥ 6; the good run wins ≥ 36/40 with 8-15
+crates and ≤ $150 unspent; deploy-with-bed-never-rod wins ≤ 16/40; sell-all never wins.
+
+How they are measured (`tests/pace.test.ts`): wave-1 lessons are means over 200 seeds, runs
+over 40, because catches are rolls. The bots are in `src/sim/bot.ts`: deploy-all fishes the
+best-rated tile it reaches and deploys every fish on the best tile; deploy-bed also buys the
+worm bed; sell-all sells everything; "good" buys the bed then the rod, deploys every ray and
+puffer (rays two tiles out, clear of claws), keeps up to three terrapins for the bears and
+fishes the reeds for them, tops up worms from the shop, and lures into its rays' reach once
+the gulls are past.
 
 ## 8. What the slice must answer
 
@@ -180,14 +249,30 @@ the pool, 4 south, bend 2, 5 east to the smokehouse door. Water within 2 tiles o
   cast of 9 tiles reaches road tiles 9-23 (15 tiles, §6) and the whole shallow bowl.
 - **The point** is a peninsula east of bend 1; its fishing zone is the water within 4.5 tiles
   of its tip, 12-15 tiles from the angler: tier 2 (14) reaches its near side only.
-- **The pool at bend 1** is a 3 × 3 shallow pond inside the corner: an eel there has 9 road
-  tiles within 3 tiles, against 5 for an eel beside a straight. The kill zone is a place on
+- **The pool at bend 1** is a 3 × 3 shallow pond inside the corner: a ray there has 9 road
+  tiles within 3 tiles, against 5 for a ray beside a straight. The kill zone is a place on
   the map, not a bonus; it is outside the tier-1 lure reach, so the first lures land on the
   straight by the dock and the bend pays off once the surf rod is bought.
+- **Structure** for fishing (§3) is the dock and the reed clumps: one by the road's start,
+  two east of the dock (tiles 24-25, inside the tier-1 cast) and a few along the bend and the
+  point's shore. Terrapins bite only beside them.
+- **The way out** (§5): from the road's end a path runs south through the woods (x 34) off
+  the map's bottom edge; gulls leave straight north over the bay. Neither passes a slot, so a
+  crate that leaves is gone unless the thief was already dying.
 
 ## 11. Readability (what the board must show at 1×)
 
 Water in four tints: deep (open water), mid (the point's water), shallow, and the
 **placeable shallows**, the lightest, with slot ticks at the tile corners. In deploy mode the
-exact tiles that fish fits are lit; in lure mode the road tiles in reach glow pink. A
-defender being chewed shows its HP bar, red and blinking under 35%.
+exact tiles that fish fits are lit; in lure mode the road tiles in reach glow pink.
+
+A defender about to be eaten (2026-10-12, the critic's review): HP bars sit **under** the
+sprite, so they never cover a thief on the road above it, red and blinking under 35%. A fish
+being clawed shakes, blinks white and has a red ripple, with claw scratches over it. A
+terrapin being worried pulls into its shell and shakes. A spent ray is drawn at half strength,
+and during a wave a gold bar under it shows the charge left. A thief that snatched a
+pufferfish shudders with the puffed fish in its mouth, and green bubbles rise off it while
+the poison works. Thieves in a line stand 0.7 tiles then 0.6 apart, so a line reads as a
+line. A shock is a 1 px gold bolt for 4 frames: long enough to see, short enough not to hide
+its target. Money floaters are skipped when the board is drawn smaller than the HUD (the top
+bar counts the money).

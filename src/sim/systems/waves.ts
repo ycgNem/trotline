@@ -1,5 +1,5 @@
 // Waves: the build-phase clock, spawning a wave's thieves one gap apart at the road's west end,
-// and ending a wave when every thief in it is stopped or gone (DESIGN.md §2, §5).
+// and ending a wave when every thief in it is stopped or gone; lures spoil then (DESIGN.md §2, §5, §6).
 import type { Game, Thief } from '../Game';
 import { WAVES, SPAWN_GAP } from '../../data/waves';
 import { THIEVES, type ThiefId } from '../../data/thieves';
@@ -16,7 +16,7 @@ export function tickWaves(g: Game, dt: number) {
     g.spawnT -= dt;
     if (g.spawnT <= 0) {
       spawn(g, g.spawnQueue.shift()!);
-      g.spawnT += SPAWN_GAP.seconds;
+      g.spawnT += WAVES[g.wave - 1].gap ?? SPAWN_GAP.seconds;
     }
     return;
   }
@@ -39,8 +39,9 @@ function spawn(g: Game, kind: ThiefId) {
   const d = THIEVES[kind];
   const p0 = g.world.pathPt(0);
   const t: Thief = {
-    id: g.id(), kind, x: p0.x - 1, y: p0.y, hp: d.hp, maxHp: d.hp, pathI: 0, dir: 1, carrying: 0, mode: 'road',
-    lure: 0, eatLeft: 0, fed: [], chewing: 0, facing: 1, hitT: 99, wave: g.wave,
+    id: g.id(), kind, x: p0.x - 1, y: p0.y, hp: d.hp, maxHp: d.hp, pathI: 0, exitI: 0, carrying: 0, mode: 'road',
+    lure: 0, eatLeft: 0, turtle: 0, worryLeft: 0, fed: [], stunT: 0, poison: 0, poisonT: 0, grabbing: 0,
+    facing: 1, hitT: 99, wave: g.wave,
   };
   g.thieves.push(t);
   g.events.push({ type: 'spawn', tick: g.tick, id: kind, x: t.x, y: t.y });
@@ -48,6 +49,10 @@ function spawn(g: Game, kind: ThiefId) {
 
 function endWave(g: Game) {
   g.thieves = [];
+  // a worm left on the road spoils in the sun: lures are cast for a wave, not placed for the run
+  for (const l of g.lures) g.events.push({ type: 'lureGone', tick: g.tick, x: l.x + 0.5, y: l.y + 0.5 });
+  g.lures = [];
+  for (const d of g.defenders) { d.worrier = 0; d.queue = []; }
   g.events.push({ type: 'waveEnd', tick: g.tick, value: g.wave });
   if (g.wave >= WAVES.length) {
     g.phase = 'won';

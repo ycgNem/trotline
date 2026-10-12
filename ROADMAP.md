@@ -25,7 +25,8 @@ push to `main` (a push needs the owner's yes).
 
 Exactly the `DESIGN.md` slice: one hand-made shore (40-tile road with two bends hugging the
 water, dock shallows, the point, the smokehouse), rod tiers 1–2, the worm bed, worm bait,
-pufferfish / eel / turtle as catches and defenders, live well with sell and deploy, bait lures
+pufferfish / electric ray / terrapin as catches and defenders (the eel and the turtle until
+the critic's review, `DECISIONS.md` 2026-10-12), live well with sell and deploy, bait lures
 on the road, gull / raccoon / bear, 8 waves with call-early, crates and run end, win after
 wave 8, restart, catch-log stubs. Placeholder art is fine for a week; the readability rules in
 `CLAUDE.md` are not optional even with placeholders. Pace tests for the lessons in

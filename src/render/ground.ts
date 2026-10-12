@@ -19,7 +19,7 @@ export function hash2(x: number, y: number, s = 0): number {
   return (h >>> 0) / 4294967296;
 }
 
-/** The deepest a water defender may sit from the road (eels): what the board marks as slots. */
+/** The deepest a water defender may sit from the road (rays): what the board marks as slots. */
 export const SLOT_DIST = Math.max(...Object.values(DEFENDERS).filter((d) => d.place === 'water').map((d) => d.maxRoadDist));
 
 export function isSlot(w: World, x: number, y: number) {

@@ -1,11 +1,13 @@
-// The world renderer: camera at an integer zoom, baked ground chunks, the placement overlays,
-// y-sorted sprites (trees, the smokehouse, defenders, thieves, the angler), flying gulls above
-// with ground shadows, and the effects the sim's events ask for. Reads the Game; never writes it.
+// The world renderer: camera at an integer zoom, baked ground chunks and a baked props layer
+// (the trees), the placement overlays, y-sorted sprites (the smokehouse, defenders, thieves, the
+// angler), flying gulls above with ground shadows, and the effects the sim's events ask for.
+// Reads the Game; never writes it.
 import { C, rgba } from '../data/palette';
 import type { Game, Thief, Defender } from '../sim/Game';
 import { Tile, isWater } from '../sim/world';
 import { THIEVES } from '../data/thieves';
-import { DEFENDERS } from '../data/defenders';
+import { DEFENDERS, RAY, TURTLE } from '../data/defenders';
+import { BAIT } from '../data/bait';
 import type { SpeciesId } from '../data/species';
 import type { GameEvent } from '../engine/events';
 import { Ground, TILE, CHUNK, hash2, isSlot } from './ground';
@@ -41,7 +43,10 @@ export class Renderer {
   H = 0;
   /** real time in seconds, for animation */
   time = 0;
-  private flash = new Map<HTMLCanvasElement, HTMLCanvasElement>();
+  /** white silhouettes of sheets, for the hit flash */
+  private flash = new Map<SpriteSheet, SpriteSheet>();
+  /** the trees, drawn once (they never move) */
+  private props: HTMLCanvasElement | null = null;
 
   constructor(public ctx: CanvasRenderingContext2D) {}
 
@@ -88,8 +93,12 @@ export class Renderer {
     for (const e of evs) {
       const x = e.x ?? 0, y = e.y ?? 0;
       switch (e.type) {
-        case 'zap': this.fx.push({ kind: 'zap', x, y, x2: e.x2 ?? x, y2: e.y2 ?? y, t: 0, life: 0.14, v: e.value ?? 0 }); break;
-        case 'puff': this.fx.push({ kind: 'puff', x, y, x2: 0, y2: 0, t: 0, life: 0.45, v: e.value ?? 1.5 }); break;
+        // a bolt shows for 4 frames: long enough to see, short enough not to hide its target
+        case 'zap': this.fx.push({ kind: 'zap', x, y, x2: e.x2 ?? x, y2: e.y2 ?? y, t: 0, life: 0.07, v: e.value ?? 0 }); break;
+        case 'snatch': this.fx.push({ kind: 'splash', x, y, x2: 0, y2: 0, t: 0, life: 0.5, v: 0 }); break;
+        case 'swallow': this.fx.push({ kind: 'ring', x, y, x2: 0, y2: 0, t: 0, life: 0.5, v: 1 }); break;
+        case 'grab': this.fx.push({ kind: 'claw', x, y, x2: 0, y2: 0, t: 0, life: 0.4, v: 0 }); break;
+        case 'spent': this.fx.push({ kind: 'fizzle', x, y, x2: 0, y2: 0, t: 0, life: 0.6, v: 0 }); break;
         case 'catch': this.fx.push({ kind: 'splash', x, y, x2: 0, y2: 0, t: 0, life: 0.6, v: 0, id: e.id }); this.fx.push({ kind: 'leap', x, y, x2: g.world.angler.x, y2: g.world.angler.y, t: 0, life: 0.7, v: 0, id: e.id }); break;
         case 'cast': this.fx.push({ kind: 'ring', x, y, x2: 0, y2: 0, t: 0, life: 0.5, v: 0 }); break;
         case 'lure': this.fx.push({ kind: 'ring', x, y, x2: 0, y2: 0, t: 0, life: 0.5, v: 1 }); break;
@@ -121,6 +130,8 @@ export class Renderer {
     for (let cy = 0; cy * CHUNK < w.h; cy++)
       for (let cx = 0; cx * CHUNK < w.w; cx++) ctx.drawImage(this.ground.chunk(cx, cy), cx * CHUNK * TILE, cy * CHUNK * TILE);
     this.glints(g);
+    if (!this.props) this.props = this.bakeProps(g);
+    ctx.drawImage(this.props, 0, 0);
 
     // overlays under the sprites
     this.overlays(g, ov);
@@ -129,14 +140,11 @@ export class Renderer {
       const s = sheet('worm');
       drawSprite(ctx, s, frameAt(s, this.time), (l.x + 0.5) * TILE, (l.y + 0.5) * TILE + 3);
       // the lure's food left, as a thin bar
-      this.bar((l.x + 0.5) * TILE, (l.y + 1) * TILE - 1, 10, l.food / 36, C.rose);
+      this.bar((l.x + 0.5) * TILE, (l.y + 1) * TILE - 1, 10, l.food / BAIT[l.bait].lureFood, C.rose);
     }
 
     // y-sorted sprites
     const items: { y: number; f: () => void }[] = [];
-    for (let y = 0; y < w.h; y++)
-      for (let x = 0; x < w.w; x++)
-        if (w.at(x, y) === Tile.Tree) items.push({ y: y + 0.9, f: () => drawSprite(ctx, sheet('tree'), 0, (x + 0.5) * TILE, (y + 1) * TILE - 1) });
     const sh = sheet('smokehouse');
     items.push({ y: 15 + 2.95, f: () => { drawSprite(ctx, sh, 0, (35 + 1.5) * TILE, (15 + 3) * TILE); this.crates(g); } });
     for (const d of g.defenders) items.push({ y: d.y + 0.6, f: () => this.defender(g, d) });
@@ -155,6 +163,19 @@ export class Renderer {
     this.line(g);
     this.effects(dt);
     this.bars(g);
+  }
+
+  /** The trees on one canvas the size of the shore: drawn once, then one drawImage a frame. */
+  private bakeProps(g: Game): HTMLCanvasElement {
+    const w = g.world;
+    const c = document.createElement('canvas');
+    c.width = w.w * TILE;
+    c.height = w.h * TILE;
+    const x = c.getContext('2d')!;
+    x.imageSmoothingEnabled = false;
+    for (let ty = 0; ty < w.h; ty++)
+      for (let tx = 0; tx < w.w; tx++) if (w.at(tx, ty) === Tile.Tree) drawSprite(x, sheet('tree'), 0, (tx + 0.5) * TILE, (ty + 1) * TILE - 1);
+    return c;
   }
 
   private glints(g: Game) {
@@ -189,7 +210,7 @@ export class Renderer {
       // the reach of the fish under the mouse
       if (ov.hover && g.canDeploy(ov.deploy, ov.hover.x, ov.hover.y).ok) {
         const d = DEFENDERS[ov.deploy];
-        const r = d.kind === 'zap' ? d.range : d.kind === 'mine' ? d.radius : 0;
+        const r = d.kind === 'zap' ? d.range : d.kind === 'poison' ? d.trigger + 0.5 : 0;
         if (r) this.circle(ov.hover.x + 0.5, ov.hover.y + 0.5, r, C.gold);
       }
     }
@@ -238,21 +259,28 @@ export class Renderer {
     const cx = (d.x + 0.5) * TILE, cy = (d.y + 0.5) * TILE;
     let s: SpriteSheet = sheet(d.species);
     // a pufferfish swells when a thief is near
-    if (def.kind === 'mine') {
+    if (def.kind === 'poison') {
       const near = g.thieves.some((t) => t.mode !== 'dead' && t.mode !== 'gone' && Math.hypot(t.x - d.x - 0.5, t.y - d.y - 0.5) < 2.5);
       if (near) s = sheet('puffer_big');
     }
+    // being clawed or worried, it shakes; a clawed fish also blinks white (about to be eaten)
+    const clawed = g.thieves.some((t) => t.grabbing === d.id);
+    const worried = d.worrier !== 0;
     if (def.place === 'water') {
-      // a ripple ring so the fish reads against any water
+      // a ripple ring so the fish reads against any water (red while it is clawed)
       const r = 6 + Math.floor((this.time * 2 + d.id) % 2);
-      ctx.fillStyle = rgba(C.ice, 0.55);
+      ctx.fillStyle = rgba(clawed ? C.red : C.ice, clawed ? 0.9 : 0.55);
       ctx.fillRect(cx - r, cy + 3, r * 2, 1);
     }
-    const chewed = g.thieves.some((t) => t.mode === 'chew' && t.chewing === d.id);
-    const bob = chewed ? Math.round(Math.sin(this.time * 30)) : 0;
-    const f = def.kind === 'block' ? (chewed ? 0 : frameAt(s, this.time + d.id)) : frameAt(s, this.time + d.id * 0.37);
-    drawSprite(ctx, s, f, cx + bob, cy + (def.place === 'water' ? 2 : 4), d.species === 'turtle' ? false : (d.id % 2 === 0));
-    if (def.kind === 'zap' && d.acted < 0.12) {
+    const bob = clawed || worried ? Math.round(Math.sin(this.time * 30)) : 0;
+    // a terrapin under attack pulls into its shell (frame 0)
+    const f = def.kind === 'shell' ? (worried ? 0 : frameAt(s, this.time + d.id)) : frameAt(s, this.time + d.id * 0.37);
+    const img = clawed && Math.floor(this.time * 8) % 2 ? this.white(s) : s;
+    const spent = def.kind === 'zap' && d.charge <= 0;
+    if (spent) ctx.globalAlpha = 0.45;
+    drawSprite(ctx, img, f, cx + bob, cy + (def.place === 'water' ? 2 : 4), d.species === 'turtle' ? false : (d.id % 2 === 0));
+    ctx.globalAlpha = 1;
+    if (def.kind === 'zap' && d.acted < 0.12 && !spent) {
       ctx.fillStyle = C.gold;
       ctx.fillRect(cx - 1, cy - 6, 2, 2);
     }
@@ -261,35 +289,47 @@ export class Renderer {
   private thief(g: Game, t: Thief, lift = 0) {
     const ctx = this.ctx;
     const s = sheet(t.kind);
-    const moving = t.mode === 'road' || t.mode === 'toLure';
-    const eating = t.mode === 'eat' || t.mode === 'chew';
+    const stunned = t.stunT > 0;
+    const moving = !stunned && (t.mode === 'road' || t.mode === 'toLure' || t.mode === 'exit');
+    const eating = !stunned && (t.mode === 'eat' || t.mode === 'worry');
     const f = moving ? frameAt(s, this.time + t.id * 0.21) : eating ? Math.floor(this.time * 5) % s.frames.length : 0;
+    // eating bobs; retching up a pufferfish shudders
     const bob = eating ? Math.round(Math.abs(Math.sin(this.time * 9))) : 0;
-    let img = s;
-    if (t.hitT < 0.05) img = this.white(s);
-    drawSprite(ctx, img, f, t.x * TILE, t.y * TILE + 4 - lift + bob, t.facing < 0);
+    const shake = stunned ? Math.round(Math.sin(this.time * 40)) : 0;
+    const img = t.hitT < 0.05 ? this.white(s) : s;
+    drawSprite(ctx, img, f, t.x * TILE + shake, t.y * TILE + 4 - lift + bob, t.facing < 0);
     if (t.carrying) drawSprite(ctx, sheet('crate'), 0, t.x * TILE - t.facing * 3, t.y * TILE - s.ay + 6 - lift);
+    // the pufferfish it snatched, blown up in its mouth
+    if (stunned) drawSprite(ctx, sheet('puffer_big'), 0, t.x * TILE + t.facing * Math.max(2, s.w / 2 - 3), t.y * TILE - 1 - lift);
+    // poisoned: sick green bubbles rise off it
+    if (t.poisonT > 0) {
+      ctx.fillStyle = C.lime;
+      for (let i = 0; i < 2; i++) {
+        const k = (this.time * 1.5 + i * 0.5 + t.id * 0.13) % 1;
+        ctx.fillRect(Math.round(t.x * TILE + (i ? 3 : -3)), Math.round(t.y * TILE - s.ay + 2 - k * 6 - lift), 1, 1);
+      }
+    }
     void g;
   }
 
-  /** A white silhouette of a sheet (the hit flash), cached per frame canvas. */
+  /** A white silhouette of a sheet (the hit flash), made once per sheet. */
   private white(s: SpriteSheet): SpriteSheet {
+    let w = this.flash.get(s);
+    if (w) return w;
     const frames = s.frames.map((fr) => {
-      let c = this.flash.get(fr);
-      if (!c) {
-        c = document.createElement('canvas');
-        c.width = fr.width;
-        c.height = fr.height;
-        const x = c.getContext('2d')!;
-        x.drawImage(fr, 0, 0);
-        x.globalCompositeOperation = 'source-in';
-        x.fillStyle = C.bone;
-        x.fillRect(0, 0, c.width, c.height);
-        this.flash.set(fr, c);
-      }
+      const c = document.createElement('canvas');
+      c.width = fr.width;
+      c.height = fr.height;
+      const x = c.getContext('2d')!;
+      x.drawImage(fr, 0, 0);
+      x.globalCompositeOperation = 'source-in';
+      x.fillStyle = C.bone;
+      x.fillRect(0, 0, c.width, c.height);
       return c;
     });
-    return { ...s, frames };
+    w = { ...s, frames };
+    this.flash.set(s, w);
+    return w;
   }
 
   private angler(g: Game) {
@@ -324,7 +364,7 @@ export class Renderer {
       const k = e.t / e.life;
       switch (e.kind) {
         case 'zap': {
-          // a thin jagged bolt from the eel to its target, gold so the target stays readable
+          // a thin jagged bolt from the ray to its target, gold so the target stays readable
           ctx.fillStyle = e.v ? C.amber : C.gold;
           const x0 = e.x * TILE, y0 = e.y * TILE, x1 = e.x2 * TILE, y1 = e.y2 * TILE - 4;
           const n = Math.max(4, Math.floor(Math.hypot(x1 - x0, y1 - y0) / 3));
@@ -334,15 +374,19 @@ export class Renderer {
           }
           break;
         }
-        case 'puff': {
-          const r = e.v * TILE * Math.min(1, k * 1.6);
-          ctx.fillStyle = rgba(C.gold, 1 - k);
-          for (let i = 0; i < 28; i++) {
-            const a = (i / 28) * Math.PI * 2;
-            ctx.fillRect(Math.round(e.x * TILE + Math.cos(a) * r), Math.round(e.y * TILE + Math.sin(a) * r), 2, 2);
+        case 'claw': {
+          // three red scratches over a fish being clawed
+          ctx.fillStyle = rgba(C.red, 1 - k);
+          for (let i = 0; i < 3; i++) {
+            const x = Math.round(e.x * TILE) - 4 + i * 3, y = Math.round(e.y * TILE) - 6 + Math.round(k * 3);
+            ctx.fillRect(x, y, 1, 1); ctx.fillRect(x + 1, y + 1, 1, 1); ctx.fillRect(x + 2, y + 2, 1, 1);
           }
-          ctx.fillStyle = rgba(C.shell, 1 - k);
-          ctx.fillRect(Math.round(e.x * TILE) - 3, Math.round(e.y * TILE) - 3, 6, 6);
+          break;
+        }
+        case 'fizzle': {
+          // a spent ray: a few grey sparks sink back into the water
+          ctx.fillStyle = rgba(C.steel, 1 - k);
+          for (let i = 0; i < 4; i++) ctx.fillRect(Math.round(e.x * TILE) - 4 + i * 3, Math.round(e.y * TILE) - 6 + Math.round(k * 5) + (i % 2) * 2, 1, 1);
           break;
         }
         case 'splash': {
@@ -398,13 +442,19 @@ export class Renderer {
       const s = sheet(t.kind);
       if (t.hp < t.maxHp) this.bar(t.x * TILE, t.y * TILE - s.ay + 1 - lift, Math.min(16, s.w - 2), t.hp / t.maxHp, C.ember);
       if (t.mode === 'eat') this.bar(t.x * TILE, t.y * TILE - s.ay - 2 - lift, 10, t.eatLeft / THIEVES[t.kind].eat, C.rose);
+      if (t.mode === 'worry') this.bar(t.x * TILE, t.y * TILE - s.ay - 2 - lift, 10, t.worryLeft / (TURTLE.worry[t.kind] ?? 1), C.shell);
     }
+    // defenders' bars sit under the sprite, so they never cover a thief on the road above it
     for (const d of g.defenders) {
-      if (d.hp >= d.maxHp) continue;
-      const frac = d.hp / d.maxHp;
-      const danger = frac < 0.35;
-      if (danger && Math.floor(this.time * 6) % 2) continue;
-      this.bar((d.x + 0.5) * TILE, d.y * TILE - 2, 12, frac, danger ? C.red : C.lime);
+      const y = (d.y + 1) * TILE + 1;
+      const hurt = d.hp < d.maxHp;
+      if (hurt) {
+        const frac = d.hp / d.maxHp;
+        const danger = frac < 0.35;
+        if (!danger || Math.floor(this.time * 6) % 2 === 0) this.bar((d.x + 0.5) * TILE, y, 12, frac, danger ? C.red : C.lime);
+      }
+      // a ray's charge left, while a wave is on and it has spent some
+      if (g.phase === 'wave' && DEFENDERS[d.species].kind === 'zap' && d.charge < RAY.charge) this.bar((d.x + 0.5) * TILE, y + (hurt ? 3 : 0), 12, d.charge / RAY.charge, C.gold);
     }
   }
 

@@ -1,21 +1,12 @@
-// Lures: a worm cast on the road feeds one thief at a time; the rest queue (that's the stall).
-// When its food runs out it is gone and the queue goes back to the road (DESIGN.md §6).
+// Lures: a worm cast on the road feeds one thief at a time while the rest stand in line (that's
+// the stall; the thieves system walks them). An eaten-up or swallowed lure is gone and its line
+// goes back to the road. Lures left at a wave's end spoil (the waves system) (DESIGN.md §6).
 import type { Game } from '../Game';
-import { THIEVES } from '../../data/thieves';
 
 export function tickLures(g: Game, _dt: number) {
   for (const l of g.lures) {
-    l.queue = l.queue.filter((id) => g.thieves.some((t) => t.id === id && t.mode === 'queue'));
-    if (l.eater === 0 && l.queue.length && l.food > 0) {
-      const t = g.thieves.find((q) => q.id === l.queue[0])!;
-      l.queue.shift();
-      l.eater = t.id;
-      t.mode = 'eat';
-      t.eatLeft = THIEVES[t.kind].eat;
-      t.x = l.x + 0.5;
-      t.y = l.y + 0.5;
-      g.events.push({ type: 'eat', tick: g.tick, id: t.kind, x: t.x, y: t.y });
-    }
+    l.queue = l.queue.filter((id) => g.thieves.some((t) => t.id === id && t.lure === l.id && (t.mode === 'queue' || t.mode === 'toLure')));
+    if (l.eater && !g.thieves.some((t) => t.id === l.eater && t.lure === l.id && (t.mode === 'eat' || t.mode === 'toLure'))) l.eater = 0;
   }
   g.lures = g.lures.filter((l) => {
     if (l.food > 0) return true;

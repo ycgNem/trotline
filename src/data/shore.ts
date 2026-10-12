@@ -49,10 +49,12 @@ export const SHORE = {
   smokehouse: { x: 35, y: 15, w: 3, h: 3 },
   /** where the worm bed is dug when bought (2x1 tiles of grass beside the dock's foot) */
   wormBed: { x: 17, y: 13 },
-  derivation: 'DESIGN.md §10: the angler at the dock end is 5 tiles from the road, so a 9-tile cast covers 15 road tiles (§6)',
+  /** walkers that took crates leave from the road's end straight south into the woods along this column */
+  exitX: 34,
+  derivation: 'DESIGN.md §10: the angler at the dock end is 5 tiles from the road, so a 9-tile cast covers 15 road tiles (§6); thieves leave by the woods (x 34 south) or, gulls, straight north over the water',
 };
 
 export const ZONES: ZoneDef[] = [
   { id: 'shallows', name: 'The shallows', x: 0, y: 0, r: 0, derivation: 'DESIGN.md §10: every shallow tile is the shallows (light water reads as one zone); the bowl around the dock is inside the tier-1 cast (§3)' },
-  { id: 'point', name: 'The point', x: 31, y: 4, r: 4.5, derivation: 'DESIGN.md §10: mid water off the point\'s tip, 12-15 tiles from the dock end: tier 2 only (§3)' },
+  { id: 'point', name: 'The point', x: 31, y: 4, r: 4.5, derivation: 'DESIGN.md §10: open sand off the point\'s tip, 12-15 tiles from the dock end: tier 2 only, rays only (§3)' },
 ];

@@ -13,18 +13,18 @@ const STATES = {
     const a = window.__app; a.newRun(7); a.freeze(); const g = a.game;
     for (const l of ['firstCatch', 'firstDeploy', 'firstLure']) a.seen.add(l);
     g.act({ k: 'cast', x: 15, y: 10 });
-    g.liveWell = ['puffer', 'eel', 'eel', null, 'puffer', null];
+    g.liveWell = ['puffer', 'ray', 'ray', null, 'puffer', null];
     a.selected = 1;
   },
   deploy: () => { const a = window.__app; a.mode = { k: 'deploy', slot: 1 }; },
   lure: () => { const a = window.__app; a.mode = { k: 'lure' }; a.selected = null; },
   wave: () => {
     const a = window.__app; a.mode = { k: 'idle' }; const g = a.game;
-    g.act({ k: 'deploy', slot: 1, x: 19, y: 11 }); g.act({ k: 'lure', x: 19, y: 12 }); g.act({ k: 'call' });
+    g.act({ k: 'deploy', slot: 1, x: 19, y: 10 }); g.act({ k: 'lure', x: 19, y: 12 }); g.act({ k: 'call' });
     a.step(60 * 14);
   },
-  full: () => { const a = window.__app; const g = a.game; g.liveWell = ['puffer', 'eel', 'turtle', 'eel', 'puffer', 'eel']; g.worms = 0; a.selected = 2; },
-  lesson: () => { const a = window.__app; a.lesson = { on: 'firstDeploy', title: 'A fish on guard', text: 'Thieves walk the road to the smokehouse and carry off crates. Fish do the most where the road bends past them. Now press L and cast a worm onto the road beside your fish: raccoons leave the road to eat it.' }; },
+  full: () => { const a = window.__app; const g = a.game; g.liveWell = ['puffer', 'ray', 'turtle', 'ray', 'puffer', 'ray']; g.worms = 0; a.selected = 2; },
+  lesson: () => { const a = window.__app; a.lesson = a.lessonFor('firstDeploy'); },
   paused: () => { const a = window.__app; a.lesson = null; a.paused = true; },
   help: () => { const a = window.__app; a.paused = false; a.help = true; },
   won: () => { const a = window.__app; a.help = false; a.game.phase = 'won'; a.screen = 'end'; },

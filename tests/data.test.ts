@@ -121,4 +121,33 @@ describe('the shore (DESIGN.md §10)', () => {
       }
     }
   });
+  it('the way out runs from the road\'s end south over open ground to the map edge (DESIGN.md §5)', () => {
+    const last = w.path[w.path.length - 1];
+    expect(Math.abs(w.exitPath[0].x - 0.5 - last.x)).toBeLessThanOrEqual(1);
+    expect(w.exitPath[w.exitPath.length - 1].y).toBeGreaterThan(w.h);
+    for (const p of w.exitPath) {
+      const x = Math.floor(p.x), y = Math.floor(p.y);
+      if (!w.inb(x, y)) continue;
+      const t = w.at(x, y);
+      expect(t === Tile.Grass || t === Tile.Sand, `exit at ${x},${y}`).toBe(true);
+    }
+  });
+  it('every species bites somewhere the surf rod reaches (DESIGN.md §3)', () => {
+    for (const s of species.SPECIES_ORDER) {
+      const sp = species.SPECIES[s];
+      let ok = false;
+      for (let y = 0; y < w.h && !ok; y++) for (let x = 0; x < w.w && !ok; x++) {
+        const i = w.idx(x, y), z = w.zone[i];
+        if (!z || !sp.rates[z] || w.castDist(x, y) > rods.RODS[rods.RODS.length - 1].range) continue;
+        const hab = sp.habitat.reedsOnly ? (w.nearReeds[i] ? sp.habitat.near : 0) : w.nearStructure[i] ? sp.habitat.near : sp.habitat.open;
+        ok = hab > 0;
+      }
+      expect(ok, s).toBe(true);
+    }
+  });
+  it('has reeds a tier-1 cast reaches, so terrapins are a place to go once the rod allows', () => {
+    let n = 0;
+    for (let y = 0; y < w.h; y++) for (let x = 0; x < w.w; x++) if (w.nearReeds[w.idx(x, y)] && w.castDist(x, y) <= rods.RODS[0].range) n++;
+    expect(n).toBeGreaterThan(2);
+  });
 });

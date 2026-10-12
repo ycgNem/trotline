@@ -31,6 +31,12 @@ export class World {
   zone: (ZoneId | null)[];
   /** where the angler stands (tile centre, in tiles) */
   angler: Pt;
+  /** walkers that took crates leave along this, from the road's end south off the map (tile centres) */
+  exitPath: Pt[];
+  /** water within a tile of the dock or reeds (puffers like it, rays don't) */
+  nearStructure: Uint8Array;
+  /** water within a tile of reeds (where terrapins bite) */
+  nearReeds: Uint8Array;
   /** the smokehouse door: the point thieves walk to (tile centre past the road's last tile) */
   door: Pt;
 
@@ -61,6 +67,23 @@ export class World {
     this.angler = { x: SHORE.angler.x + 0.5, y: SHORE.angler.y + 0.5 };
     const last = this.path[this.path.length - 1];
     this.door = { x: last.x + 1.5, y: last.y + 0.5 };
+    this.exitPath = [];
+    for (let y = last.y + 1; y < this.h; y++) this.exitPath.push({ x: SHORE.exitX + 0.5, y: y + 0.5 });
+    this.exitPath.push({ x: SHORE.exitX + 0.5, y: this.h + 1.5 });
+    this.nearStructure = this.near((t) => t === Tile.Dock || t === Tile.Reeds);
+    this.nearReeds = this.near((t) => t === Tile.Reeds);
+  }
+
+  /** Water tiles within a tile (Chebyshev) of a tile matching `f`. */
+  private near(f: (t: Tile) => boolean): Uint8Array {
+    const out = new Uint8Array(this.w * this.h);
+    for (let y = 0; y < this.h; y++)
+      for (let x = 0; x < this.w; x++) {
+        if (!isWater(this.at(x, y))) continue;
+        for (let dy = -1; dy <= 1 && !out[this.idx(x, y)]; dy++)
+          for (let dx = -1; dx <= 1; dx++) if (this.inb(x + dx, y + dy) && f(this.at(x + dx, y + dy))) { out[this.idx(x, y)] = 1; break; }
+      }
+    return out;
   }
 
   idx(x: number, y: number) {
@@ -118,6 +141,15 @@ export class World {
       if (d < bd) { bd = d; best = i; }
     });
     return best;
+  }
+
+  /** The point `d` tiles back along the road (toward its west end) from path tile i's centre. */
+  pathBack(i: number, d: number): Pt {
+    // before the road's first tile it carries straight on west, the way thieves come in
+    const at = (j: number) => (j >= 0 ? this.pathPt(j) : { x: this.pathPt(0).x + j, y: this.pathPt(0).y });
+    const k = Math.floor(d), f = d - k;
+    const a = at(i - k), b = at(i - k - 1);
+    return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
   }
 
   /** Distance from the angler to a tile's centre, in tiles. */

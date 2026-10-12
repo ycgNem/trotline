@@ -23,6 +23,6 @@ export const RODS: RodDef[] = [
   },
   {
     tier: 2, name: 'Surf rod', range: 14, line: 'large', reel: 1.5, cost: 60,
-    derivation: 'DESIGN.md §3: 60 money, reaches the point (12-15 tiles, §10), lands turtles; reel x1.5 so with the point it roughly doubles the catch',
+    derivation: 'DESIGN.md §3: 60 money, reaches the point (12-15 tiles, §10), lands terrapins; reel x1.5 so with the point it roughly doubles the catch',
   },
 ];

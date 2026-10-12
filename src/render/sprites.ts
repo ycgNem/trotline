@@ -191,14 +191,15 @@ function placeholder(name: string): SpriteSheet {
         for (const [a, b] of [[9, 1], [3, 3], [15, 3], [1, 9], [17, 9], [3, 15], [15, 15]]) r(x, C.shell, a, b, 1, 1);
         r(x, C.ink, 13, 7, 1, 1);
       });
-    case 'eel':
-      return make(22, 10, 11, 6, 2, 3, (x, f) => {
-        for (let i = 0; i < 20; i++) {
-          const y = 4 + Math.round(Math.sin((i + f * 3) / 3.2) * 1.6);
-          r(x, C.moss, 1 + i, y, 1, 3);
-          r(x, C.reed, 1 + i, y + 2, 1, 1);
-        }
-        r(x, C.ink, 19, 4 + Math.round(Math.sin((18 + f * 3) / 3.2) * 1.6), 1, 1);
+    case 'ray':
+      // lesser electric ray from above: a round sandy disc with dark rings, a short thick tail
+      return make(15, 15, 7, 10, 2, 3, (x, f) => {
+        const w = f ? 0.4 : 0;
+        r(x, C.tan, 6, 10, 3, 4); r(x, C.tan, 5, 13, 5, 1);
+        disc(x, C.sand, 7.5, 6, 6 + w, 5.5);
+        disc(x, C.dune, 7.5, 5.5, 3.5, 3);
+        r(x, C.clay, 4, 4, 2, 1); r(x, C.clay, 10, 4, 2, 1); r(x, C.clay, 6, 8, 4, 1);
+        r(x, C.ink, 6, 3, 1, 1); r(x, C.ink, 9, 3, 1, 1);
       });
     case 'turtle':
       return make(18, 14, 9, 11, 2, 2, (x, f) => {
@@ -260,4 +261,4 @@ function placeholder(name: string): SpriteSheet {
 }
 
 /** Names the game draws (the art director's export list). */
-export const SPRITE_NAMES = ['gull', 'raccoon', 'bear', 'puffer', 'puffer_big', 'eel', 'turtle', 'angler', 'worm', 'crate', 'tree', 'smokehouse', 'bobber', 'wormbed'];
+export const SPRITE_NAMES = ['gull', 'raccoon', 'bear', 'puffer', 'puffer_big', 'ray', 'turtle', 'angler', 'worm', 'crate', 'tree', 'smokehouse', 'bobber', 'wormbed'];

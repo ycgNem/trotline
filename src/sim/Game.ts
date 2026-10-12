@@ -7,7 +7,7 @@ import { Rng } from '../engine/rng';
 import { EventQueue } from '../engine/events';
 import { World, Tile, isWater, type Pt } from './world';
 import { RULES } from '../data/rules';
-import { SPECIES, sizeRank, type SpeciesId } from '../data/species';
+import { SPECIES, SPECIES_ORDER, sizeRank, type SpeciesId } from '../data/species';
 import { DEFENDERS } from '../data/defenders';
 import { THIEVES, type ThiefId } from '../data/thieves';
 import { WAVES } from '../data/waves';
@@ -36,13 +36,23 @@ export interface Defender {
   maxHp: number;
   /** seconds to the next zap pulse */
   cool: number;
+  /** a ray: damage it can still deal this wave */
+  charge: number;
   /** road path index, for a turtle */
   roadI: number;
-  /** seconds since it last acted (for the renderer's flash) */
+  /** seconds since it last acted or was hurt (for the renderer's flash) */
   acted: number;
+  /** a terrapin: the walker worrying it (0: none) and the walkers waiting behind, in order */
+  worrier: number;
+  queue: number[];
 }
 
-export type ThiefMode = 'road' | 'toLure' | 'queue' | 'eat' | 'chew' | 'dead' | 'gone';
+/**
+ * road: walking to the smokehouse. toLure / queue / eat: at a lure. worry / wait: at a terrapin
+ * (worrying it, or waiting behind the one that is). exit: leaving with crates (walkers south into
+ * the woods, gulls north over the water).
+ */
+export type ThiefMode = 'road' | 'toLure' | 'queue' | 'eat' | 'worry' | 'wait' | 'exit' | 'dead' | 'gone';
 
 export interface Thief {
   id: number;
@@ -54,17 +64,25 @@ export interface Thief {
   maxHp: number;
   /** the road waypoint it is walking to */
   pathI: number;
-  /** 1 toward the smokehouse, -1 leaving with what it took */
-  dir: 1 | -1;
+  /** the exit waypoint it is walking to, once it has crates */
+  exitI: number;
   carrying: number;
   mode: ThiefMode;
   /** the lure it is going to, queued at or eating (0: none) */
   lure: number;
   eatLeft: number;
-  /** lures it has already eaten from */
+  /** the terrapin it is worrying or waiting at (0: none), and seconds of worrying left */
+  turtle: number;
+  worryLeft: number;
+  /** lures it has eaten from and terrapins it has given up on: it passes them by */
   fed: number[];
-  /** the turtle it is chewing (0: none) */
-  chewing: number;
+  /** seconds it can't move (retching up a pufferfish) */
+  stunT: number;
+  /** poison damage still to come, and the seconds it comes over */
+  poison: number;
+  poisonT: number;
+  /** the water defender it is clawing at as it walks past (0: none) */
+  grabbing: number;
   facing: 1 | -1;
   /** seconds since it was last hit (for the renderer's flash) */
   hitT: number;
@@ -138,7 +156,7 @@ export class Game {
 
   /** catches made this tick, for the catch log system */
   tickCatches: SpeciesId[] = [];
-  caught: Record<SpeciesId, number> = { puffer: 0, eel: 0, turtle: 0 };
+  caught: Record<SpeciesId, number> = { puffer: 0, ray: 0, turtle: 0 };
   firstCatch: Partial<Record<SpeciesId, number>> = {};
   firsts = { deploy: false, lure: false, sell: false };
   stats = { killed: 0, leaks: 0, stolen: 0, recovered: 0, escaped: 0, sold: 0, deployed: 0, lures: 0, earned: 0, lost: 0 };
@@ -242,7 +260,7 @@ export class Game {
         if (!r.ok) return r;
         this.liveWell[c.slot] = null;
         const d = DEFENDERS[s];
-        this.defenders.push({ id: this.id(), species: s, x: c.x, y: c.y, hp: d.hp, maxHp: d.hp, cool: 0, roadI: this.world.pathIndex[this.world.idx(c.x, c.y)], acted: 99 });
+        this.defenders.push({ id: this.id(), species: s, x: c.x, y: c.y, hp: d.hp, maxHp: d.hp, cool: 0, charge: d.kind === 'zap' ? d.charge : 0, roadI: this.world.pathIndex[this.world.idx(c.x, c.y)], acted: 99, worrier: 0, queue: [] });
         this.stats.deployed++;
         this.events.push({ type: 'deploy', tick: this.tick, id: s, x: c.x + 0.5, y: c.y + 0.5 });
         if (!this.firsts.deploy) { this.firsts.deploy = true; this.events.push({ type: 'firstDeploy', tick: this.tick, id: s }); }
@@ -332,16 +350,27 @@ export class Game {
     return { ok: true };
   }
 
-  /** The species this rod can catch where the line is, with their rates per minute right now. */
-  biteTable(zone: ZoneId | null = this.fishZone): { s: SpeciesId; rate: number; why?: string }[] {
+  /**
+   * What bites on a tile with this rod, rates per minute right now (DESIGN.md §3): the zone's
+   * rate, times where the tile sits (by the dock or reeds, or open sand), the bait, the reel and
+   * the wave's distraction. Defaults to where the line is.
+   */
+  biteTable(at: Pt | null = this.fishing): { s: SpeciesId; rate: number; why?: string }[] {
+    if (!at) return [];
+    const w = this.world;
+    const i = w.idx(at.x, at.y);
+    const zone = w.zone[i];
     if (!zone) return [];
     const out: { s: SpeciesId; rate: number; why?: string }[] = [];
     const factor = this.phase === 'wave' ? RULES.waveFishing : 1;
-    for (const s of Object.keys(SPECIES) as SpeciesId[]) {
-      const base = SPECIES[s].rates[zone];
+    for (const s of SPECIES_ORDER) {
+      const sp = SPECIES[s];
+      const base = sp.rates[zone];
       if (!base) continue;
-      if (sizeRank(SPECIES[s].size) > sizeRank(this.rod.line)) out.push({ s, rate: 0, why: 'line too light' });
-      else out.push({ s, rate: base * BAIT.worm.match * this.rod.reel * factor });
+      const hab = sp.habitat.reedsOnly ? (w.nearReeds[i] ? sp.habitat.near : 0) : w.nearStructure[i] ? sp.habitat.near : sp.habitat.open;
+      if (hab <= 0) continue;
+      if (sizeRank(sp.size) > sizeRank(this.rod.line)) out.push({ s, rate: 0, why: 'line too light' });
+      else out.push({ s, rate: base * hab * BAIT.worm.match * this.rod.reel * factor });
     }
     return out;
   }
@@ -349,10 +378,11 @@ export class Game {
   /** Why the line isn't catching, or null if it is. */
   fishBlock(): string | null {
     if (!this.fishing) return 'Line out of the water';
-    if (!this.fishZone) return 'Nothing bites out here';
+    const table = this.biteTable();
+    if (!table.length) return 'Nothing bites out here';
     if (!this.liveWell.includes(null)) return 'Live well full';
     if (this.worms < 1) return 'Out of worms';
-    if (!this.biteTable().some((b) => b.rate > 0)) return 'Line too light for what is here';
+    if (!table.some((b) => b.rate > 0)) return 'Line too light for what is here';
     return null;
   }
 

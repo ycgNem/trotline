@@ -19,17 +19,17 @@ export interface Lesson {
 export const LESSONS: Lesson[] = [
   {
     on: 'firstCatch', title: 'Into the live well',
-    text: 'Every fish is a choice. Sell it for money, or deploy it in the light water beside the road to fight. Pufferfish burst when a thief comes close; eels zap anything within 3 tiles. Click the fish in your live well.',
+    text: 'Every fish is a choice: sell it, or deploy it in the light water beside the road. A pufferfish is poison to whatever snatches it. An electric ray shocks thieves until its charge is spent for the wave. Click the fish in your live well.',
   },
   {
     on: 'firstDeploy', title: 'A fish on guard',
-    text: 'Thieves walk the road to the smokehouse and carry off crates. Fish do the most where the road bends past them. Now press L and cast a worm onto the road beside your fish: raccoons leave the road to eat it.',
+    text: 'Thieves walk the road to the smokehouse, take crates and slip away into the woods. Raccoons and bears claw at a fish right beside the road, so keep rays a tile back. Now press L and cast a worm onto the road beside your fish.',
   },
   {
     on: 'firstLure', title: 'Bait moves trouble',
-    text: 'Raccoons and bears within 4 tiles go for the worm and eat one at a time while the rest wait their turn. Every worm on the road is a cast you didn\'t make, so drop it where your fish can reach.',
+    text: 'Raccoons and bears near the worm leave the road and eat one at a time while the rest wait in line. A gull swallows a worm whole, and a worm spoils when the wave ends: cast it where your fish can reach, when the walkers are coming.',
   },
 ];
 
 /** What the status line says before the player has done anything. */
-export const FIRST_HINT = 'Click the water near the dock to cast. Thieves come when the timer runs out.';
+export const FIRST_HINT = 'Hover the water to see what bites there, then click to cast. Thieves come when the timer runs out.';

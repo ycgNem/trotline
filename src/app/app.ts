@@ -103,6 +103,7 @@ export class App {
     this.mode = { k: 'idle' };
     this.selected = null;
     this.floaters = [];
+    this.toast = null;
     this.renderer.fx = [];
     this.paused = false;
     this.lesson = null;
@@ -197,8 +198,10 @@ export class App {
         case 'catch': this.audio.sfx('catch'); this.float('+' + SPECIES[e.id as SpeciesId].name, g.world.angler.x, g.world.angler.y - 1, C.ice); break;
         case 'cast': this.audio.sfx('cast'); break;
         case 'zap': if (!e.value) this.audio.sfx('zap', 0.6); break;
-        case 'puff': this.audio.sfx('puff'); break;
-        case 'kill': this.audio.sfx('kill'); this.float('+$' + e.value, e.x!, e.y! - 1, C.gold); break;
+        case 'snatch': this.audio.sfx('puff'); this.float('Poisoned!', e.x2!, e.y2! - 1, C.lime); break;
+        case 'swallow': this.audio.sfx('steal', 0.6); this.float('Gulp!', e.x!, e.y! - 1, C.rose); break;
+        // at a zoom below the HUD's scale a +$ over every kill is noise (the top bar counts it)
+        case 'kill': this.audio.sfx('kill'); if (this.renderer.cam.zoom >= this.uiScale) this.float('+$' + e.value, e.x!, e.y! - 1, C.gold); break;
         case 'steal': this.audio.sfx('steal'); this.float('-' + e.value + ' crate' + (e.value === 1 ? '' : 's'), e.x!, e.y! - 1, C.ember); break;
         case 'recover': this.float('+' + e.value + ' back', e.x!, e.y! - 1.6, C.lime); break;
         case 'escape': this.float(e.value + ' lost', e.x!, e.y! - 1, C.red); break;
@@ -211,7 +214,7 @@ export class App {
         case 'waveEnd': this.save(); break;
         case 'won': this.audio.sfx('win'); this.endRun(); break;
         case 'lost': this.audio.sfx('lose'); this.endRun(); break;
-        case 'defenderLost': this.float(SPECIES[e.id as SpeciesId].name + ' lost', e.x!, e.y! - 1, C.red); break;
+        case 'defenderLost': this.float(e.id === 'turtle' ? 'Shell cracked' : SPECIES[e.id as SpeciesId].name + ' eaten', e.x!, e.y! - 1, C.red); break;
       }
       const l = LESSONS.find((q) => q.on === e.type);
       if (l && !this.seen.has(l.on) && !this.bot) {
@@ -360,6 +363,10 @@ export class App {
   }
   dismissLesson() {
     this.lesson = null;
+  }
+  /** A lesson card by its event, for the screenshot scripts. */
+  lessonFor(on: Lesson['on']) {
+    return LESSONS.find((l) => l.on === on) ?? null;
   }
   stats() {
     const g = this.game;

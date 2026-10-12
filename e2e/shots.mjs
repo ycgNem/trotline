@@ -28,8 +28,8 @@ async function until(cond, n = 60 * 120) {
 await frames(page, 4);
 await shot('01-title');
 
-// a run with seed 7, fishing the shallows by the dock
-await run(() => { const a = window.__app; a.newRun(7); a.freeze(); a.act({ k: 'cast', x: 15, y: 10 }); });
+// a run with seed 10, fishing open sand off the dock (puffers and rays)
+await run(() => { const a = window.__app; a.newRun(10); a.freeze(); a.act({ k: 'cast', x: 14, y: 7 }); });
 await until('g.liveWell.some(Boolean)');
 await shot('02-first-catch-card');
 await run(() => window.__app.dismissLesson());
@@ -48,13 +48,13 @@ await run(() => {
   a.autoplay(null);
   a.mode = { k: 'idle' };
   a.selected = null;
-  // staged: an eel beside the road's midpoint, where the worm will land
-  g.liveWell[5] = 'eel';
-  g.act({ k: 'deploy', slot: 5, x: 19, y: 11 });
+  // staged: a ray two tiles off the road's midpoint (clear of claws), where the worm will land
+  g.liveWell[5] = 'ray';
+  g.act({ k: 'deploy', slot: 5, x: 19, y: 10 });
 });
 await shot('04-first-deploy-card');
 await run(() => window.__app.dismissLesson());
-// lure mode, then a worm on the road by the eel and the wave
+// lure mode, then a worm on the road by the ray and the wave
 await run(() => { window.__app.mode = { k: 'lure' }; });
 await page.mouse.move(...Object.values(await run(() => window.__app.tileToCss(19, 12))));
 await frames(page, 3);
@@ -71,7 +71,7 @@ await shot('07-eating-and-queue');
 await until("g.phase === 'build'");
 await shot('08-after-wave-1');
 
-// the bear: a fresh run set up for wave 4 with a turtle and two eels around bend 1
+// the bear: a fresh run set up for wave 4 with a terrapin and two rays around bend 1
 await run(() => {
   const a = window.__app;
   a.newRun(11);
@@ -79,24 +79,55 @@ await run(() => {
   const g = a.game;
   g.wave = 3;
   g.rodTier = 2;
-  for (const [s, x, y] of [['turtle', 27, 12], ['eel', 28, 13], ['eel', 26, 14]]) { g.liveWell[0] = s; g.act({ k: 'deploy', slot: 0, x, y }); }
-  g.act({ k: 'cast', x: 15, y: 10 });
+  for (const [s, x, y] of [['turtle', 27, 12], ['ray', 27, 14], ['ray', 28, 15]]) { g.liveWell[0] = s; g.act({ k: 'deploy', slot: 0, x, y }); }
+  g.act({ k: 'cast', x: 14, y: 7 });
   g.act({ k: 'call' });
   g.step();
-  g.spawnQueue = ['bear'];
-  a.seen.add('firstDeploy'); a.seen.add('firstCatch');
+  g.spawnQueue = ['bear', 'raccoon', 'raccoon', 'raccoon'];
+  for (const l of ['firstCatch', 'firstDeploy', 'firstLure']) a.seen.add(l);
 });
 await frames(page, 2);
 await run(() => window.__app.dismissLesson());
-await until("g.thieves.some((t) => t.kind === 'bear' && t.mode === 'chew')", 60 * 200);
+await until("g.thieves.some((t) => t.kind === 'bear' && t.mode === 'worry') && g.thieves.some((t) => t.mode === 'wait')", 60 * 60);
 await run(() => window.__app.step(120));
 // past the bear's hit flash, so it isn't drawn white
 await until("g.thieves.some((t) => t.kind === 'bear' && t.hitT > 0.15)", 60);
-await shot('09-bear-chews-turtle');
+await shot('09-bear-worries-terrapin');
+
+// a pufferfish snatched: a raccoon stands retching with it in its mouth
+await run(() => {
+  const a = window.__app;
+  a.newRun(13);
+  a.freeze();
+  const g = a.game;
+  g.liveWell[0] = 'puffer';
+  g.act({ k: 'deploy', slot: 0, x: 8, y: 11 });
+  g.act({ k: 'call' });
+});
+await until("g.thieves.some((t) => t.stunT > 1.2)", 60 * 60);
+await run(() => window.__app.step(15));
+await shot('13-puffer-snatched');
+
+// a ray one tile from the road, clawed by a passing raccoon (the defender about to be eaten)
+await run(() => {
+  const a = window.__app;
+  a.newRun(17);
+  a.freeze();
+  const g = a.game;
+  g.liveWell[0] = 'ray';
+  g.act({ k: 'deploy', slot: 0, x: 10, y: 11 });
+  g.act({ k: 'call' });
+});
+await until("g.thieves.some((t) => t.grabbing) && g.defenders[0] && g.defenders[0].hp < 14", 60 * 60);
+await shot('14-ray-clawed');
+
+// a raccoon slips away south into the woods with a crate
+await until("g.thieves.some((t) => t.mode === 'exit' && t.y > 18)", 60 * 120);
+await shot('15-raccoon-escapes');
 
 // the good bot to the end of a season, then the lost season
 await run(() => { const a = window.__app; a.newRun(3); a.freeze(); a.autoplay('good'); for (const l of ['firstCatch', 'firstDeploy', 'firstLure']) a.seen.add(l); });
-await until("g.wave === 8 && g.phase === 'wave' && g.thieves.filter((t) => t.mode !== 'dead' && t.mode !== 'gone').length > 12", 60 * 60 * 20);
+await until("g.wave === 8 && g.phase === 'wave' && g.thieves.filter((t) => t.mode !== 'dead' && t.mode !== 'gone').length > 8", 60 * 60 * 20);
 await shot('10-wave-8-fight');
 await until('g.over', 60 * 60 * 20);
 await shot('11-season-won');

@@ -11,7 +11,8 @@ village on a shore. Hungry thieves (gulls, raccoons, otters, herons, bears, peli
 come down the shore road to raid the smokehouse where your season's catch is stored. You stand
 on the dock with a rod. What you catch goes in the live well, and every fish in it is a choice:
 **sell it for money, or put it in the water beside the road as a defender.** Pufferfish
-explode, eels zap, turtles block the road, catfish slap, gar pierce. Bait does double duty:
+poison whatever eats them, electric rays shock, terrapins hold up the road, catfish slap, gar
+pierce. Bait does double duty:
 it decides what you catch, and cast onto the road it lures thieves (they're hungry) into stalls,
 traps and kill zones. A fleet of boats off to the side fishes the lake for you and, later,
 fights from the water. The map is water and shore, and you dig canals so fish can defend
@@ -59,15 +60,19 @@ tower shop, the economy, the pathing control and the map.
 
 | Fish | Job | Where | Note |
 |---|---|---|---|
-| Pufferfish | mine: explodes once when a thief is adjacent | water or bucket | the cheap first catch |
-| Eel | zap: chains to 3 thieves within 3 tiles | water only | the DPS backbone, wants water near the road |
-| Turtle | blocker: sits on the road, thieves must chew through | road (it walks) | the wall; slow to catch |
+| Pufferfish | poison: the first thief beside it snatches it, retches and sickens; one use | water or bucket | the cheap first catch |
+| Electric ray | shock: chains to 3 thieves within 3 tiles, until its charge is spent for the wave | water only | the DPS backbone, wants water near the road |
+| Terrapin | bait with a shell: walkers stop to worry it one at a time, only a bear cracks it | road (it walks) | the stall; slow to catch, by the reeds |
+
+(2026-10-12: the first three rows were re-derived after the critic's review. A pufferfish that
+exploded and a turtle every thief chewed at once were Plants vs Zombies' Potato Mine and
+Wall-nut with fish sprites, and American eels aren't electric. See `DECISIONS.md`.)
 | Catfish | slap: single target, heavy | water, bottom bait | the big-hitter, needs line strength |
 | Gar | pierce: line attack along the road | water | needs cast range to catch |
 | Bass | jump: leaps at a thief carrying a crate, makes it drop it | water | the recovery tool |
 
 Each defender has a stat line that is the species' real traits turned up: pufferfish inflate,
-eels are electric, turtles are armored, gar are long. A fish out of water (bucket) runs a
+electric rays shock, terrapins are armored, gar are long. A fish out of water (bucket) runs a
 timer; back in water it rests. Defenders can be eaten: herons snipe them, pelicans swallow
 them, otters raid water tiles. Losing a defender hurts because it was a fish you could have sold.
 

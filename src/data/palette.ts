@@ -32,9 +32,6 @@ export const C = {
   dusk: '#1e1d39', plum: '#402751', violet: '#7a367b', magenta: '#a23e8c', pink: '#c65197', rose: '#df84a5',
 } as const;
 
-/** The three depth bands' colours, used for the contour lines and every band marker. */
-export const BAND_COLOR = { surface: C.cyan, mid: C.gold, bottom: C.pink } as const;
-
 export function rgb(hex: string): [number, number, number] {
   const n = parseInt(hex.slice(1), 16);
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
@@ -43,9 +40,4 @@ export function rgb(hex: string): [number, number, number] {
 export function rgba(hex: string, a: number): string {
   const [r, g, b] = rgb(hex);
   return `rgba(${r},${g},${b},${a})`;
-}
-
-/** 0xRRGGBB for three.js colours. */
-export function hexNum(hex: string): number {
-  return parseInt(hex.slice(1), 16);
 }
