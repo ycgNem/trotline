@@ -3,6 +3,7 @@
 // goes back to the road. Lures left at a wave's end spoil (the waves system) (DESIGN.md §6).
 import type { Game } from '../Game';
 import type { Pt } from '../world';
+import { mobSpots } from '../spots';
 import { DEFENDERS } from '../../data/defenders';
 import { THIEVES } from '../../data/thieves';
 import { WAVES } from '../../data/waves';
@@ -11,10 +12,11 @@ export function tickLures(g: Game, _dt: number) {
   for (const l of g.lures) {
     l.queue = l.queue.filter((id) => g.thieves.some((t) => t.id === id && t.lure === l.id && (t.mode === 'queue' || t.mode === 'toLure')));
     if (l.eater && !g.thieves.some((t) => t.id === l.eater && t.lure === l.id && (t.mode === 'eat' || t.mode === 'toLure'))) l.eater = 0;
+    l.crowd = l.crowd.filter((id) => g.thieves.some((t) => t.id === id && t.lure === l.id && (t.mode === 'eat' || t.mode === 'toLure')));
   }
   g.lures = g.lures.filter((l) => {
-    // eaten to nothing, it stays while its last raccoon finishes the meal it took
-    if (l.food > 0 || l.eater) return true;
+    // eaten to nothing, it stays while the last ones at it finish the meals they took
+    if (l.food > 0 || l.eater || l.crowd.length) return true;
     g.events.push({ type: 'lureGone', tick: g.tick, x: l.x + 0.5, y: l.y + 0.5 });
     return false;
   });
@@ -56,6 +58,48 @@ export function comingRaccoons(g: Game, i: number): number {
     for (const k of g.spawnQueue) if (k === 'raccoon') n++;
   }
   return Math.max(1, Math.min(16, n - 1));
+}
+
+export interface SlickPreview {
+  /** where the gulls come down round it, and where the bear eating it stands (on it) */
+  spots: Pt[];
+  bear: Pt;
+  /** where the bears waiting their turn stand on the road */
+  line: Pt[];
+  /** rays whose shock reaches what comes to it (it is on the water: always wet) */
+  shocks: number[];
+  /** fish the waiting bears could claw (they wade a tile, DESIGN.md §4) */
+  waded: number[];
+  /** gulls, bears and raccoons coming that it would pull (raccoons only if it is a tile from the road) */
+  gulls: number;
+  bears: number;
+  raccoons: number;
+}
+
+/** What a chum slick on this tile would do (DESIGN.md §12): the slick overlay draws it, the
+ * status line counts it, the good bot scores by it. */
+export function slickPreview(g: Game, x: number, y: number): SlickPreview {
+  const w = g.world;
+  const i = w.roadNear[w.idx(x, y)];
+  const coming = (k: string) => g.phase === 'build'
+    ? (WAVES[g.wave]?.groups ?? []).reduce((a, [id, n]) => a + (id === k ? n : 0), 0)
+    : g.thieves.filter((t) => t.kind === k && (t.mode === 'road' || t.mode === 'toLure') && t.pathI <= i + 1).length + g.spawnQueue.filter((q) => q === k).length;
+  const bears = coming('bear'), gulls = coming('gull');
+  const raccoons = w.roadDist[w.idx(x, y)] <= (THIEVES.raccoon.pulledBy.chum ?? 0) ? coming('raccoon') : 0;
+  const bear = THIEVES.bear;
+  const spots = mobSpots(g, x, y, 1);
+  const centre = { x: x + 0.5, y: y + 0.5 };
+  const line: Pt[] = [];
+  for (let k = 0; k < Math.min(4, Math.max(0, bears - 1)) && i - k * bear.len >= 0; k++) line.push(w.pathBack(i, k * bear.len));
+  const shocks: number[] = [], waded: number[] = [];
+  for (const d of g.defenders) {
+    const def = DEFENDERS[d.species];
+    if (d.hp <= 0 || def.place !== 'water') continue;
+    const cx = d.x + 0.5, cy = d.y + 0.5;
+    if (def.kind === 'zap' && [centre, ...spots].some((p) => Math.hypot(cx - p.x, cy - p.y) <= def.range)) shocks.push(d.id);
+    if (def.kind !== 'poison' && line.some((p) => Math.max(Math.abs(cx - p.x), Math.abs(cy - p.y)) <= bear.wade)) waded.push(d.id);
+  }
+  return { spots, bear: centre, line, shocks, waded, gulls, bears, raccoons };
 }
 
 /**

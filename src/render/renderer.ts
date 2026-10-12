@@ -3,14 +3,16 @@
 // angler), flying gulls above with ground shadows, and the effects the sim's events ask for.
 // Reads the Game; never writes it.
 import { C, rgba } from '../data/palette';
-import type { Game, Thief, Defender } from '../sim/Game';
+import type { Game, Thief, Defender, Boat, Lure } from '../sim/Game';
 import { Tile, isWater } from '../sim/world';
 import { THIEVES } from '../data/thieves';
 import { DEFENDERS, TURTLE } from '../data/defenders';
 import { BAIT } from '../data/bait';
-import { lurePreview } from '../sim/systems/lures';
+import { lurePreview, slickPreview } from '../sim/systems/lures';
 import { pufferRays } from '../sim/systems/defenders';
 import type { SpeciesId } from '../data/species';
+import { BOATS, type BoatId } from '../data/boats';
+import { CANAL } from '../data/shore';
 import type { GameEvent } from '../engine/events';
 import { Ground, TILE, CHUNK, hash2, isSlot } from './ground';
 import { sheet, drawSprite, frameAt, type SpriteSheet } from './sprites';
@@ -36,7 +38,18 @@ export interface Overlay {
   lure: boolean;
   /** show the cast range circle */
   range: boolean;
+  /** casting a chum slick: show the pale water in reach and what the slick would pull */
+  slick: boolean;
+  /** digging canals: show the tiles that can be dug */
+  dig: boolean;
+  /** sending this boat: show where it would go */
+  send: BoatId | null;
+  /** the boat picked in the fleet panel */
+  boat: BoatId | null;
 }
+
+/** Where the hand's rod tip is on a boat's fishing frame, from its anchor (art director). */
+const ROD_TIP: Record<BoatId, [number, number]> = { rowboat: [10, -9], skiff: [11, -11], trawler: [0, 0] };
 
 interface Fx { kind: string; x: number; y: number; x2: number; y2: number; t: number; life: number; v: number; id?: string }
 
@@ -52,7 +65,9 @@ export class Renderer {
   private flash = new Map<SpriteSheet, SpriteSheet>();
   /** the trees, drawn once (they never move) */
   private props: HTMLCanvasElement | null = null;
-  private items: { y: number; k: number; ref: Defender | Thief | null }[] = [];
+  private items: { y: number; k: number; ref: Defender | Thief | Boat | null }[] = [];
+  /** the world version the ground chunks were baked at (a dug canal rebakes them) */
+  private groundV = -1;
   private clawed = new Set<number>();
   private mask: { key: string; cells: Uint8Array } | null = null;
 
@@ -88,6 +103,13 @@ export class Renderer {
     return { x: Math.floor((sx - ox) / z / TILE), y: Math.floor((sy - oy) / z / TILE) };
   }
 
+  /** The point under a screen pixel, in tile units (not rounded to a tile). */
+  screenToPoint(sx: number, sy: number) {
+    const { ox, oy } = this.origin();
+    const z = this.cam.zoom;
+    return { x: (sx - ox) / z / TILE, y: (sy - oy) / z / TILE };
+  }
+
   /** Screen position of a point in tile units. */
   toScreen(tx: number, ty: number) {
     const { ox, oy } = this.origin();
@@ -114,6 +136,11 @@ export class Renderer {
         case 'pulled': this.fx.push({ kind: 'bang', x, y, x2: 0, y2: 0, t: 0, life: 0.8, v: 0 }); break;
         case 'mob': this.fx.push({ kind: 'bang', x, y: y - 0.6, x2: 0, y2: 0, t: 0, life: 0.8, v: 0 }); break;
         case 'defenderLost': this.fx.push({ kind: 'poof', x, y, x2: 0, y2: 0, t: 0, life: 0.6, v: 1 }); break;
+        case 'boatCatch': this.fx.push({ kind: 'splash', x, y, x2: 0, y2: 0, t: 0, life: 0.6, v: 0 }); break;
+        // a boat's catch goes up onto the dock and into the live well
+        case 'land': this.fx.push({ kind: 'leap', x, y, x2: g.world.angler.x, y2: g.world.angler.y + 1, t: 0, life: 0.5, v: 0, id: e.id }); break;
+        case 'slick': this.fx.push({ kind: 'ring', x, y, x2: 0, y2: 0, t: 0, life: 0.6, v: 2 }); break;
+        case 'dug': this.fx.push({ kind: 'splash', x, y, x2: 0, y2: 0, t: 0, life: 0.6, v: 0 }); break;
       }
     }
   }
@@ -124,7 +151,8 @@ export class Renderer {
     const ctx = this.ctx;
     const w = g.world;
     this.time += dt;
-    if (!this.ground || this.ground.world !== w) this.ground = new Ground(w);
+    if (!this.ground || this.ground.world !== w) { this.ground = new Ground(w); this.groundV = w.version; }
+    if (this.groundV !== w.version) { this.ground.invalidate(); this.groundV = w.version; this.mask = null; }
     const z = this.cam.zoom;
     const { ox, oy } = this.origin();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -144,21 +172,23 @@ export class Renderer {
     // overlays under the sprites
     this.overlays(g, ov);
     if (g.wormBed) drawSprite(ctx, sheet('wormbed'), 0, (17) * TILE, 13 * TILE + 1);
+    this.digs(g);
     for (const l of g.lures) {
-      const s = sheet('worm');
-      drawSprite(ctx, s, frameAt(s, this.time), (l.x + 0.5) * TILE, (l.y + 0.5) * TILE + 3);
+      const s = sheet(l.bait === 'chum' ? 'slick' : 'worm');
+      drawSprite(ctx, s, frameAt(s, this.time), (l.x + 0.5) * TILE, (l.y + 0.5) * TILE + (l.bait === 'chum' ? 1 : 3));
     }
 
     // y-sorted sprites (a reused list of tagged entries, not a closure per sprite per frame)
     this.clawed.clear();
     for (const t of g.thieves) if (t.grabbing) this.clawed.add(t.grabbing);
     let n = 0;
-    const put = (y: number, k: number, ref: Defender | Thief | null) => {
+    const put = (y: number, k: number, ref: Defender | Thief | Boat | null) => {
       const it = this.items[n] ?? (this.items[n] = { y: 0, k: 0, ref: null });
       it.y = y; it.k = k; it.ref = ref; n++;
     };
     put(15 + 2.95, 0, null);
     for (const d of g.defenders) put(d.y + 0.6, 1, d);
+    for (const b of g.boats) put(b.y + 0.3, 4, b);
     for (const t of g.thieves) if (t.mode !== 'dead' && t.mode !== 'gone' && !THIEVES[t.kind].flies) put(t.y, 2, t);
     put(w.angler.y + 0.4, 3, null);
     this.items.length = n;
@@ -167,24 +197,19 @@ export class Renderer {
       if (it.k === 0) { drawSprite(ctx, sheet('smokehouse'), 0, (35 + 1.5) * TILE, (15 + 3) * TILE); this.crates(g); }
       else if (it.k === 1) this.defender(g, it.ref as Defender);
       else if (it.k === 2) this.thief(g, it.ref as Thief);
+      else if (it.k === 4) this.boat(g, it.ref as Boat, ov.boat === (it.ref as Boat).kind);
       else this.angler(g);
     }
 
-    // a lure stays readable with a raccoon on it: a pink ring and its food left, over the sprites
-    for (const l of g.lures) {
-      const lx = (l.x + 0.5) * TILE, ly = (l.y + 0.5) * TILE;
-      ctx.fillStyle = rgba(C.rose, 0.85);
-      for (let i = 0; i < 12; i++) {
-        const a = (i / 12) * Math.PI * 2 + this.time;
-        ctx.fillRect(Math.round(lx + Math.cos(a) * 7), Math.round(ly + 2 + Math.sin(a) * 4), 1, 1);
-      }
-      this.bar(lx, (l.y + 1) * TILE - 1, 10, l.food / BAIT[l.bait].lureFood, C.rose);
-    }
+    // a lure stays readable with a raccoon (or a bear) on it: a ring and its food left, over the
+    // sprites; pink for a worm, amber for a chum slick
+    for (const l of g.lures) this.lureRing(l);
 
     // gulls fly above everything, with a shadow on the ground
     for (const t of g.thieves) if (t.mode !== 'dead' && t.mode !== 'gone' && THIEVES[t.kind].flies) {
-      // one sitting on the water (retching, or robbing a flockmate) is drawn down on it, with no shadow
-      const down = t.mode === 'mob' || t.stunT > 0;
+      // one sitting on the water (retching, robbing a flockmate or at a chum slick) is drawn down on
+      // it, with no shadow
+      const down = t.mode === 'mob' || t.stunT > 0 || t.mode === 'eat';
       const rx = Math.round(t.x * TILE), ry = Math.round(t.y * TILE);
       if (!down) {
         ctx.fillStyle = rgba(C.ink, 0.35);
@@ -296,7 +321,64 @@ export class Renderer {
         }
       }
     }
-    if (ov.range || ov.lure) this.circle(w.angler.x, w.angler.y, g.rod.range, C.bone);
+    if (ov.slick) {
+      // the pale water in reach, tinted amber; hovering one shows what comes to it
+      ctx.fillStyle = rgba(C.amber, 0.16 + 0.16 * pulse);
+      const lit = this.slickMask(g);
+      for (let y = 0; y < w.h; y++) for (let x = 0; x < w.w; x++) if (lit[w.idx(x, y)]) ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
+      if (ov.hover && g.canSlick(ov.hover.x, ov.hover.y).ok) {
+        const pv = slickPreview(g, ov.hover.x, ov.hover.y);
+        this.circle(ov.hover.x + 0.5, ov.hover.y + 0.5, THIEVES.gull.pulledBy.chum ?? 4, C.amber);
+        this.circle(ov.hover.x + 0.5, ov.hover.y + 0.5, THIEVES.bear.pulledBy.chum ?? 5, C.copper);
+        for (const p of pv.spots.slice(0, 4)) { ctx.fillStyle = rgba(C.bone, 0.6 + 0.3 * pulse); ctx.fillRect(Math.round(p.x * TILE) - 2, Math.round(p.y * TILE) - 1, 4, 2); }
+        for (const p of pv.line) {
+          const px = Math.round(p.x * TILE), py = Math.round(p.y * TILE);
+          ctx.fillStyle = C.night; ctx.fillRect(px - 4, py - 2, 8, 5);
+          ctx.fillStyle = rgba(C.slate, 0.7 + 0.3 * pulse); ctx.fillRect(px - 3, py - 1, 6, 3);
+        }
+        for (const d of g.defenders) {
+          const red = pv.waded.includes(d.id), gold = pv.shocks.includes(d.id);
+          if (red) this.frame(d.x, d.y, 0, rgba(C.red, 0.6 + 0.4 * pulse));
+          if (gold) this.frame(d.x, d.y, red ? 2 : 0, C.gold);
+        }
+      }
+    }
+    if (ov.dig) {
+      // tiles a canal can be dug into now (touching water or a tile already ordered), and for the
+      // one under the mouse the road it would turn wet (gold)
+      for (let y = 0; y < w.h; y++)
+        for (let x = 0; x < w.w; x++) {
+          const ok = !g.digBlock(x, y) && !g.digs.some((p) => p.x === x && p.y === y) && (w.touchesWater(x, y) || g.digs.some((p) => Math.abs(p.x - x) + Math.abs(p.y - y) === 1));
+          if (!ok) continue;
+          // an outline: a clay tint over sand doesn't read at 1x (the Milestone 3 review)
+          this.frame(x, y, 1, rgba(C.clay, 0.6 + 0.4 * pulse));
+        }
+      const h = ov.hover;
+      if (h && g.canDig(h.x, h.y).ok) {
+        ctx.fillStyle = rgba(C.gold, 0.3 + 0.15 * pulse);
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const x = h.x + dx, y = h.y + dy;
+          if (w.at(x, y) === Tile.Road && !w.wet[w.idx(x, y)]) ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
+        }
+      }
+    }
+    if (ov.send) {
+      // where the boat would go: its way there by water, dotted
+      const b = g.boat(ov.send);
+      const h = ov.hover;
+      if (b && h && g.canSend(ov.send, h.x, h.y).ok) {
+        const path = w.waterPath({ x: Math.floor(b.x), y: Math.floor(b.y) }, h) ?? [];
+        // dark-ringed dots: pale dots alone vanish on pale water (the Milestone 3 review)
+        path.forEach((p, i) => {
+          if ((i + Math.floor(this.time * 6)) % 2) return;
+          const px = Math.round(p.x * TILE), py = Math.round(p.y * TILE);
+          ctx.fillStyle = C.ink; ctx.fillRect(px - 2, py - 2, 4, 4);
+          ctx.fillStyle = C.bone; ctx.fillRect(px - 1, py - 1, 2, 2);
+        });
+        this.frame(h.x, h.y, 0, C.gold);
+      }
+    }
+    if (ov.range || ov.lure || ov.slick) this.circle(w.angler.x, w.angler.y, g.rod.range, C.bone);
     if (ov.hover && w.inb(ov.hover.x, ov.hover.y)) {
       ctx.fillStyle = rgba(C.bone, 0.5);
       const { x, y } = ov.hover;
@@ -304,6 +386,20 @@ export class Renderer {
       ctx.fillRect(x * TILE, y * TILE, 1, TILE); ctx.fillRect(x * TILE + 15, y * TILE, 1, TILE);
     }
   }
+
+  /** Where a slick can go, recomputed only when something it depends on changes. */
+  private slickMask(g: Game): Uint8Array {
+    const w = g.world;
+    let key = `${g.rodTier}|${g.chum > 0}|${w.version}`;
+    for (const d of g.defenders) key += ',' + d.id;
+    for (const l of g.lures) key += ';' + l.id;
+    if (this.slickLit && this.slickLit.key === key) return this.slickLit.cells;
+    const cells = new Uint8Array(w.w * w.h);
+    for (let y = 0; y < w.h; y++) for (let x = 0; x < w.w; x++) if (g.canSlick(x, y).ok) cells[w.idx(x, y)] = 1;
+    this.slickLit = { key, cells };
+    return cells;
+  }
+  private slickLit: { key: string; cells: Uint8Array } | null = null;
 
   /** Where this species can be deployed, recomputed only when a fish or a lure comes or goes. */
   private slotMask(g: Game, s: SpeciesId): Uint8Array {
@@ -345,6 +441,99 @@ export class Renderer {
     for (let i = 0; i < n; i++) {
       const col = i % 5, row = Math.floor(i / 5);
       drawSprite(this.ctx, s, 0, 35 * TILE + 4 + col * 8, 18 * TILE + 10 - row * 6 + (col % 2));
+    }
+  }
+
+  /** A lure's ring and the food it has left: pink for a worm on the road, amber for a chum slick. */
+  private lureRing(l: Lure) {
+    const ctx = this.ctx;
+    const chum = l.bait === 'chum';
+    const lx = (l.x + 0.5) * TILE, ly = (l.y + 0.5) * TILE;
+    ctx.fillStyle = rgba(chum ? C.amber : C.rose, 0.85);
+    const rx = chum ? 9 : 7, ry = chum ? 5 : 4;
+    for (let i = 0; i < 14; i++) {
+      const a = (i / 14) * Math.PI * 2 + this.time * (chum ? 0.6 : 1);
+      ctx.fillRect(Math.round(lx + Math.cos(a) * rx), Math.round(ly + (chum ? 1 : 2) + Math.sin(a) * ry), 1, 1);
+    }
+    this.bar(lx, (l.y + 1) * TILE - 1, 10, l.food / BAIT[l.bait].lureFood, chum ? C.amber : C.rose);
+  }
+
+  /** Canal tiles ordered: a dashed outline, and the one being dug filling with water. */
+  private digs(g: Game) {
+    const ctx = this.ctx;
+    g.digs.forEach((p, i) => {
+      const X = p.x * TILE, Y = p.y * TILE;
+      if (i === 0) {
+        // the hole: dark mud, water rising in it as the digging goes on
+        const k = Math.min(1, g.digT / CANAL.seconds);
+        ctx.fillStyle = C.mud;
+        ctx.fillRect(X + 2, Y + 2, 12, 12);
+        ctx.fillStyle = C.sky;
+        const h = Math.round(12 * k);
+        ctx.fillRect(X + 2, Y + 14 - h, 12, h);
+      }
+      ctx.fillStyle = C.clay;
+      for (let j = 0; j < 16; j += 2) {
+        ctx.fillRect(X + j, Y, 1, 1); ctx.fillRect(X + j + 1, Y + 15, 1, 1);
+        ctx.fillRect(X, Y + j + 1, 1, 1); ctx.fillRect(X + 15, Y + j, 1, 1);
+      }
+    });
+  }
+
+  /** A boat: its sprite (rowing or running, then at work), a wake while it moves, its line or its
+   * net while it fishes, and a blinking "!" when it is waiting at the dock on you. */
+  private boat(g: Game, b: Boat, picked: boolean) {
+    const ctx = this.ctx;
+    const def = BOATS[b.kind];
+    const s = sheet(b.kind);
+    const moving = b.state === 'out' || b.state === 'in';
+    const work = b.state === 'fishing';
+    const last = s.frames.length - 1;
+    const f = moving ? (def.gear === 'net' ? 0 : Math.floor(this.time * s.fps) % Math.max(1, last)) : work ? last : 0;
+    const bob = Math.round(Math.sin(this.time * 2 + b.id) * 0.6);
+    const x = b.x * TILE, y = b.y * TILE + bob;
+    // fishing, it lies with its rod over water: the bobber goes a tile and a half off the bow, or
+    // off the stern if the bow points at land, or nearer in a narrow channel
+    let face: number = b.facing, reach = 22;
+    if (work && def.gear === 'line') {
+      const wet = (dx: number) => isWater(g.world.at(Math.floor((x + dx) / TILE), Math.floor((y + 4) / TILE)));
+      const pick = [[face, 22], [-face, 22], [face, 12], [-face, 12]].find(([f, d]) => wet(f * d));
+      if (pick) [face, reach] = pick;
+    }
+    if (moving) {
+      // a wake: two pale lines opening behind it
+      ctx.fillStyle = rgba(C.bone, 0.7);
+      for (let i = 1; i <= 4; i++) {
+        const bx = x - b.facing * (s.w / 2 + i * 2);
+        ctx.fillRect(Math.round(bx), Math.round(y - i), 1, 1);
+        ctx.fillRect(Math.round(bx), Math.round(y + 2 + i), 1, 1);
+      }
+    }
+    if (picked) {
+      ctx.fillStyle = rgba(C.gold, 0.6 + 0.4 * Math.sin(this.time * 6));
+      const w = s.w + 4, h = 6;
+      for (let i = 0; i < w; i += 2) { ctx.fillRect(Math.round(x - w / 2 + i), Math.round(y + 3), 1, 1); ctx.fillRect(Math.round(x - w / 2 + i + 1), Math.round(y + 3 + h), 1, 1); }
+    }
+    drawSprite(ctx, s, f, x, y, face < 0);
+    if (work && def.gear === 'line') {
+      // the line from the rod tip to the bobber
+      const [tx, ty] = ROD_TIP[b.kind];
+      const x0 = x + face * tx, y0 = y + ty;
+      const x1 = x + face * reach, y1 = y + 4;
+      ctx.fillStyle = rgba(C.bone, 0.75);
+      for (let i = 0; i <= 10; i++) { const k = i / 10; ctx.fillRect(Math.round(x0 + (x1 - x0) * k), Math.round(y0 + (y1 - y0) * k + Math.sin(k * Math.PI) * 3), 1, 1); }
+      drawSprite(ctx, sheet('bobber'), Math.floor(this.time * 1.5) % 2, x1, y1 + 1);
+    }
+    if (work && def.gear === 'net') {
+      // the net's ripple behind it
+      ctx.fillStyle = rgba(C.bone, 0.6);
+      const nx = x - b.facing * (s.w / 2 + 6);
+      for (let i = -3; i <= 3; i++) ctx.fillRect(Math.round(nx + Math.sin(this.time * 3 + i) * 1.5), Math.round(y + 2 + i * 1.5), 2, 1);
+    }
+    if (b.state === 'dock' && b.wait && Math.floor(this.time * 3) % 2 === 0) {
+      ctx.fillStyle = C.amber;
+      const ex = Math.round(x), ey = Math.round(y - s.ay - 9);
+      ctx.fillRect(ex, ey, 2, 5); ctx.fillRect(ex, ey + 6, 2, 2);
     }
   }
 
@@ -495,7 +684,7 @@ export class Renderer {
           break;
         }
         case 'ring': {
-          ctx.fillStyle = rgba(e.v ? C.rose : C.ice, 1 - k);
+          ctx.fillStyle = rgba(e.v === 2 ? C.amber : e.v ? C.rose : C.ice, 1 - k);
           const r = 2 + k * 8;
           for (let i = 0; i < 16; i++) {
             const a = (i / 16) * Math.PI * 2;
@@ -531,10 +720,10 @@ export class Renderer {
     for (const t of g.thieves) {
       if (t.mode === 'dead' || t.mode === 'gone') continue;
       // a gull in the air carries its bars up with it; one sitting on the water has them on it
-      const lift = THIEVES[t.kind].flies && t.mode !== 'mob' && t.stunT <= 0 ? 10 : 0;
+      const lift = THIEVES[t.kind].flies && t.mode !== 'mob' && t.mode !== 'eat' && t.stunT <= 0 ? 10 : 0;
       const s = sheet(t.kind);
       if (t.hp < t.maxHp) this.bar(t.x * TILE, t.y * TILE - s.ay + 1 - lift, Math.min(16, s.w - 2), t.hp / t.maxHp, C.ember);
-      if (t.mode === 'eat') this.bar(t.x * TILE, t.y * TILE - s.ay - 2 - lift, 10, t.eatLeft / THIEVES[t.kind].eat, C.rose);
+      if (t.mode === 'eat') this.bar(t.x * TILE, t.y * TILE - s.ay - 2 - lift, 10, t.eatLeft / (t.eatFull || 1), C.rose);
       if (t.mode === 'worry') this.bar(t.x * TILE, t.y * TILE - s.ay - 2 - lift, 10, t.worryLeft / (TURTLE.worry[t.kind] ?? 1), C.shell);
     }
     // a fish's bars sit on its side away from the road, so they never cover a thief walking past

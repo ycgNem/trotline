@@ -151,6 +151,10 @@ export class Audio {
       case 'coin': this.tone(1320, 'square', { a: 0.002, d: 0.06 }, 0.03 * v, B); this.tone(1760, 'square', { a: 0.002, d: 0.09 }, 0.03 * v, B, 0.05); break;
       case 'wave': this.tone(196, 'triangle', { a: 0.02, d: 0.5 }, 0.07 * v, B, 0, 1.05); this.tone(147, 'triangle', { a: 0.02, d: 0.6 }, 0.05 * v, B, 0.12); break;
       case 'lure': this.noise(0.12, 0.06 * v, 'bandpass', 600, 2); this.tone(440, 'sine', { a: 0.004, d: 0.1 }, 0.04 * v, B, 0, 0.7); break;
+      // a bucket of chum tipped out: a wet slop and a low glug
+      case 'slick': this.noise(0.3, 0.12 * v, 'lowpass', 700, 1, 0, 0.5); this.tone(150 * r(), 'sine', { a: 0.01, d: 0.18 }, 0.06 * v, B, 0.05, 0.6); break;
+      // a spade biting into wet ground
+      case 'dig': this.noise(0.08, 0.1 * v, 'bandpass', 1800, 2, 0, 0.6); this.noise(0.12, 0.08 * v, 'lowpass', 500, 1, 0.06, 0.5); break;
       case 'win': for (const [i, f] of [262, 330, 392, 523].entries()) this.tone(f, 'triangle', { a: 0.01, d: 0.3 }, 0.06 * v, B, i * 0.12); break;
       case 'lose': for (const [i, f] of [392, 330, 262, 196].entries()) this.tone(f, 'triangle', { a: 0.01, d: 0.35 }, 0.06 * v, B, i * 0.16); break;
       default: this.tone(600, 'sine', { a: 0.002, d: 0.05 }, 0.03 * v, B);

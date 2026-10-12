@@ -12,11 +12,12 @@ import * as waves from '../src/data/waves';
 import * as rules from '../src/data/rules';
 import * as shore from '../src/data/shore';
 import * as upgrades from '../src/data/upgrades';
+import * as boats from '../src/data/boats';
 import { World, Tile, isWater } from '../src/sim/world';
 
 const DESIGN = fs.readFileSync('DESIGN.md', 'utf8');
 const SECTIONS = new Set([...DESIGN.matchAll(/^## (\d+)\./gm)].map((m) => m[1]));
-const MODULES = { species, defenders, thieves, bait, rods, waves, rules, shore, upgrades };
+const MODULES = { species, defenders, thieves, bait, rods, waves, rules, shore, upgrades, boats };
 
 /** Every object holding a number must have a derivation itself or inside an object that has one. */
 function walk(v: unknown, path: string, covered: string | null, out: { path: string; derivation: string | null }[]) {

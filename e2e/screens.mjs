@@ -11,10 +11,10 @@ const SIZES = [[1280, 720], [1920, 1080], [1024, 640]];
 const STATES = {
   title: () => { const a = window.__app; a.screen = 'title'; },
   // a run's first frame: the status line's first hint, before anything is caught
-  start: () => { const a = window.__app; a.newRun(7); a.freeze(); for (const l of ['firstCatch', 'firstDeploy', 'firstLure']) a.seen.add(l); a.toast = null; },
+  start: () => { const a = window.__app; a.newRun(7); a.freeze(); for (const l of ['firstCatch', 'firstDeploy', 'firstLure', 'firstBoat', 'firstSlick']) a.seen.add(l); a.toast = null; },
   build: () => {
     const a = window.__app; a.newRun(7); a.freeze(); const g = a.game;
-    for (const l of ['firstCatch', 'firstDeploy', 'firstLure']) a.seen.add(l);
+    for (const l of ['firstCatch', 'firstDeploy', 'firstLure', 'firstBoat', 'firstSlick']) a.seen.add(l);
     g.act({ k: 'cast', x: 15, y: 10 });
     g.liveWell = ['puffer', 'ray', 'ray', null, 'puffer', null];
     a.selected = 1;
@@ -29,6 +29,19 @@ const STATES = {
     a.step(60 * 14);
   },
   full: () => { const a = window.__app; const g = a.game; g.liveWell = ['puffer', 'ray', 'turtle', 'ray', 'puffer', 'ray']; g.worms = 0; a.selected = 2; },
+  // Milestone 3: the whole fleet out, the fleet panel and a picked boat's card, a boat waiting on the full well
+  fleet: () => {
+    const a = window.__app; const g = a.game; a.selected = null; g.money = 500; g.worms = 9; g.chum = 2;
+    for (const b of ['rowboat', 'skiff', 'trawler']) g.act({ k: 'buy', item: b });
+    g.act({ k: 'send', boat: 'rowboat', x: 33, y: 3 }); g.act({ k: 'send', boat: 'skiff', x: 37, y: 11 }); g.act({ k: 'send', boat: 'trawler', x: 10, y: 3 });
+    a.step(60 * 20); a.pickBoat('skiff'); a.toast = null;
+  },
+  // a boat waiting at the dock on the full live well, its row and card in red
+  waiting: () => { const a = window.__app; const g = a.game; const b = g.boat('rowboat'); b.x = b.berth.x + 0.5; b.y = b.berth.y + 0.5; b.hold = ['ray', 'ray']; b.state = 'dock'; a.step(2); a.pickBoat('rowboat'); },
+  sendMode: () => { const a = window.__app; a.sendBoat('skiff'); return { hover: [33, 3] }; },
+  slickMode: () => { const a = window.__app; a.mode = { k: 'idle' }; a.toggleSlick(); return { hover: [18, 11] }; },
+  yard: () => { const a = window.__app; a.mode = { k: 'idle' }; a.build = true; },
+  boatLesson: () => { const a = window.__app; a.build = false; a.lesson = a.lessonFor('firstBoat'); },
   lesson: () => { const a = window.__app; a.lesson = a.lessonFor('firstDeploy'); },
   paused: () => { const a = window.__app; a.lesson = null; a.paused = true; },
   help: () => { const a = window.__app; a.paused = false; a.help = true; },

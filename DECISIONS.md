@@ -393,3 +393,193 @@ after (two kill zones); catching beats buying for rays and puffers (choosing the
 the defender), and a terrapin is worth a crate, not a win. The mob is ours: a decoy that moves a
 flock into the rays' water (nearest shipped neighbour: PvZ's Ice-shroom, one use then others
 kill; it differs in being local, only gulls, and moving them rather than freezing them).
+
+## Milestone 3: the fleet and the works (2026-10-12)
+
+- 2026-10-12: **The Milestone 2 gate is passed.** The owner played the slice and said "looks
+  good, see if you can get started on the next milestones to make this game more expansive".
+  Taken as yes to DESIGN.md §8's three questions. The owner's open calls (Apollo, Back Bay,
+  terrapins sold, the name) keep their current answers until the owner changes them.
+- 2026-10-12: **Milestone 3 is boats, chum and canals, over a 12-wave season** (DESIGN.md §12).
+  Why: pillar 5 (boats are the factory) and pillar 4 (water is the build space) are the two the
+  slice didn't touch, and the slice's open problems were all "money has nowhere to go" and "the
+  bed buys nothing": boats burn bait, canals cost by the tile, chum is a second bait to buy. The
+  season grows from 8 to 12 (PLAN.md: 12-15) so the fleet has waves to answer. Waves 1-3 keep
+  the slice's lessons.
+- 2026-10-12: **No new currency, no new tree outside PLAN.md.** Chum is bait (the typed flow);
+  a boat's hold is fish. The fleet and works are PLAN.md's second tree (pillar 5); each node has
+  a fishing column (a boat is a line, a canal tile is water that fish bite in).
+- 2026-10-12: **Chum is a slick in the water, not a lure on the road.** Worms go on the road for
+  raccoons; chum goes on the pale water for gulls (they drop onto the water and squabble over it,
+  where a ray reaches them) and bears (they wade out to it, 8 s). Raccoons pass it by. Why: chum
+  is thrown in the water (it is chum); gulls really do mob a chum slick and bears really do come
+  for fish; and it gives the bear, which no bait held (§5), an answer that is bait moving trouble
+  (pillar 3). Raccoons ignoring chum is a simplification (raccoons eat fish): each bait pulls a
+  different thief, so where and when you cast decides who stops.
+- 2026-10-12: **Milestone 3 leaves three ROADMAP items out**, each said in DESIGN.md §12:
+  buckets (to Milestone 6: only the puffer works truthfully on land; it needs its own model),
+  more docks (one landing, three berths), and crickets (a freshwater bait: Back Bay's third bait
+  is live shrimp, in Milestone 4 with redfish, trout and catfish). PLAN.md's "scraps from kills"
+  isn't taken: nothing a raccoon or gull leaves is bait. Chum comes from the bait shop and the
+  trawler's bycatch.
+
+### Flagged as derivative (CLAUDE.md standing instruction)
+
+- **Boats that fish, fill their hold and bring the catch back to the dock are Age of Empires'
+  fishing ships** (and every RTS worker's gather-and-return loop). What is AoE's: the loop. What
+  is ours: the catch is rolled per tick by species, habitat and bait like the rod's (no shoal that
+  runs out), a boat loads bait at the dock and waits when there is none, its catch lands in the
+  live well where each fish is still sell or deploy, a full live well is what stops a boat (the
+  bottleneck is the player's decision, not a walk), and each boat can be set to sell at the dock.
+  Kept, because it is how fishing boats work; **not taken from AoE**: shoals that deplete, and
+  building a second dock nearer the fish to shorten trips (one landing, DESIGN.md §12).
+
+### Built and measured (2026-10-12)
+
+- 2026-10-12: **Boat prices: rowboat 50, skiff 80, trawler 60** (the first hypothesis was 60, 120,
+  160). Measured: at 60 the reference player, which spends about half its money on bait, never had
+  it spare before wave 8, so the first boat came too late to pay back; at 40 it came out by wave 6,
+  but buying it first, in wave 1, before the rod, won 98 of 100 (a second line rowing to the point
+  from the first minute snowballs). At **50**, the rod's price, the first buy is a fork: the rod
+  first is the safe line, the rowboat first a gamble that costs ~8 crates in waves 1-5 and wins
+  about as often (DESIGN.md §7, §12). The trawler is cheap because it is the bait boat.
+- 2026-10-12: **The season's waves were reshaped three times** (DESIGN.md §5). The slice's waves
+  4-8 left nothing to save toward a boat, so they went back to about their sizes before the
+  re-gate review; waves 9-12 were sized against the reference with a fleet, then grown when won
+  runs kept 17-18 of 20 crates, and again when the rowboat-first line won 98. The finale is eight
+  flocks, 60 raccoons and eighteen bears at 0.25 s.
+- 2026-10-12: **The reference player plays the fleet line** (DESIGN.md §7): it sells the dawn ray
+  and puffers toward the rod, rays past six toward the rowboat, then the rowboat's catch toward
+  the trawler; the skiff and the bed come when money allows. It doesn't dig canals and fishes
+  terrapins only once twelve rays are down, because both measured better than the alternative
+  (the reference is the strongest line known: a lesson only a weak bot shows isn't one). The
+  defending line (every boat's catch kept) and the other openings (deploy the dawn ray; the
+  rowboat first) are the comparisons, each in its own pace test.
+- 2026-10-12: **Boats aren't distracted**: they fish at full rate in a wave (the angler's half
+  rate is his eyes on the road). **Gulls crowd a slick, bears queue at it**: a flock comes down
+  round the slick and eats at once (laughing gulls squabble over food), bears one at a time.
+- 2026-10-12: **Canals are built and measured to be worth nothing on Back Bay.** The rules hold
+  (tests/fleet.test.ts), but the bot that digs wins no more runs and spends ~$75 a run doing it,
+  and in fixed waves rays in a dug canal at the smokehouse door do no better than the same rays
+  at the pool (DESIGN.md §12). Back Bay's road hugs the water. Kept, because a shore whose road
+  runs inland needs them (IDEAS.md); not forced into a lesson here. Pillar 4 is not yet earned on
+  this map.
+- 2026-10-12: **Terrapins and worms matter less in the season.** A terrapin still holds raccoons in
+  a fixed wave (wave 6 past four rays: 13 of 15 leaks to 2) but not bears, which the slick now
+  answers; over a whole run the bot without terrapins wins as many. Worms on the road are worth a
+  few wins, not the slice's thirty-odd: the fleet's rays do most of the killing. The whole-run
+  terrapin test is dropped; the fixed-wave lessons stay. Both are for the critic's Milestone 3
+  review.
+- 2026-10-12: **Saves are version 2; a slice save starts a fresh run on its seed.** Replaying a
+  slice's command log under the season's rules would play a different game; the migration drops
+  the log and says why.
+- 2026-10-12: **The HUD for the fleet** (DESIGN.md §11, §12): the Build button (B) opens the yard
+  (rod, worm bed, the three boats, canals), pausing the game while it is open; the fleet panel
+  (one row a boat: what it is doing, its catch a minute, its hold) sits bottom left over the grass
+  south of the road, and a picked boat's card (Send, Keeps/Sells, Moor) shares the slot above the
+  live well with a picked fish's card. The shop is bait only: worms and the lure, chum and the
+  slick. The help card and the yard hide the HUD below the top bar. The opening hint names the
+  fork (sell the dawn ray toward the rod or a rowboat, or deploy it) and shows only until the
+  player has deployed or sold.
+
+## The critic's Milestone 3 review, implemented (2026-10-12)
+
+The review's verdict: chum is a real second bait and the best thing in Milestone 3; the rest of
+the fleet fed rays into one row along the north shore (rays did 95% of the damage, 28 of them by
+the finale), and the season was an HP ramp only rays answered. Its findings, and what was done:
+
+- 2026-10-12: **The point's rays are a stock the lines there share** (finding 1, must-fix).
+  About 4 rays a minute come in on the pass for every line at the point together: each line's
+  ray rate there is scaled by 4 / (all their rates), never above its own (src/sim/Game.ts
+  `shared`). The surf rod alone (3.75) is untouched; rod and rowboat get 64% each; a boat sent to
+  the point to multiply rays now mostly takes them from the rod. The bait shop's question becomes
+  where to send a boat: the bot's rowboat now fishes puffers in the shallows and the skiff goes
+  where the fish it is worth most bite (rays 1, puffers 0.4-0.8 with flocks coming, terrapins
+  0.25). The trawl is scaled by the water it tows (the channel is the bay's water: 1.2 puffers and
+  ~0.2 rays a minute; off the point, rays out of the stock), where it had been 1.2 rays a minute
+  anywhere, three times the bay's hook rate. **Flagged against Age of Empires' depleting shoals**:
+  this stock regenerates every minute and nothing runs out; it is fishing pressure, a share, not a
+  pile that empties. Measured: rays on the board at the finale 28 to ~20, puffers ~4 to ~9.
+- 2026-10-12: **Walkers keep their room on the road** (finding 2, must-fix: at 0.25-0.31 s
+  spawns the finale was a grey ribbon of raccoons three and four deep with fused HP bars). A
+  walker stops 0.8 of a line's spacing behind the one ahead (half of each one's length, summed),
+  one paralysed by a puffer holds up those behind it, and a walker comes onto the road only when
+  there is that room at its start (RULES.walkGap). Gulls fly over: they are not spaced. The road
+  now carries a raccoon every ~0.8 s at most, so more raccoons stopped pressing the ray row; the
+  late waves' pressure moved to what the road doesn't limit, gull flocks and bears (DESIGN.md §5).
+- 2026-10-12: **A line boat can't be sent where nothing takes a hook, and no boat to a berth**
+  (finding 3, bug: a rowboat sent to the channel sat there for ever with its worms). The trawler
+  needs a run of at least 4 tiles of open water to tow (finding 4).
+- 2026-10-12: **Keep or sell, kind by kind** (finding 4): a boat's card has Rays / Puffers /
+  Terrapins toggles for what it sells at the dock; the rest goes in the live well. The bot moves
+  a boat each build when better water opens (the rod came to the point, or flocks are coming).
+- 2026-10-12: **Canals are taken out of Back Bay's yard** (finding 5): SHORE.canals is false, so
+  the yard has no canal row, G says no canal would help here, and the help card drops it. The
+  verb, its rules and its tests stay for a shore whose road runs inland. A dug tile is now a
+  marsh ditch: reed habitat, terrapins (finding 7).
+- 2026-10-12: **Fishing truths** (finding 7): a raccoon forages the waterline by touch, so chum
+  within a tile of where it walks pulls it too (6 s); a slick two tiles out it never finds, so
+  where the slick lands decides who eats it. The skiff carries an inshore rod (nobody surf-casts
+  from a skiff).
+- 2026-10-12: **Readability** (finding 8): the slick preview names who reaches it first and how
+  many it feeds ("18 gulls first (it feeds 6), then 2 bears last (it holds 3). A slick for the
+  bears goes down once the flocks are through."), and says nothing of waiting bears when none are
+  coming; the send path is dark-ringed dots (pale dots vanished on pale water); the dig preview
+  is an outline. The screens fixture brings a waiting boat home before auditing it.
+- 2026-10-12: **Craft** (finding 9): the slick-mode lit tiles are cached and recomputed only
+  when a fish, a lure, the chum, the rod or the water changes; the water pathfinder is a cached
+  distance field per start tile (no per-frame search in send mode).
+- 2026-10-12: **Economy and pacing** (finding 6): the won-run crate ceiling goes back to 16; the
+  pace test measures money at the finale's start (~$11-20), because the ~$100 left at the end is
+  the finale's own bounty. Waves were re-tuned after findings 1 and 2 (DESIGN.md §5, §7).
+- **Not taken**: the critic's PvZ note (finding 10: a late board of one straight road with
+  identical shooters two tiles off it reads like a lawn row) is answered by finding 1 (fewer
+  rays, more puffers and slicks) and needs Milestone 4's roster (an otter that takes rays out of
+  the water, a heron) to answer fully; IDEAS.md. The moored rowboat's copper hull against the dock
+  planks is left for the art pass.
+
+## The reference player re-measured after the review (2026-10-12)
+
+Measuring the pace thresholds after the review's changes found a stronger line than the
+reference, twice. The reference is the strongest line known (a lesson only a weak bot shows isn't
+one), so it changed, and the season was sized against it again.
+
+- 2026-10-12: **Worms are the opening's bait.** The bot that never lays a worm won 83-95 of 100
+  against the reference's 70-88: two worms a wave all season cost ~$5 a wave the fleet needed, so
+  its boats came later and it met wave 10 with 11.3 rays to 12.9 (bears took 1.7 crates there
+  against 0.4). Laying worms only while fewer than four rays are down won 85-94 and loses wave 1's
+  two crates no more than before (0.5). So the reference lays worms in the opening and spends on
+  the fleet after (`lureRays`, default 4). Not a rule the player is told: the bait shop's prices
+  and the ray row teach it. A queued raccoon line does not hold bears back (a walker passes
+  thieves standing in a lure's line), so this is economy, not a bug.
+- 2026-10-12: **The rowboat by wave 3.** Selling rays past three toward the rowboat (not six)
+  brought it out at wave 3 instead of 6 and won 96-99 of 100 with almost nothing stolen after wave
+  5: investing in waves 2-4 costs little because those waves are small, and a boat out three waves
+  sooner lands ~20 more fish over the run (100 against 80). Keeping ten rays first, or never selling one, won fewer (79-89). The
+  reference now sells past three (`rayFloor`, default 3), and the late waves were grown against it
+  (DESIGN.md §5, §7).
+- 2026-10-12: **The season was sized again, against that reference** (DESIGN.md §5). Growing only
+  the finale left the line ahead: it still won 83-92 with $120 unspent at the finale's start.
+  Waves 4-6 grew too (wave 4: nine raccoons and a bear; wave 5: four flocks and ten raccoons; wave
+  6: fifteen raccoons and three bears), so a row thinned to three rays for an early rowboat pays
+  for it in the opening, and waves 8-12 gained flocks and bears (the finale: twenty-two flocks, 60
+  raccoons, fifty bears). Each opening now has its own danger: the reference loses crates in the
+  gull waves and in 10-12, the rowboat-first line in waves 1-4, the line that keeps six rays
+  before its rowboat in 8-12. Laying two slicks at once was measured and is worse (67-83): buckets
+  bought ahead delay the trawler.
+  Measured on the final season (five 100-seed sets): the reference wins 74-90 and keeps 14.9-15.8
+  crates when it wins; deploying the dawn ray 79-88; the rowboat first 72-86 (8-15 runs in 100
+  end at wave 4); keeping six rays 67-79; keeping every boat's catch 72-77; no chum 0-2; no boats
+  0-2; no rod 27-41 (DESIGN.md §7 has the table).
+- 2026-10-12: **The wave-6 slick lesson moved to the first pair of rays.** Wave 6 now brings three
+  bears; one slick between the last two rays let one through, and between the first two, (9,10),
+  it holds all three under the rays (20 crates stolen to 5). The pace test follows the measurement.
+- 2026-10-12: **Known gap, not fixed: money past the fleet.** Bigger late waves pay more bounty,
+  and once the skiff and the bed are bought nothing is left to buy but bait: the reference starts
+  the finale with $128-140. A pace test keeps it under $160 so it can't grow unnoticed. A late sink
+  (more than one boat of a kind, a third rod tier, Milestone 4's roster) is a design call for the
+  critic and the owner (IDEAS.md), not a number to tune here.
+- 2026-10-12: **Terrapins measure as worth nothing over a run** (the bot without them wins 0-4
+  more in every set). They still hold raccoons in a fixed wave (wave 6: 8 leaks to 3), but the
+  slick took the bear from them and the ray row the raccoons. The reference keeps fishing them
+  (dropping them is within noise and would take a species out of its play); for the critic.

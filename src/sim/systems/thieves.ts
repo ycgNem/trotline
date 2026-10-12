@@ -4,8 +4,10 @@
 // take crates and leave another way (walkers south into the woods, gulls north over the water),
 // so a crate comes back only if the thief is stopped before it gets away. Damage, poison and
 // bounty live here too.
-import type { Game, Thief, Defender } from '../Game';
-import { THIEVES } from '../../data/thieves';
+import type { Game, Thief, Defender, Lure } from '../Game';
+import { mobSpots } from '../spots';
+import { THIEVES, type ThiefId } from '../../data/thieves';
+import { RULES } from '../../data/rules';
 import { DEFENDERS, TURTLE } from '../../data/defenders';
 
 const ARRIVE = 0.05;
@@ -79,6 +81,7 @@ export function tickThieves(g: Game, dt: number) {
           t.fed.push(l.id);
           if (l.eater === t.id) l.eater = 0;
           l.queue = l.queue.filter((q) => q !== t.id);
+          l.crowd = l.crowd.filter((q) => q !== t.id);
           rejoin(g, t);
         }
         break;
@@ -108,35 +111,57 @@ export function tickThieves(g: Game, dt: number) {
   }
 }
 
+/** Gulls at a chum slick don't queue: they all drop onto the water round it and squabble over it
+ * together (DESIGN.md §12). Every other meal is one at a time. */
+export function crowds(t: Thief, l: Lure): boolean {
+  return THIEVES[t.kind].flies && l.bait === 'chum';
+}
+
 /** A walking thief tempted by a lure within its pull radius heads for the nearest one. */
 function pullToLure(g: Game, t: Thief): boolean {
   const d = THIEVES[t.kind];
-  let best = null as null | { id: number; dist: number };
+  let best = null as null | { l: Lure; dist: number };
   for (const l of g.lures) {
     const r = d.pulledBy[l.bait];
     if (!r || l.food <= 0 || t.fed.includes(l.id)) continue;
-    const line = l.eater ? [l.eater, ...l.queue] : l.queue;
-    if (line.length && l.roadI - backOf(g, line, atWorm, d.len) < 0) continue;
+    if (!crowds(t, l)) {
+      const line = l.eater ? [l.eater, ...l.queue] : l.queue;
+      if (line.length && l.roadI - backOf(g, line, atWorm, d.len) < 0) continue;
+    }
     const dist = Math.hypot(l.x + 0.5 - t.x, l.y + 0.5 - t.y);
-    if (dist <= r && (!best || dist < best.dist)) best = { id: l.id, dist };
+    if (dist <= r && (!best || dist < best.dist)) best = { l, dist };
   }
   if (!best) return false;
   t.mode = 'toLure';
-  t.lure = best.id;
+  t.lure = best.l.id;
+  if (crowds(t, best.l)) best.l.crowd.push(t.id);
   g.events.push({ type: 'pulled', tick: g.tick, id: t.kind, x: t.x, y: t.y });
   return true;
 }
 
 /**
  * At a lure. The first to get there eats; the rest stand in a line back along the road. A gull
- * doesn't wait its turn: it swoops in and swallows the whole worm (laughing gulls steal food).
+ * doesn't wait its turn at a worm: it swoops in and swallows the whole thing (laughing gulls steal
+ * food); at a chum slick the flock comes down round it and they all eat at once.
  */
 function atLure(g: Game, t: Thief, dt: number) {
   const l = g.lures.find((q) => q.id === t.lure);
-  if (!l || l.food <= 0) { rejoin(g, t); return; }
+  if (!l || l.food <= 0) { l && (l.crowd = l.crowd.filter((q) => q !== t.id)); rejoin(g, t); return; }
   const d = THIEVES[t.kind];
   const lx = l.x + 0.5, ly = l.y + 0.5;
-  if (d.eat <= 0) {
+  const meal = d.meal[l.bait] ?? 0;
+  if (crowds(t, l)) {
+    if (!l.crowd.includes(t.id)) l.crowd.push(t.id);
+    const spots = mobSpots(g, l.x, l.y, 1);
+    const p = spots[l.crowd.indexOf(t.id) % spots.length];
+    const dist = Math.hypot(p.x - t.x, p.y - t.y);
+    if (dist > ARRIVE) { moveToward(t, p.x, p.y, Math.min(d.speed * dt, dist)); return; }
+    t.x = p.x;
+    t.y = p.y;
+    startMeal(g, t, l, meal);
+    return;
+  }
+  if (meal <= 0) {
     const dist = Math.hypot(lx - t.x, ly - t.y);
     if (dist > ARRIVE) { moveToward(t, lx, ly, Math.min(d.speed * dt, dist)); return; }
     l.food = 0;
@@ -167,10 +192,15 @@ function atLure(g: Game, t: Thief, dt: number) {
   t.x = tx;
   t.y = ty;
   if (l.eater !== t.id) { t.mode = 'queue'; return; }
+  startMeal(g, t, l, meal);
+}
+
+/** It takes its whole meal (or what is left) off the lure as it starts eating (DESIGN.md §6). */
+function startMeal(g: Game, t: Thief, l: Lure, meal: number) {
   t.mode = 'eat';
-  t.eatLeft = Math.min(d.eat, l.food);
+  t.eatLeft = t.eatFull = Math.min(meal, l.food);
   l.food -= t.eatLeft;
-  g.events.push({ type: 'eat', tick: g.tick, id: t.kind, x: t.x, y: t.y });
+  g.events.push({ type: 'eat', tick: g.tick, id: t.kind, x: t.x, y: t.y, d: l.bait === 'chum' ? 1 : 0 });
 }
 
 /** The animals in a terrapin's line: the one worrying it, then the ones waiting. */
@@ -268,8 +298,35 @@ function grab(g: Game, t: Thief, dmg: number, reach: number) {
   best.acted = 0;
 }
 
+/** How far along the road a walker is, in road tiles (the path's points are a tile apart). */
+export function roadPos(g: Game, t: Thief): number {
+  const w = g.world;
+  const p = t.pathI >= w.path.length ? w.door : w.pathPt(t.pathI);
+  return t.pathI - Math.min(1, Math.hypot(p.x - t.x, p.y - t.y));
+}
+
+/** The gap two walkers keep on the road: 0.8 of a line's spacing (DESIGN.md §5). */
+export function walkGap(a: ThiefId, b: ThiefId): number {
+  return (RULES.walkGap * (THIEVES[a].len + THIEVES[b].len)) / 2;
+}
+
+/** How far a walker can go before it closes on the walker ahead of it on the road (animals don't
+ * walk through each other; one paralysed by a puffer holds up the ones behind it). */
+function roomAhead(g: Game, t: Thief): number {
+  const me = roadPos(g, t);
+  let room = Infinity;
+  for (const o of g.thieves) {
+    if (o === t || o.mode !== 'road' || THIEVES[o.kind].flies) continue;
+    const d = roadPos(g, o) - me;
+    if (d < 0 || (d === 0 && o.id > t.id)) continue;
+    room = Math.min(room, d - walkGap(o.kind, t.kind));
+  }
+  return Math.max(0, room);
+}
+
 function walkRoad(g: Game, t: Thief, step: number) {
   const w = g.world;
+  if (!THIEVES[t.kind].flies) step = Math.min(step, roomAhead(g, t));
   while (step > 0) {
     const { x: tx, y: ty } = t.pathI >= w.path.length ? w.door : w.pathPt(t.pathI);
     const dist = Math.hypot(tx - t.x, ty - t.y);
@@ -366,7 +423,8 @@ export function mob(g: Game, t: Thief, of: Thief, x: number, y: number) {
 
 /** Sitting on the water (mobbing, or retching up a pufferfish there): a gull a ray can reach. */
 export function landed(t: Thief): boolean {
-  return t.mode === 'mob' || t.stunT > 0;
+  // a gull eating is at a chum slick, sitting on the water (gulls swallow a worm whole, never eat one)
+  return t.mode === 'mob' || t.stunT > 0 || (t.mode === 'eat' && THIEVES[t.kind].flies);
 }
 
 function escape(g: Game, t: Thief) {
@@ -407,6 +465,7 @@ export function hurt(g: Game, t: Thief, dmg: number, flash = true) {
   for (const l of g.lures) {
     if (l.eater === t.id) l.eater = 0;
     l.queue = l.queue.filter((q) => q !== t.id);
+    l.crowd = l.crowd.filter((q) => q !== t.id);
   }
   for (const q of g.defenders) {
     if (q.worrier === t.id) q.worrier = 0;

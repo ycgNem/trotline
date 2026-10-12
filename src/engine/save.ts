@@ -4,7 +4,7 @@
 // the payload (from Milestone 1: the seed plus the deltas, never the whole world).
 
 /** Bump when the payload's shape changes, and add the migration from the old version. */
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 const PREFIX = 'trotline_save_';
 export const MAX_SLOTS = 6;
 
@@ -19,8 +19,13 @@ export interface SaveData {
 
 export type Migration = (d: any) => any;
 
-/** Ordered migrations: MIGRATIONS[v] upgrades a v save to v + 1 and sets d.v. None yet. */
-export const MIGRATIONS: Record<number, Migration> = {};
+/** Ordered migrations: MIGRATIONS[v] upgrades a v save to v + 1 and sets d.v. */
+export const MIGRATIONS: Record<number, Migration> = {
+  // v1 was the 8-wave slice. A save is the seed plus the player's commands, replayed under the
+  // rules of the day; under Milestone 3's (twelve waves, the fleet) a v1 run would replay to a
+  // different game, so its run is dropped (the title then offers a new season, not Continue).
+  1: (d) => ({ ...d, v: 2, log: null, dropped: 'the slice\'s rules (Milestone 3 changed them)' }),
+};
 
 /** Bring any older save up to SAVE_VERSION; throws on a gap in the chain or a newer save. */
 export function migrate(d: any, migrations: Record<number, Migration> = MIGRATIONS, target = SAVE_VERSION): SaveData {

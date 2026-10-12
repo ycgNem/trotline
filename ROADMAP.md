@@ -48,15 +48,26 @@ second review). Ready for the gate.
 Either the model changes (in `DESIGN.md`, then the slice is revised and reviewed again) or the
 gate is marked passed here with the date.
 
-**Gate status: not yet passed.** The critic's side is done (2026-10-12: a re-gate review and the
-gate review, both implemented, `DECISIONS.md`); waiting on the owner to play it and answer
-`DESIGN.md` §8, and on the owner's calls listed in `HANDOFF.md`.
+**Gate status: passed, 2026-10-12.** The critic's side was done (a re-gate review and the gate
+review, both implemented, `DECISIONS.md`); the owner played it and said "looks good, see if you
+can get started on the next milestones". That is taken as yes to `DESIGN.md` §8's three
+questions. The owner's open calls in `HANDOFF.md` (the palette, Back Bay, terrapins being sold)
+stay open and don't block: their current answers stand until the owner says otherwise.
 
 ## Milestone 3 — The fleet and the works
 
 Rowboat, skiff, trawler; docks; zones the rod can't reach; the bait works with worm, chum and
 cricket; scraps from kills; canals and pools; buckets. Production view: catches per minute per
 zone and what each boat is waiting on.
+
+**Milestone 3 status (2026-10-12):** built, reviewed by the critic, and re-measured: the three
+boats, chum slicks, canals (hidden on Back Bay, where they measure as worth nothing), a 12-wave
+season, the yard, the fleet panel and the boat card (DESIGN.md §12). Left out on purpose, each
+with its reason in DESIGN.md §12 and DECISIONS.md: buckets (Milestone 6), more docks (one
+landing), crickets (live shrimp in Milestone 4), scraps from kills. The reference wins 74-90 of
+100 with three openings and two lines viable (DESIGN.md §7). Open for the next review: money has
+nothing to buy past the fleet, terrapins are worth nothing over a run, and the late board is a
+lawn row (PROGRESS.md). Not pushed yet.
 
 ## Milestone 4 — The catch log and the roster
 

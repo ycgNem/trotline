@@ -92,7 +92,38 @@ feet for walkers, the waterline for fish, the trunk base for trees, bottom-centr
 | `angler` | 12x22 | 2 | 0 idle (rod upright), 1 fishing (rod tip at anchor + (5, -14)) |
 | `worm` `bobber` | 10x7, 6x6 | 2 | wriggle; float / dip |
 | `crate` `tree` `smokehouse` `wormbed` | 10x9, 20x28, 48x66, 32x14 | 1 | |
+| `rowboat` | 22x13 | 3, 4 | wooden jon boat, anchor (11, 10); 0 catch, 1 finish (looped while it moves), 2 at anchor fishing, rod tip at anchor + (10, -9) |
+| `skiff` | 26x14 | 3, 6 | bay skiff with an outboard, anchor (14, 11); 0/1 running bow-up, spray alternating; 2 stopped, the hand standing, surf rod tip at anchor + (11, -11) |
+| `trawler` | 36x24 | 2 states, 2 | Gulf shrimp boat, anchor (18, 20); 0 running (booms up in a V, the net on the aft deck), 1 towing (booms out, a warp into the water astern) |
+| `slick` | 18x10 | 2, 2 | chum on the water, anchor at its centre (9, 5); drawn inside 7 x 3.5 so the lure ring (9 x 5) circles it with water between |
+| `chum_bucket` | 9x10 | 1 | HUD icon, anchor bottom-centre (4, 9) |
 | `tile_*` | 16x16 | 4 variants, fps 0 | variant picked per tile by a hash |
+
+### Boats and chum (Milestone 3)
+
+- Boats are drawn like the angler: side view seen a little from above (the far gunwale and a
+  sliver of the inside over the near gunwale), facing right, ink outline outside, the anchor
+  at the hull's waterline centre. Oars, rods, booms, warps and spray go on after the outline.
+- **Every hull has two values**, a light cap or topsides over a dark lower hull, so it reads
+  on all four waters: the rowboat is `amber` gunwale over `copper` and `rust` planks, the skiff
+  `bone`/`mist` topsides over a `green`/`leaf` hull, the trawler `bone`/`mist` over a `red`
+  boot stripe and `slate` bottom paint. The rowboat's wood is kept darker than the puffer's
+  amber: an amber hull read as a puffer at 1x.
+- **Three silhouettes at 1x**: the rowboat a low box with a hat amidships and an oar; the skiff
+  a wedge rising to its bow with the outboard's dark block on the stern; the trawler big, with
+  a mast and booms. The hands wear the angler's red shirt (one crew): a straw hat in the
+  rowboat, a dark cap in the skiff.
+- The trawler's booms are stylised: towing, they spread like wings, which is what reads as a
+  shrimper working. The true side view (booms pointing at and away from the camera) collapses
+  into the mast. Running, the booms stand in a V and the green net is heaped on the aft deck,
+  so the two states differ at 1x by height and by the net.
+- **The slick** is `copper`/`rust` chum with `shell` flecks and water showing through gaps, in
+  a broken `violet` film whose `gold` glints (top-left) and `plum` (bottom-right) move each
+  frame. No ink outline (it's in the water, not on it), no pink (the worm), and no smooth
+  oval tapering to a point (that read as a fish): lumpy, blunt at both ends, crumbly.
+- Checks: `python pixel-art/boats/onwater.py` (every frame on the four waters, the slick
+  beside the worm, puffer and ray and inside its lure ring, a bay scene at 1x/2x/3x) and
+  `node pixel-art/boats/gameshot.mjs [WxH]` (the fleet sent out and a slick cast, in the game).
 
 ## Real animals, real places
 
@@ -118,7 +149,7 @@ ring), so markings go on the fins and the eyes stay low-contrast (`mud` on `tan`
 ## Art sources and pipeline
 
 1. **pixel-art-studio first.** Every asset is a build script, `pixel-art/<family>/build.py`
-   (`tiles`, `thieves`, `defenders`, `props`), drawing every pixel from character maps with
+   (`tiles`, `thieves`, `defenders`, `props`, `boats`), drawing every pixel from character maps with
    `pixelstudio.py` through `pixel-art/_lib/trotart.py`. Run the script; it writes
    `src/art/<name>.png` (frames in one row, 1x, transparent) and `src/art/<name>.json`
    (`{frame, frames, anchor, fps}`), checks every pixel against Apollo, and leaves 8x/2x previews

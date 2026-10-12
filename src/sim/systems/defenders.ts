@@ -7,7 +7,7 @@ import type { Game, Thief, Defender } from '../Game';
 import { DEFENDERS, type PoisonDef, type ZapDef } from '../../data/defenders';
 import { THIEVES } from '../../data/thieves';
 import { hurt, alive, mob, landed } from './thieves';
-import { isWater, type Pt } from '../world';
+import { mobSpots } from '../spots';
 
 export function tickDefenders(g: Game, dt: number) {
   const resting = g.phase === 'build';
@@ -68,31 +68,6 @@ function snatch(g: Game, d: Defender, def: PoisonDef) {
       mob(g, o, best, p.x, p.y);
     }
   }
-}
-
-/**
- * Where a gull flock comes down round a pufferfish on tile (x, y): first the one that took it, on
- * the puffer's tile a little out from the road (so it reads as on the water), then its flockmates
- * either side along the shore and a little further out, and one further out still (any that would
- * sit on land move out onto the water).
- */
-export function mobSpots(g: Game, x: number, y: number): Pt[] {
-  const w = g.world;
-  const cx = x + 0.5, cy = y + 0.5;
-  const p = w.pathPt(w.roadNear[w.idx(x, y)]);
-  let vx = cx - p.x, vy = cy - p.y;
-  const len = Math.hypot(vx, vy) || 1;
-  vx /= len; vy /= len;
-  const mx = cx + vx * 0.3, my = cy + vy * 0.3;
-  // 0.85 tile either side and 0.3 out: three gulls read as three (at 0.7 in a row they drew as one
-  // smear), and still sit where the rays round the puffer reach them (at 1 tile apart the strong
-  // bot won 4 fewer, measured)
-  const k = 0.85, o = 0.3;
-  const round = [[-vy * k + vx * o, vx * k + vy * o], [vy * k + vx * o, -vx * k + vy * o], [vx * 0.9, vy * 0.9]].map(([ox, oy]) => {
-    const sx = mx + ox, sy = my + oy;
-    return isWater(w.at(Math.floor(sx), Math.floor(sy))) ? { x: sx, y: sy } : { x: sx + vx * 0.8, y: sy + vy * 0.8 };
-  });
-  return [{ x: mx, y: my }, ...round];
 }
 
 /** The rays whose shock reaches where a gull flock would come down round a pufferfish set on

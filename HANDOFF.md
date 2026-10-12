@@ -3,74 +3,60 @@
 Where the last session stopped. Read this first, then the files `CLAUDE.md` lists. Rewrite it at
 the end of every session.
 
-## Stopped at (2026-10-12, end of the overnight session)
+## Stopped at (2026-10-12, end of the Milestone 3 session)
 
-**The game is 2D now and the vertical slice (Milestone 1) is playable end to end**: title, a
-60 s first build with a ray caught at dawn in the live well, eight waves, win and lose, restart,
-continue from a save. `npm run dev` (or `Play.bat`) and click Start, or play it live at
-https://ycgnem.github.io/trotline/. The 3D proof of concept is gone (in git history at e6f9a18).
+**Milestone 2's gate passed** (the owner: "looks good, see if you can get started on the next
+milestones to make this game more expansive"). **Milestone 3, the fleet and the works, is built,
+reviewed and re-measured, and committed but not pushed**: the live build is still the slice.
 
-The `indie-critic` reviewed the slice **five times** (three reviews, a re-gate and the gate
-review) and the `balance-auditor` once; all six are implemented (`DECISIONS.md`, one section
-each). The second
-rebuilt the defense model: fish wear out (slow rest, claws as thieves walk past, wading while
-they wait in a line), the ray shocks one walker at a time and never a gull in the air, the
-pufferfish paralyses, raccoons are the terrapin's predator and bears shove it aside, bears ignore
-worms, rays live at the point (the surf rod's job). The third made the dock, the reeds and the
-point three habitats (puffers, terrapins, rays), the shock travel only through wet ground, gulls
-come in flocks, sending a wave early pay nothing and bait a cost every build. **The re-gate
-review** found a simple line that won 96-99 of 100; the reference bot now plays it, and waves 4-8
-grew and came closer until it wins 78-85. It also re-derived the gull answer: a gull that
-snatches a puffer drops onto the water and its flock lands round it for 6 s to rob it, where
-rays reach them (the old alarm call read as the Potato Mine). A lure's meal is taken when it
-starts and its line never runs off the map; the lure preview counts the raccoons coming;
-terrapins now pay (after eight rays, never where their line wades a ray). **The gate review**
-found two worms on the road beat the bot, so the bot keeps two down and a pack costs 8 (money
-now goes on bait: $21-22 left at the end, ~6 fish sold a run); wave 8 leans on bears instead of
-five gull flocks; a terrapin's line stops at the road's start (it had been holding a wave off the
-map, and a pace test with it); deploying a puffer frames the rays that reach where a flock lands;
-the first hint names the opening's fork (sell the dawn ray, or deploy it: within 6 wins of each
-other). The bot wins 80-86 of 100. `DESIGN.md` §2-§7, §10 and §11 describe exactly what is
-built, with the measured numbers. Nothing is half-built.
+What is in: three boats (the rowboat, the skiff with an inshore rod, the trawler that tows a net
+and brings up chum) that fish where they are sent and bring the catch home or sell it, kind by
+kind; chum slicks on the water that hold gulls and bears where rays reach them; a 12-wave season;
+the yard (B), the fleet panel and a boat's card; canals (built and tested, hidden on Back Bay where
+they measure as worth nothing). `DESIGN.md` §12 has the model, §5 the waves, §7 the measurements.
 
-**Milestone 2, the gate, is next**: the owner plays it, then the critic reviews it against
-`DESIGN.md` §8. Nothing from Milestone 3 until the gate is marked passed in `ROADMAP.md`.
+The `indie-critic` reviewed Milestone 3 once; everything it asked for is in (`DECISIONS.md`, "The
+critic's Milestone 3 review"): the point's rays are a stock the lines there share (it had become
+"mass-produce rays"), walkers keep their room on the road (the finale was a grey ribbon), the
+trawl brings up what lives where it tows, a raccoon finds a slick only a tile from the road,
+keep-or-sell by kind, readability and craft fixes. **Then setting the pace thresholds found a
+stronger reference twice** (`DECISIONS.md`, "The reference player re-measured"): worms only in
+the opening (laid every wave they cost the fleet), and rays past three sold for a rowboat by wave
+3, which won 96-99 of 100. The season was sized again against that line: waves 4-6 grew so an
+early boat is a gamble, the late waves grew (the finale: twenty-two flocks, 60 raccoons, fifty
+bears). The reference wins 74-90 of 100; the other openings 72-88; no chum or no boats 0-2.
+
+**Next**: the critic's review of the re-measured season, then Milestone 4 (the catch log and the
+roster). Three things the review should look at first, all in `PROGRESS.md`'s known problems:
+money has nothing to buy past the fleet ($128-140 at the finale's start), terrapins are worth
+nothing over a run, and the late board is a solid row of rays and puffers (the "lawn row").
 
 ## Waiting on the owner
 
-1. **Play the slice** and answer `DESIGN.md` §8's three questions (is sell-or-deploy a
-   decision, is a lure control or a chore, does catching a fish beat buying a tower).
-2. **The worm bed buys nothing**: the strong bot wins the same runs without it. Money itself now
-   has a use (bait at $8 a pack, two worms on the road), so what is left is the bed's job: give
-   it one packs can't do, or drop it, or add a third rod tier (Milestone 3 scope). `IDEAS.md`.
-3. **The rod is the build order**: never selling wins none, no rod 0-2 of 100. The choice is how
-   to reach it (sell the dawn ray, or deploy it and sell puffers), and the first hint names it.
-   Say whether the gate wants more than that (`IDEAS.md`).
+1. **Push Milestone 3?** It is committed on `main` locally. A push runs the tests and redeploys
+   GitHub Pages with the 12-wave season. Say yes when you have played it.
+2. **A late money sink** (`IDEAS.md`): past the skiff there is nothing to buy but bait. A second
+   boat of a kind, a third rod tier or Milestone 4's roster are the candidates; each is a design
+   call (a new tree needs a `DECISIONS.md` entry naming its pillar).
+3. **The worm bed still buys nothing**, as in the slice. Give it a job, or drop it (`IDEAS.md`).
 4. **The palette**: Apollo is provisional. Compare `pixel-art/palette-test/contact_both.png`
    against ENDESGA 32 (`DECISIONS.md`).
 5. **Back Bay instead of a reservoir** for the first shore (`DECISIONS.md`): puffers, electric
-   rays and diamondback terrapins don't live in a Texas reservoir. `PLAN.md` said "a reservoir
-   first"; this is the one line the slice overrides.
-6. **The derivative flags** in `DECISIONS.md` (PvZ's Potato Mine and Wall-nut, Kingdom Rush's
-   Tesla chain and early-call gold): all re-derived or dropped. The last open one, the gull
-   alarm call, is gone: gulls now mob the one with the fish (laughing gulls rob each other), and
-   the puffer is a lure the rays work, not a mine.
-7. **Terrapins being sold** (`IDEAS.md`): commercial terrapin harvest is banned or tightly
-   limited along most of the Gulf. A "release" that pays in something other than money would be
-   truer, but it touches the currency list, so it is your call.
-8. **`CLAUDE.md`'s screenshot moment "first bear chewing a turtle"** no longer happens: bears
-   shove terrapins aside in 3 s (raccoons are the real predator). The shot is now "raccoons
-   lined up at a terrapin" (`e2e/out/shots/09-...`). Say if you want the line in `CLAUDE.md`
-   changed.
-9. **The name check** (itch.io, Steam, the domain) before anything goes out under "Trotline".
+   rays and diamondback terrapins don't live in a Texas reservoir.
+6. **Terrapins being sold** (`IDEAS.md`): commercial terrapin harvest is banned or tightly
+   limited along most of the Gulf; a "release" that pays in something else touches the currency
+   list. They also measure as worth nothing over a run now (`IDEAS.md`).
+7. **`CLAUDE.md`'s screenshot moment "first bear chewing a turtle"** no longer happens: bears
+   shove terrapins aside (raccoons are the predator). The shot is "raccoons lined up at a
+   terrapin", and "a bear at a slick" (`e2e/out/shots/09-...`, `24-...`).
+8. **The name check** (itch.io, Steam, the domain) before anything goes out under "Trotline".
 
 ## State of things outside the code
 
-- **Git**: everything is committed and pushed to `origin/main` (the owner said yes at the end of
-  the session). Every push to `main` runs the tests and redeploys GitHub Pages, so a push still
-  needs the owner's yes each time (`CLAUDE.md`). **Live**: https://ycgnem.github.io/trotline/
-  (the 2D slice; the 3D proof of concept is gone). CI's `npm test` now takes several minutes:
-  the pace tests play ~1,400 runs.
+- **Git**: Milestone 3 is committed on `main` and **not pushed**. Every push to `main` runs the
+  tests and redeploys GitHub Pages, so a push needs the owner's yes each time (`CLAUDE.md`).
+  **Live**: https://ycgnem.github.io/trotline/ (the slice). The pace tests play ~1,000 seasons:
+  ~3 minutes locally on 32 threads, longer on CI's four cores.
 - **PixelLab**: 0 of the session's 100 generations spent. All art is drawn with the
   pixel-art-studio skill (user level, `~/.claude/skills/pixel-art-studio`): build scripts in
   `pixel-art/<name>/build.py`, PNG strips plus JSON in `src/art/`. Never SpriteCook.
@@ -84,20 +70,23 @@ Node is not on PATH: in Git Bash, `export PATH="/c/Users/jacks/tools/node-v22.20
 
 ```
 npm run dev          # http://127.0.0.1:5180 (or Play.bat)
-npm run typecheck && npm test     # ~5 minutes (the pace tests play ~1,400 runs)
+npm run typecheck && npm test     # ~3 minutes here (the pace tests play ~1,000 seasons)
 npm run shots        # e2e/out/shots/*.png, the moments that matter; then Read them
-npm run screens      # HUD overlap audit, 11 states x 3 window sizes
+npm run screens      # HUD overlap audit, 19 states x 3 window sizes
 npm run smoke        # real mouse and keys only
 npm run bot          # three strategies x three seeds, played in the browser
 ```
 
-`e2e/out/` is ignored by git, so regenerate the shots before comparing. Headless probes: write a
-`tests/_name.ts` and run it with `npx vite-node tests/_name.ts` (vitest only picks up
-`*.test.ts`, but `npm run typecheck` sees `tests/`); delete it after. `src/sim/bot.ts` options
-(`noRod`, `noSell`, `noLure`, `bed`, `naive`, `keep`, `raysFirst`, `gullRays`, `wadeOk`,
-`raySpot`, `lureMid`, `lureBlind`) make "the same bot with one thing taken away" a one-liner.
-A whole-run measurement is ~50 s per 100 seeds per variant: run seed sets as parallel processes
-(the machine has 32 threads) rather than in one loop.
+`e2e/out/` is ignored by git, so regenerate the shots before comparing. **Measuring the season**:
+`npx vite-node scripts/measure.ts -- <from> <to> '<bot opts json>' [label]` prints a variant's
+wins, crates, money (at the end and at the finale's start), fish, what it bought and when, and
+crates stolen by wave and thief. Run five 100-seed sets as parallel processes (the machine has 32
+threads; a season is 3-6 s) and take the worst set for any threshold. `WAVES` and `PRICES` env
+JSON patch the waves and boat prices for tuning without editing data. `src/sim/bot.ts` options
+make "the same bot with one thing taken away" a one-liner: `noRod`, `noBoats`, `noChum`,
+`noLure`, `lureRays`, `rayFloor`, `boatSells`, `plan`, `sellRay`, `keep`, `slicks`, `fixedBoats`
+and more. Headless probes: a `tests/_name.test.ts` with `it(...)` and console.log (the pace
+helpers import vitest), run with `npx vitest run tests/_name.test.ts`; delete it after.
 
 ## Things that cost time (so they don't again)
 
@@ -122,5 +111,12 @@ A whole-run measurement is ~50 s per 100 seeds per variant: run seed sets as par
 - A pace threshold set at the measured value flips on a seed's luck: keep a margin (DESIGN.md §7
   lists them), and check that a staged test's deploys succeed (one "five puffers" test was
   four puffers for a while because a tile was sand).
-- Harder waves made of more thieves also pay more bounty: against the $60-unspent ceiling,
-  tighten spawn gaps instead.
+- A stronger line beats the reference more often than not: before setting a pace threshold,
+  measure the obvious variants of the reference (sell harder, bait less, the other opening) and
+  make the best one the reference, or the thresholds encode a weak player.
+- Bigger waves pay more bounty: growing the finale to press a strong player piles up money it
+  can't spend. Press the opening instead where you can (waves 4-6 for an early boat).
+- Killing a background bash that started `vite-node` processes with `&` leaves the node processes
+  running: stop them by command line (PowerShell `Get-CimInstance Win32_Process`).
+- Python writing text on Windows turns `\n` into CRLF unless `newline='\n'` is passed; git
+  normalises it, but diffs get noisy.

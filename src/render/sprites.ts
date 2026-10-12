@@ -261,9 +261,43 @@ function placeholder(name: string): SpriteSheet {
         r(x, C.bark, 1, 1, 30, 12); r(x, C.mud, 3, 3, 26, 8);
         for (let i = 0; i < 6; i++) r(x, C.rose, 5 + i * 4, 5 + (i % 2) * 2, 2, 1);
       });
+    // the fleet (DESIGN.md §12): frames 0-1 underway, the last at work
+    case 'rowboat':
+      return make(22, 12, 11, 8, 3, 4, (x, f) => {
+        r(x, C.clay, 2, 6, 18, 3); r(x, C.mud, 3, 9, 16, 1); r(x, C.tan, 3, 5, 16, 1);
+        r(x, C.red, 9, 1, 3, 4); disc(x, C.dune, 10.5, 0.8, 1.2);
+        if (f < 2) { const o = f ? 3 : -3; r(x, C.bark, 10 + o, 4, 1, 1); r(x, C.bark, 10 + o * 1.6, 6, 1, 2); }
+        else r(x, C.bark, 12, 2, 6, 1);
+      });
+    case 'skiff':
+      return make(26, 13, 13, 9, 3, 6, (x, f) => {
+        r(x, C.steel, 3, 6, 20, 3); r(x, C.iron, 4, 9, 18, 1); r(x, C.fog, 4, 5, 18, 1);
+        r(x, C.night, 1, 3, 3, 5); r(x, C.copper, 6, 1, 3, 4); disc(x, C.dune, 7.5, 0.8, 1.2);
+        if (f < 2) r(x, C.bone, 0, 8 + f, 2, 1);
+        else r(x, C.bark, 9, 2, 8, 1);
+      });
+    case 'trawler':
+      return make(36, 24, 18, 18, 2, 2, (x, f) => {
+        r(x, C.bone, 4, 14, 28, 4); r(x, C.red, 5, 18, 26, 2); r(x, C.mist, 4, 13, 28, 1);
+        r(x, C.shell, 20, 7, 8, 7); r(x, C.ink, 22, 9, 4, 2);
+        r(x, C.iron, 14, 1, 1, 13);
+        if (f === 0) { r(x, C.iron, 12, 2, 1, 6); r(x, C.iron, 16, 2, 1, 6); }
+        else { r(x, C.iron, 4, 6, 10, 1); r(x, C.iron, 15, 6, 10, 1); r(x, C.ash, 2, 7, 1, 10); }
+      });
+    case 'slick':
+      return make(18, 10, 9, 5, 2, 2, (x, f) => {
+        disc(x, C.clay, 9, 5, 8, 4);
+        disc(x, C.copper, 9, 5, 6, 3);
+        disc(x, C.wine, 8 + f, 5, 3, 1.5);
+        r(x, C.shell, 5 + f, 4, 1, 1); r(x, C.shell, 12 - f, 6, 1, 1);
+      });
+    case 'chum_bucket':
+      return make(9, 10, 4, 9, 1, 1, (x) => {
+        r(x, C.bone, 1, 2, 7, 7); r(x, C.copper, 2, 2, 5, 1); r(x, C.mist, 1, 8, 7, 1);
+      });
   }
   return make(10, 10, 5, 8, 1, 1, (x) => { r(x, C.magenta, 1, 1, 8, 8); r(x, C.ink, 1, 1, 4, 4); r(x, C.ink, 5, 5, 4, 4); });
 }
 
 /** Names the game draws (the art director's export list). */
-export const SPRITE_NAMES = ['gull', 'raccoon', 'bear', 'puffer', 'puffer_big', 'puffer_gulp', 'ray', 'turtle', 'angler', 'worm', 'crate', 'tree', 'smokehouse', 'bobber', 'wormbed'];
+export const SPRITE_NAMES = ['gull', 'raccoon', 'bear', 'puffer', 'puffer_big', 'puffer_gulp', 'ray', 'turtle', 'angler', 'worm', 'crate', 'tree', 'smokehouse', 'bobber', 'wormbed', 'rowboat', 'skiff', 'trawler', 'slick', 'chum_bucket'];

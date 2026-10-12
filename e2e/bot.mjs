@@ -16,7 +16,7 @@ for (const strategy of ['good', 'deployAll', 'sellAll']) {
       const a = window.__app;
       a.newRun(seed);
       a.freeze();
-      for (const l of ['firstCatch', 'firstDeploy', 'firstLure']) a.seen.add(l);
+      for (const l of ['firstCatch', 'firstDeploy', 'firstLure', 'firstBoat', 'firstSlick']) a.seen.add(l);
       a.autoplay(s);
     }, [strategy, seed]);
     // run in 20 s chunks, drawing between them, until the season ends

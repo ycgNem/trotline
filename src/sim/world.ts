@@ -45,6 +45,10 @@ export class World {
   wet: Uint8Array;
   /** the smokehouse door: the point thieves walk to (tile centre past the road's last tile) */
   door: Pt;
+  /** canal tiles dug this run (DESIGN.md §12) */
+  dug = new Set<number>();
+  /** bumped whenever a tile changes, so the renderer rebakes the ground */
+  version = 0;
 
   constructor(rows: readonly string[] = SHORE_ROWS) {
     this.h = rows.length;
@@ -64,14 +68,7 @@ export class World {
     this.roadDist = this.distances();
     this.roadNear = new Int32Array(this.w * this.h);
     for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) this.roadNear[this.idx(x, y)] = this.nearestPathIndex(x + 0.5, y + 0.5);
-    // a zone with a circle claims the water inside it; the shallows are every shallow tile left
-    this.zone = this.tiles.map((t, i) => {
-      if (!isWater(t)) return null;
-      const x = (i % this.w) + 0.5, y = Math.floor(i / this.w) + 0.5;
-      for (const z of ZONES) if (z.r > 0 && Math.hypot(x - z.x, y - z.y) <= z.r) return z.id;
-      if (t === Tile.Shallow || t === Tile.Reeds) return ZONES.find((z) => z.r === 0)?.id ?? null;
-      return null;
-    });
+    this.zone = this.tiles.map((_, i) => this.zoneOf(i));
     this.angler = { x: SHORE.angler.x + 0.5, y: SHORE.angler.y + 0.5 };
     const last = this.path[this.path.length - 1];
     this.door = { x: last.x + 1.5, y: last.y + 0.5 };
@@ -81,11 +78,143 @@ export class World {
     this.nearDock = this.near((t) => t === Tile.Dock);
     this.nearReeds = this.near((t) => t === Tile.Reeds);
     this.wet = new Uint8Array(this.w * this.h);
-    for (let y = 0; y < this.h; y++)
-      for (let x = 0; x < this.w; x++) {
-        if (isWater(this.at(x, y))) { this.wet[this.idx(x, y)] = 1; continue; }
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (this.inb(x + dx, y + dy) && isWater(this.at(x + dx, y + dy))) this.wet[this.idx(x, y)] = 1;
+    for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) this.wet[this.idx(x, y)] = this.wetAt(x, y) ? 1 : 0;
+  }
+
+  /** The zone a water tile belongs to: a circle claims what is inside it, then the shallows take
+   * every shallow tile left and the channel every mid and deep one. */
+  private zoneOf(i: number): ZoneId | null {
+    const t = this.tiles[i];
+    if (!isWater(t)) return null;
+    const x = (i % this.w) + 0.5, y = Math.floor(i / this.w) + 0.5;
+    for (const z of ZONES) if (z.claims === 'circle' && Math.hypot(x - z.x, y - z.y) <= z.r) return z.id;
+    const kind = t === Tile.Shallow || t === Tile.Reeds ? 'shallow' : 'open';
+    return ZONES.find((z) => z.claims === kind)?.id ?? null;
+  }
+
+  private wetAt(x: number, y: number): boolean {
+    if (isWater(this.at(x, y))) return true;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (this.inb(x + dx, y + dy) && isWater(this.at(x + dx, y + dy))) return true;
+    return false;
+  }
+
+  /** Can this tile be dug into a canal (DESIGN.md §12): grass or sand, not a tree, the road, the
+   * dock, the trail or the smokehouse. Whether it touches water is the caller's (it may touch a
+   * tile already ordered). */
+  diggable(x: number, y: number): boolean {
+    const t = this.at(x, y);
+    return this.inb(x, y) && (t === Tile.Grass || t === Tile.Sand);
+  }
+
+  /** The longest straight run of open water (mid or deep) through a tile, across or up and down:
+   * how long a tow the trawler can make there (DESIGN.md §12). 0 if the tile isn't open water. */
+  openRun(x: number, y: number): number {
+    const open = (cx: number, cy: number) => this.inb(cx, cy) && (this.at(cx, cy) === Tile.Mid || this.at(cx, cy) === Tile.Deep);
+    if (!open(x, y)) return 0;
+    let best = 0;
+    for (const [dx, dy] of [[1, 0], [0, 1]]) {
+      let n = 1;
+      for (let k = 1; open(x + dx * k, y + dy * k); k++) n++;
+      for (let k = 1; open(x - dx * k, y - dy * k); k++) n++;
+      best = Math.max(best, n);
+    }
+    return best;
+  }
+
+  /** Does a tile share an edge with water? */
+  touchesWater(x: number, y: number): boolean {
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (this.inb(x + dx, y + dy) && isWater(this.at(x + dx, y + dy))) return true;
+    return false;
+  }
+
+  /** Dig a canal tile: it becomes shallows, and what depends on water round it is worked out again
+   * (the zone, the dock and reed neighbourhoods, the wet road). The road's shape doesn't change. */
+  dig(x: number, y: number) {
+    const i = this.idx(x, y);
+    this.tiles[i] = Tile.Shallow;
+    this.dug.add(i);
+    for (let dy = -1; dy <= 1; dy++)
+      for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy;
+        if (!this.inb(nx, ny)) continue;
+        const j = this.idx(nx, ny);
+        this.zone[j] = this.zoneOf(j);
+        this.wet[j] = this.wetAt(nx, ny) ? 1 : 0;
       }
+    this.nearDock[i] = this.nearTo(x, y, (t) => t === Tile.Dock) ? 1 : 0;
+    // a dug ditch is marsh water, the terrapin's (DESIGN.md §12), whatever is beside it
+    this.nearReeds[i] = 1;
+    this.version++;
+  }
+
+  /**
+   * The way by water from one tile to another for a boat (DESIGN.md §12): 8-connected over water
+   * that isn't reeds, never cutting a corner of land; tile centres, start excluded. Null if there
+   * is none.
+   */
+  waterPath(from: Pt, to: Pt): Pt[] | null {
+    if (!this.boatable(to.x, to.y)) return null;
+    const { dist, prev } = this.waterField(from);
+    const s = this.idx(from.x, from.y), goal = this.idx(to.x, to.y);
+    if (dist[goal] === Infinity) return null;
+    const out: Pt[] = [];
+    for (let c = goal; c !== s; c = prev[c]) out.push({ x: (c % this.w) + 0.5, y: Math.floor(c / this.w) + 0.5 });
+    return out.reverse();
+  }
+
+  /** Water a boat can be on: not reeds, not land. */
+  boatable(x: number, y: number): boolean {
+    return this.inb(x, y) && isWater(this.at(x, y)) && this.at(x, y) !== Tile.Reeds;
+  }
+
+  private fields = new Map<number, { version: number; dist: Float64Array; prev: Int32Array }>();
+
+  /**
+   * How far every tile is by water from one tile, and the way back (Dijkstra, 1 straight and 1.41
+   * diagonal, never cutting a corner of land), kept until the water changes (a canal is dug).
+   */
+  waterField(from: Pt): { dist: Float64Array; prev: Int32Array } {
+    const s = this.idx(from.x, from.y);
+    const hit = this.fields.get(s);
+    if (hit && hit.version === this.version) return hit;
+    const ok = (x: number, y: number) => this.boatable(x, y);
+    const n = this.w * this.h;
+    const prev = new Int32Array(n).fill(-1);
+    const dist = new Float64Array(n).fill(Infinity);
+    dist[s] = 0;
+    // a small grid: a simple frontier with a linear search for the nearest is plenty
+    const open: number[] = [s];
+    while (open.length) {
+      let bi = 0;
+      for (let k = 1; k < open.length; k++) if (dist[open[k]] < dist[open[bi]]) bi = k;
+      const c = open[bi];
+      open[bi] = open[open.length - 1];
+      open.pop();
+      const cx = c % this.w, cy = Math.floor(c / this.w);
+      for (let dy = -1; dy <= 1; dy++)
+        for (let dx = -1; dx <= 1; dx++) {
+          if (!dx && !dy) continue;
+          const nx = cx + dx, ny = cy + dy;
+          if (!ok(nx, ny)) continue;
+          if (dx && dy && (!ok(cx + dx, cy) || !ok(cx, cy + dy))) continue;
+          const j = this.idx(nx, ny);
+          const nd = dist[c] + (dx && dy ? Math.SQRT2 : 1);
+          if (nd < dist[j]) {
+            if (dist[j] === Infinity) open.push(j);
+            dist[j] = nd;
+            prev[j] = c;
+          }
+        }
+    }
+    if (this.fields.size > 32) this.fields.clear();
+    const f = { version: this.version, dist, prev };
+    this.fields.set(s, f);
+    return f;
+  }
+
+  private nearTo(x: number, y: number, f: (t: Tile) => boolean): boolean {
+    for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (this.inb(x + dx, y + dy) && f(this.at(x + dx, y + dy))) return true;
+    return false;
   }
 
   /** Where a line sits, for what bites there (DESIGN.md §3): by the dock, by the reeds, or open sand. */

@@ -18,10 +18,12 @@ import { SPECIES, type SpeciesId } from '../data/species';
 import { THIEVES } from '../data/thieves';
 import { WAVES } from '../data/waves';
 import { C } from '../data/palette';
+import { BOATS, type BoatId } from '../data/boats';
+import { SHORE } from '../data/shore';
 import { Hud } from './hud';
 import { textWidth, LINE_H } from '../ui/font';
 
-export type Mode = { k: 'idle' } | { k: 'deploy'; slot: number } | { k: 'lure' };
+export type Mode = { k: 'idle' } | { k: 'deploy'; slot: number } | { k: 'lure' } | { k: 'slick' } | { k: 'dig' } | { k: 'send'; boat: BoatId };
 export type Screen = 'title' | 'play' | 'end';
 
 export interface Floater { text: string; x: number; y: number; t: number; col: string }
@@ -48,6 +50,10 @@ export class App {
   speed = 1;
   showHud = true;
   help = false;
+  /** the build card (boats, the rod, the worm bed, canals) is open: the game waits */
+  build = false;
+  /** the boat picked in the fleet panel or on the board */
+  boat: BoatId | null = null;
   debug = false;
   floaters: Floater[] = [];
   toast: { text: string; t: number; life: number } | null = null;
@@ -113,6 +119,8 @@ export class App {
     this.paused = false;
     this.lesson = null;
     this.lessonQueue = [];
+    this.build = false;
+    this.boat = null;
     this.game.events.drain();
     this.save();
   }
@@ -126,6 +134,8 @@ export class App {
     this.screen = this.game.over ? 'end' : 'play';
     this.mode = { k: 'idle' };
     this.selected = null;
+    this.build = false;
+    this.boat = null;
     return true;
   }
 
@@ -161,7 +171,7 @@ export class App {
   // ---------------------------------------------------------------- the loop
 
   private tick() {
-    if (this.screen !== 'play' || this.paused || this.lesson || this.help || this.frozen) return;
+    if (this.screen !== 'play' || this.paused || this.lesson || this.help || this.build || this.frozen) return;
     for (let i = 0; i < this.speed; i++) {
       if (this.bot && this.game.tick % 10 === 0) this.bot.think();
       this.game.step();
@@ -185,11 +195,15 @@ export class App {
       deploy: this.mode.k === 'deploy' ? this.game.liveWell[this.mode.slot] : null,
       lure: this.mode.k === 'lure',
       range: this.mode.k === 'idle' && !!this.hover && isWater(this.game.world.at(this.hover.x, this.hover.y)),
+      slick: this.mode.k === 'slick',
+      dig: this.mode.k === 'dig',
+      send: this.mode.k === 'send' ? this.mode.boat : null,
+      boat: this.boat,
     };
-    this.renderer.draw(this.game, this.paused || this.lesson || this.help ? 0 : dt, ov);
+    this.renderer.draw(this.game, this.paused || this.lesson || this.help || this.build ? 0 : dt, ov);
     this.ui.begin(this.ctx, this.input, this.uiScale, dt, false);
     if (this.showHud || this.screen !== 'play') this.hud.draw(dt);
-    if (this.screen === 'play' && !this.lesson && !this.help) this.worldClick();
+    if (this.screen === 'play' && !this.lesson && !this.help && !this.build) this.worldClick();
     this.ui.end();
     this.input.endFrame();
     this.audio.update(0.3);
@@ -215,14 +229,24 @@ export class App {
         case 'steal': this.audio.sfx('steal'); this.float('-' + e.value + ' crate' + (e.value === 1 ? '' : 's'), e.x!, e.y! - 1, C.ember); break;
         case 'recover': this.float('+' + e.value + ' back', e.x!, e.y! - 1.6, C.lime); break;
         case 'escape': this.float(e.value + ' lost', e.x!, e.y! - 1, C.red); break;
-        case 'sell': this.audio.sfx('coin'); this.float('+$' + e.value, g.world.angler.x, g.world.angler.y - 1, C.gold); break;
+        // a boat set to sell sells at the dock as it lands
+        case 'sell': this.audio.sfx('coin', e.d ? 0.5 : 1); this.float('+$' + e.value, e.d ? e.x! : g.world.angler.x, (e.d ? e.y! : g.world.angler.y) - 1, C.gold); break;
         case 'deploy': this.audio.sfx('splash', 0.7); break;
         case 'lure': this.audio.sfx('lure'); break;
-        case 'buy': this.audio.sfx('coin'); break;
+        // a boat buying its own bait at the dock makes no sound (the fleet panel says it); a boat
+        // bought is picked, so its controls show
+        case 'buy': if (!e.d) this.audio.sfx('coin'); if (e.id && e.id in BOATS) this.boat = e.id as BoatId; break;
         case 'waveStart': this.audio.sfx('wave'); this.save(); this.waveToast(e.value ?? g.wave); break;
         case 'waveEnd': this.save(); break;
         case 'won': this.audio.sfx('win'); this.endRun(); break;
         case 'lost': this.audio.sfx('lose'); this.endRun(); break;
+        case 'land': this.audio.sfx('catch', 0.5); this.float('+' + SPECIES[e.id as SpeciesId].name, g.world.angler.x, g.world.angler.y - 1, C.ice); break;
+        case 'boatCatch': this.audio.sfx('splash', 0.25); break;
+        case 'slick': this.audio.sfx('slick'); break;
+        case 'digOrder': this.audio.sfx('dig', 0.5); break;
+        case 'dug': this.audio.sfx('splash', 0.5); break;
+        case 'chumIn': this.float('+' + e.value + ' chum', g.world.angler.x, g.world.angler.y - 1, C.amber); break;
+        case 'send': this.audio.sfx('click'); break;
         case 'defenderLost': this.float(e.id === 'turtle' ? 'Shell cracked' : SPECIES[e.id as SpeciesId].name + ' eaten', e.x!, e.y! - 1, C.red); break;
       }
       const l = LESSONS.find((q) => q.on === e.type);
@@ -303,8 +327,10 @@ export class App {
     if (i.wasPressed('debug')) this.debug = !this.debug;
     if (i.wasPressed('mute')) this.toggleMute();
     if (this.screen !== 'play') return;
-    if (i.wasPressed('help')) this.help = !this.help;
+    if (i.wasPressed('help')) { this.help = !this.help; this.build = false; }
     if (this.help) { if (i.wasPressed('cancel')) this.help = false; return; }
+    if (i.wasPressed('build') && !this.lesson) this.build = !this.build;
+    if (this.build) { if (i.wasPressed('cancel')) this.build = false; return; }
     if (this.lesson) return;
     if (i.wasPressed('pause')) this.paused = !this.paused;
     if (i.wasPressed('faster')) this.speed = this.speed >= 3 ? 1 : this.speed + 1;
@@ -314,6 +340,8 @@ export class App {
     if (i.wasPressed('sell')) this.sellSelected();
     if (i.wasPressed('deploy')) this.deploySelected();
     if (i.wasPressed('lure')) this.toggleLure();
+    if (i.wasPressed('chum')) this.toggleSlick();
+    if (i.wasPressed('dig')) this.toggleDig();
     if (i.wasPressed('callWave')) this.act({ k: 'call' });
     // camera: pan with the keys, zoom by whole steps
     const c = this.renderer.cam;
@@ -335,12 +363,49 @@ export class App {
   }
 
   cancel() {
+    if (this.mode.k === 'idle') this.boat = null;
     this.mode = { k: 'idle' };
+  }
+
+  toggleSlick() {
+    if (this.mode.k === 'slick') { this.mode = { k: 'idle' }; return; }
+    if (this.game.chum < 1) { this.say(`No chum. Buy a bucket ($${this.game.price('chum') ?? 0}), or run the trawler.`); return; }
+    this.mode = { k: 'slick' };
+  }
+
+  toggleDig() {
+    // no canals on a shore whose road already runs by the water (DESIGN.md §12)
+    if (!SHORE.canals) { this.say('No canal would help on this shore: the road already runs by the water.'); return; }
+    this.mode = this.mode.k === 'dig' ? { k: 'idle' } : { k: 'dig' };
+    this.build = false;
+  }
+
+  /** Pick a boat (its controls show in the fleet panel), or drop the pick. */
+  pickBoat(kind: BoatId | null) {
+    this.boat = this.boat === kind ? null : kind;
+    if (this.mode.k === 'send') this.mode = { k: 'idle' };
+  }
+
+  /** The boat under the mouse, if any (a boat is wider than a tile and sits up off its tile). */
+  boatAt(): BoatId | null {
+    const m = this.input.mouse;
+    const k = this.canvas.width / (this.canvas.clientWidth || this.canvas.width);
+    const p = this.renderer.screenToPoint(m.x * k, m.y * k);
+    const b = this.game.boats.find((q) => Math.abs(q.x - p.x) < 0.9 && p.y > q.y - 0.9 && p.y < q.y + 0.4);
+    return b?.kind ?? null;
+  }
+
+  /** Send a boat: the next click on the water is where it goes. */
+  sendBoat(kind: BoatId) {
+    this.boat = kind;
+    this.mode = this.mode.k === 'send' && this.mode.boat === kind ? { k: 'idle' } : { k: 'send', boat: kind };
   }
 
   pick(slot: number) {
     if (!this.game.liveWell[slot]) { this.selected = null; return; }
     this.selected = this.selected === slot ? null : slot;
+    // a fish picked takes the card slot a picked boat had
+    if (this.selected !== null) { this.boat = null; if (this.mode.k === 'send') this.mode = { k: 'idle' }; }
     if (this.mode.k === 'deploy') this.mode = this.selected === null ? { k: 'idle' } : { k: 'deploy', slot: this.selected };
   }
 
@@ -376,6 +441,19 @@ export class App {
       if (this.act({ k: 'lure', x, y }) && (!this.input.shift || g.worms < 1)) this.mode = { k: 'idle' };
       return;
     }
+    if (this.mode.k === 'slick') {
+      if (this.act({ k: 'slick', x, y }) && (!this.input.shift || g.chum < 1)) this.mode = { k: 'idle' };
+      return;
+    }
+    // digging stays on for the next tile: a canal is dug a tile at a time
+    if (this.mode.k === 'dig') { this.act({ k: 'dig', x, y }); return; }
+    if (this.mode.k === 'send') {
+      if (this.act({ k: 'send', boat: this.mode.boat, x, y })) this.mode = { k: 'idle' };
+      return;
+    }
+    // a click on a boat picks it
+    const hit = this.boatAt();
+    if (hit) { this.pickBoat(hit); return; }
     const t = g.world.at(x, y);
     if (isWater(t)) this.act({ k: 'cast', x, y });
     else if (t === Tile.Road && g.worms > 0 && g.canLure(x, y).ok) this.say('Press L (or the Lure button) to cast a worm on the road.');
@@ -405,7 +483,7 @@ export class App {
   }
   stats() {
     const g = this.game;
-    return { screen: this.screen, phase: g.phase, wave: g.wave, tick: g.tick, money: g.money, crates: g.crates, worms: g.worms, well: [...g.liveWell], defenders: g.defenders.length, thieves: g.thieves.filter((t) => t.mode !== 'dead' && t.mode !== 'gone').length, zoom: this.renderer.cam.zoom, uiScale: this.uiScale, lesson: this.lesson?.on ?? null };
+    return { screen: this.screen, phase: g.phase, wave: g.wave, tick: g.tick, money: g.money, crates: g.crates, worms: g.worms, chum: g.chum, boats: g.boats.map((b) => `${b.kind}:${b.state}`), well: [...g.liveWell], defenders: g.defenders.length, thieves: g.thieves.filter((t) => t.mode !== 'dead' && t.mode !== 'gone').length, zoom: this.renderer.cam.zoom, uiScale: this.uiScale, lesson: this.lesson?.on ?? null };
   }
   /** Screen position (CSS pixels) of a tile's centre, for scripted clicks. */
   tileToCss(x: number, y: number) {

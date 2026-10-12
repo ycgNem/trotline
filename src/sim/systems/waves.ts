@@ -4,6 +4,7 @@ import type { Game, Thief } from '../Game';
 import { WAVES, SPAWN_GAP } from '../../data/waves';
 import { THIEVES, type ThiefId } from '../../data/thieves';
 import { RULES } from '../../data/rules';
+import { roadPos, walkGap } from './thieves';
 
 export function tickWaves(g: Game, dt: number) {
   if (g.phase === 'build') {
@@ -14,7 +15,8 @@ export function tickWaves(g: Game, dt: number) {
   if (g.phase !== 'wave') return;
   if (g.spawnQueue.length) {
     g.spawnT -= dt;
-    if (g.spawnT <= 0) {
+    // a walker comes onto the road only when the one before it has made room (DESIGN.md §5)
+    if (g.spawnT <= 0 && roomAtStart(g, g.spawnQueue[0])) {
       const kind = g.spawnQueue.shift()!;
       spawn(g, kind);
       // a flock's birds come close together; the wave's gap is between flocks (DESIGN.md §5)
@@ -28,6 +30,12 @@ export function tickWaves(g: Game, dt: number) {
   endWave(g);
 }
 
+/** Is there room at the road's west end for a walker of this kind (gulls fly in over them)? */
+function roomAtStart(g: Game, kind: ThiefId): boolean {
+  if (THIEVES[kind].flies) return true;
+  return !g.thieves.some((t) => t.mode === 'road' && !THIEVES[t.kind].flies && roadPos(g, t) < walkGap(t.kind, kind));
+}
+
 export function startWave(g: Game) {
   const w = WAVES[g.wave];
   g.wave++;
@@ -36,7 +44,7 @@ export function startWave(g: Game) {
   g.spawnQueue = w.groups.flatMap(([id, n]) => new Array<ThiefId>(n).fill(id));
   g.spawnT = 0;
   g.flockN = 0;
-  g.waveStats.push({ wave: g.wave, leaks: 0, stolen: 0, recovered: 0, escaped: 0, killed: 0, mobbed: 0 });
+  g.waveStats.push({ wave: g.wave, start: g.tick, leaks: 0, stolen: 0, recovered: 0, escaped: 0, killed: 0, mobbed: 0 });
   g.events.push({ type: 'waveStart', tick: g.tick, value: g.wave });
 }
 
@@ -45,7 +53,7 @@ function spawn(g: Game, kind: ThiefId) {
   const p0 = g.world.pathPt(0);
   const t: Thief = {
     id: g.id(), kind, x: p0.x - 1, y: p0.y, hp: d.hp, maxHp: d.hp, pathI: 0, exitI: 0, carrying: 0, mode: 'road',
-    lure: 0, eatLeft: 0, turtle: 0, worryLeft: 0, fed: [], stunT: 0, poison: 0, poisonT: 0, grabbing: 0, mobOf: 0, mobX: 0, mobY: 0, mobT: 0,
+    lure: 0, eatLeft: 0, eatFull: 0, turtle: 0, worryLeft: 0, fed: [], stunT: 0, poison: 0, poisonT: 0, grabbing: 0, mobOf: 0, mobX: 0, mobY: 0, mobT: 0,
     facing: 1, hitT: 99, wave: g.wave,
   };
   g.thieves.push(t);

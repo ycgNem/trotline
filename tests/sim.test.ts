@@ -19,7 +19,7 @@ function put(g: Game, kind: Thief['kind'], i: number, extra: Partial<Thief> = {}
   const d = THIEVES[kind];
   const t: Thief = {
     id: g.id(), kind, x: p.x, y: p.y, hp: d.hp, maxHp: d.hp, pathI: i + 1, exitI: 0, carrying: 0, mode: 'road',
-    lure: 0, eatLeft: 0, turtle: 0, worryLeft: 0, fed: [], stunT: 0, poison: 0, poisonT: 0, grabbing: 0, mobOf: 0, mobX: 0, mobY: 0, mobT: 0,
+    lure: 0, eatLeft: 0, eatFull: 0, turtle: 0, worryLeft: 0, fed: [], stunT: 0, poison: 0, poisonT: 0, grabbing: 0, mobOf: 0, mobX: 0, mobY: 0, mobT: 0,
     facing: 1, hitT: 99, wave: 1, ...extra,
   };
   g.thieves.push(t);
@@ -39,7 +39,7 @@ function waveGame(seed = 1) {
   const g = new Game(seed);
   g.phase = 'wave';
   g.wave = 1;
-  g.waveStats.push({ wave: 1, leaks: 0, stolen: 0, recovered: 0, escaped: 0, killed: 0, mobbed: 0 });
+  g.waveStats.push({ wave: 1, start: 0, leaks: 0, stolen: 0, recovered: 0, escaped: 0, killed: 0, mobbed: 0 });
   return g;
 }
 
@@ -300,7 +300,7 @@ describe('defenders (DESIGN.md §4)', () => {
     const t = put(g, 'raccoon', 15, { mode: 'queue', stunT: 0 });
     t.x = g.world.pathBack(16, THIEVES.raccoon.len).x;
     // stood in a lure's line: fake the lure it waits for
-    g.lures.push({ id: 999, x: 16, y: 12, roadI: 16, bait: 'worm', food: 1e9, eater: 0, queue: [t.id] });
+    g.lures.push({ id: 999, x: 16, y: 12, roadI: 16, bait: 'worm', food: 1e9, eater: 0, queue: [t.id], crowd: [] });
     t.lure = 999;
     t.hp = 1e6;
     t.maxHp = 1e6;

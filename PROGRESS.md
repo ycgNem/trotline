@@ -2,7 +2,30 @@
 
 What exists, what is stubbed, what is next. Updated at the end of every session.
 
-## Status (2026-10-12, end of the overnight session)
+## Status (2026-10-12, Milestone 3 session)
+
+**Milestone 2's gate is passed** (the owner: "looks good"). **Milestone 3, the fleet and the works,
+is built, reviewed and re-measured** (DESIGN.md §12, DECISIONS.md "Milestone 3" and the two
+sections after it): three boats (rowboat, skiff, trawler) that fish where they are sent and bring
+the catch to the live well or sell it, kind by kind; chum, a second bait, cast as a slick on the
+water that pulls gulls and bears out where rays reach them; canals (built, then hidden on Back Bay
+where they measure as worth nothing); a 12-wave season; the yard (B), the fleet panel and a
+boat's card; sprites for the boats, the slick and the chum bucket. **The critic's Milestone 3
+review is implemented**: the point's rays are a stock the lines there share, walkers keep their
+room on the road, the trawl brings up what lives where it tows, a raccoon finds a slick only a
+tile from the road, readability and craft fixes. **Then the re-measurement** found a stronger
+reference twice (worms only in the opening; rays past three sold for a rowboat by wave 3, which
+won 96-99 of 100), and the season was sized again against it: the reference now wins 74-90 of
+100, and each opening has its own danger (DESIGN.md §7). Not yet pushed: the live build at
+https://ycgnem.github.io/trotline/ is still the slice.
+
+**What is weak, for the next review** (DESIGN.md §7, DECISIONS.md): money has nothing to buy past
+the fleet ($128-140 at the finale's start); terrapins are worth nothing over a run; the late board
+is a solid row of rays and puffers along the north shore (the critic's "lawn row", IDEAS.md),
+denser now that the finale is fifty bears and twenty-two flocks; the finale lasts ~5 minutes.
+
+The slice's history (Milestones 0-2), kept for reference:
+
 
 **Live**: https://ycgnem.github.io/trotline/ (pushed with the owner's yes at the end of the
 session; every push to `main` runs the tests and redeploys).
@@ -46,17 +69,29 @@ lands in a shallow V; the first hint names the opening's fork (sell the dawn ray
 - **Data** (`src/data/`): the shore (40 x 22 hand-written map, two zones, the woods exit),
   species (least puffer, lesser electric ray, diamondback terrapin, each with where it bites),
   defenders (poison, shock, shell, with rest rates), thieves (laughing gull, raccoon, black bear),
-  bait and worms, rods, waves (each with its spawn gap), rules, upgrades (with fishing columns),
-  lessons, palette. Every number carries a derivation naming a DESIGN.md section (enforced by
+  bait (worms and chum), rods, boats (rowboat, skiff, trawler, the trawl, the berths), waves
+  (twelve, each with its spawn gap), rules, upgrades (with fishing columns), lessons, palette. Every number carries a derivation naming a DESIGN.md section (enforced by
   `tests/data.test.ts`).
 - **Sim** (`src/sim/`): `Game.ts` (state, commands with validation, the command log, replay, bite
   rates per tile), `world.ts` (tiles, the road as a path, distances, zones, the exit path, the
-  structure and reed maps), one system per file in the CLAUDE.md order, and `bot.ts` (deploy-all,
-  deploy-with-bed, sell-all and "good" players for the pace tests and the browser bot).
+  structure and reed maps, the water pathfinder as a cached distance field, the open-water run a
+  net needs), one system per file in the CLAUDE.md order, and `bot.ts` (deploy-all,
+  deploy-with-bed, sell-all and the "good" reference player for the pace tests and the browser
+  bot, with options that take one thing away).
+  - Boats (`systems/boats.ts`): go out by water, fish at full rate, come back with a full hold or
+    no bait, unload into the live well or sell kind by kind, wait at the dock when the well is
+    full; the trawler tows 60 s and brings up chum. The point's rays are shared by every line
+    there (`Game.shared`, about 4 a minute).
+  - Chum slicks (`systems/lures.ts`): gulls within 4 drop round one and squabble, bears within 5
+    wade out and eat 8 s one at a time, raccoons find one only within a tile; it spoils at the
+    wave's end. The slick preview says who reaches it first and how many it feeds.
+  - Canals (`systems/construction.ts`): dig grass or sand that joins water, a tile at a time; a dug
+    tile is a marsh ditch. Hidden on Back Bay (`SHORE.canals` false).
   - Gulls arrive in flocks of three; one that snatches a pufferfish drops onto the water with
     it, and the flockmates near it land round it for 6 s trying to rob it (a ray reaches gulls
     sitting on the water), then fly on.
-  - Thieves: walk the road, go for lures (raccoons eat one at a time, the rest in a line spaced
+  - Thieves: walk the road keeping 0.8 of a line spacing from the one ahead (a walker comes on
+    only as the road has room), go for lures (raccoons eat one at a time, the rest in a line spaced
     by body length; gulls swallow them; bears ignore them), stop at terrapins (raccoons worry
     and gnaw one at a time, bears shove), claw fish within a tile as they walk and wade for them
     while they wait in a line, take crates and leave south down the trail (walkers) or north
@@ -75,64 +110,70 @@ lands in a shallow V; the first hint names the opening's fork (sell the dawn ray
   the "!" over a lured thief, a snatch splash, a gull's swallow ring, claw scratches), HP bars,
   eating and worrying timers, a clawed fish shaking and blinking, a retching thief
   with the puffer in its mouth and green bubbles, the deploy overlay (lit tiles plus the fish's
-  reach), the lure overlay (road in reach) and the cast range. Sprites load from
+  reach), the lure overlay (road in reach), the slick overlay (lit water, cached), the cast range,
+  boats with their rods and bobbers, the trawler's net and wake, the send path as ringed dots. Sprites load from
   `src/art/<name>.png + .json` (drawn with the pixel-art-studio skill); anything missing has a
   code placeholder. HP bars sit on the side of a fish away from the road.
 - **App** (`src/app/`): title, play (top bar, live well with sell and deploy, shop, status line,
   tooltips with each water tile's rates and whether it's by the dock, the reeds or open sand,
   thief and defender tooltips with what they're doing, floating text judged for overlap in HUD
-  pixels, a toast naming each wave and any new kind of thief in it, three lesson cards, a help
-  card), end screen with the season's numbers. Keys: 1-6 pick a fish, X sell,
-  F deploy, L lure (Shift-click for more), N send the wave, Space pause, Tab speed (x1-x3), Esc or
+  pixels, a toast naming each wave and any new kind of thief in it, five lesson cards, a help
+  card, the yard (B: the rod, the bed, the boats; the game waits while it is open), the fleet
+  panel and a boat's card with Send, Moor and Sells toggles), end screen with the season's
+  numbers. Keys: 1-6 pick a fish, X sell, F deploy, L lure (Shift-click for more), C slick, B the
+  yard, N send the wave, Space pause, Tab speed (x1-x3), Esc or
   right-click cancel, WASD/arrows pan, Q/E or the wheel zoom, H hide HUD, M mute, / or F1 help,
   ` debug line.
-- **Tests**: data validation (including the trail, that every species bites somewhere the
+- **Tests** (218): data validation (including the trail, that every species bites somewhere the
   surf rod reaches and that the reeds are in tier-1 reach), the sim's rules one by one (35), the
-  pace lessons from DESIGN.md §6-§7 (20: floors, ceilings, and comparisons of the good bot with the
-  rod, the selling, the worms or the terrapins taken away, the two openings, and fixed waves for
-  the gulls and the terrapin), sim purity, engine. `npm test` takes ~5 minutes, mostly pace.
+  fleet's (23: boats, the trawl, slicks, canals, the shared stock, walker spacing, save
+  migration), the pace lessons from DESIGN.md §6-§7 in `tests/pace-*.test.ts` (fixed waves; the
+  reference's season; the other openings and lines; the bot with worms, chum, boats or the rod
+  taken away; one bot a file), sim purity, engine. `npm test` takes ~3 minutes on 32 threads
+  (the pace tests play ~1,000 seasons; longer on CI's four cores).
 - **e2e**: `npm run shots` (title, first catch, deploy mode, first deploy, lure mode, a raccoon
   leaving the road, eating and the line, after wave 1, raccoons lined up at a terrapin, a
-  pufferfish snatched, a ray being clawed, a raccoon escaping south, a gull flock landing round a puffer, wave 8, won, lost), `npm run screens` (overlap audit, 11 states x 3 sizes), `npm run smoke` (real input
+  pufferfish snatched, a ray being clawed, a raccoon escaping south, a gull flock landing round
+  a puffer, the first boat, send mode, boats fishing and unloading, slick mode, gulls and a bear
+  at a slick, the yard, wave 12, won, lost), `npm run screens` (overlap audit, 19 states x 3
+  sizes), `npm run smoke` (real input
   only), `npm run bot` (three strategies x three seeds, played in the browser).
 
 ## Measured (DESIGN.md §7)
 
-Wave 1 (5 raccoons, 200 seeds): deploy-all leaks 3.0, sell-all 5.0, a midpoint worm beside the
-dawn ray 3.42 → 0.06. A worm a tile short of the ray stops all five and spares it; beside it the
-ray dies; on the dry dock foot nothing is shocked. Wave 3 (two flocks): three terrapins or four
-rays leak all 6; two puffers alone 4; a puffer between two rays for each flock, none. Whole run,
-the good bot (two worms on the road) over five 100-seed sets: 80, 83, 83, 86, 84 wins, won runs
-12.6-14.5 crates, $21-22 unspent, ~5.9 fish sold, ~1.6 lost; selling the dawn ray instead 78-90;
-one worm on the road 61-75; no worms 44-51; never selling 0; no rod 0-2; no terrapins 73-85 wins
-and 0.7-2.4 more crates stolen in waves 5-8; never digging the bed: the same. Wave 6 past four
-rays: 18 of 20 leak, 5 with a terrapin between them (two rays waded to death). Crates stolen per
-wave 0.0, 0.1, 0.5, 0.5, 0.9, 2.1, 0.7, 3.6.
+Five 100-seed sets of the season (seeds 1-500). The reference: 74, 87, 88, 84, 90 wins; won runs
+keep 14.9-15.8 crates; the rowboat by wave 3, the trawler by 7; boats land 112-121 fish; $128-140
+at the finale's start; it loses its runs in waves 10-12. Deploying the dawn ray 79-88; the rowboat
+first 72-86 (8-15 runs end at wave 4); keeping six rays before the rowboat 67-79; keeping every
+boat's catch 72-77; no worms 79-83 (5 crates more lost in waves 1-2); worms all season 74-84; no
+terrapins 77-92; no rod 27-41; no chum 0-2; no boats 0-2. Wave 1 (200 seeds): deploy-all leaks
+2.6 of 5, sell-all 5, a midpoint worm beside the dawn ray 2.7 to 0.06. Wave 3: three terrapins or
+four rays leak all 6 gulls; a puffer between two rays a flock, none. Wave 6 past four rays: 20
+crates stolen, 5 with a slick between the first two rays; a terrapin cuts leaks 8 to 3.
 
 ## Stubbed or missing
 
-- Construction (canals, buckets): Milestone 3; the system is an empty stub in its slot.
-- Chum: Milestone 3.
+- Buckets (Milestone 6), more docks, crickets (Back Bay's third bait is live shrimp, Milestone 4),
+  scraps from kills (not taken): DESIGN.md §12.
+- Canals are built but hidden on Back Bay; they want a shore whose road runs inland (IDEAS.md).
 - Settings, keybind screen, volume sliders: Milestone 10. Music: Milestone 9.
 
 ## Known problems / watch next
 
-- **The bed buys nothing**: the same bot never digging it wins the same runs (money now goes on
-  bait at $8 a pack; $21-22 is left at the end). The owner's call (a job for the bed, or a third
-  rod; IDEAS.md).
-- **The rod is the build order**: never selling wins none, no rod 0-2. The fork is how to reach it
-  (sell the dawn ray, or deploy it and sell puffers), within 6 wins of each other. Selling for the
-  rod is the decision at its sharpest, but there is no second road to the rays (IDEAS.md).
-- **Wave 8 is the peak** (3.6 of the good bot's ~8.5 stolen crates a run), and **a run can die in
-  its opening**: with few early catches and the rod bought down to the last dollars, a player
-  can have no worms and less than $8; selling a fish is the way out (the bot does), and a
-  player with an empty live well waits on bounties. DESIGN §3 says a broke player is never stuck;
-  that holds only with a fish to sell.
-- **Worm placement is a first-waves lesson**: it decides wave 1, but over a whole run with rays in
-  numbers it is worth ~1 win. Whether lures feel like control is the gate's question 2.
+- **Money past the fleet**: once the skiff and the bed are bought there is nothing to buy but
+  bait, and the late waves' bounty piles up ($128-140 at the finale's start, $340-410 at the end).
+  A pace test caps it at $160; the sink is a design call (IDEAS.md).
+- **Terrapins are worth nothing over a run** (the bot without them wins 0-4 more): the slick took
+  the bear from them. They still teach in wave 6. IDEAS.md.
+- **The late board is a lawn row**: thirty-odd rays and puffers two tiles off one straight road
+  (e2e/out/shots/10-wave-12-fight.png). The shared ray stock thinned the rays; Milestone 4's roster
+  is what would break the row up (IDEAS.md).
+- **The finale is long** (~5 of a ~25-minute season): fifty bears come on one every ~1.8 s.
+- **The bed buys nothing** (as in the slice): the reference digs it last, with money it can't use.
 - **In the frozen screenshot scripts** many effects (bolts, "!") from a batch of stepped ticks
   show at once; live play doesn't do that.
 
 ## PixelLab budget
 
-0 generations spent this session (cap 100). Art is drawn with the pixel-art-studio skill.
+0 generations spent this session (cap 100). The boats, the slick and the chum bucket are drawn with
+the pixel-art-studio skill (`pixel-art/boats/`).

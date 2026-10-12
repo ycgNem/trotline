@@ -88,7 +88,7 @@ await run(() => {
   for (const [s, x, y] of [['turtle', 20, 12], ['ray', 17, 10]]) { g.liveWell[0] = s; g.act({ k: 'deploy', slot: 0, x, y }); }
   g.act({ k: 'cast', x: 14, y: 7 });
   g.act({ k: 'call' });
-  for (const l of ['firstCatch', 'firstDeploy', 'firstLure']) a.seen.add(l);
+  for (const l of ['firstCatch', 'firstDeploy', 'firstLure', 'firstBoat', 'firstSlick']) a.seen.add(l);
 });
 await frames(page, 2);
 await run(() => { window.__app.dismissLesson(); window.__app.toast = null; });
@@ -143,29 +143,123 @@ await shot('14-ray-clawed');
 await until("g.thieves.some((t) => t.mode === 'exit' && t.y > 18)", 60 * 120);
 await shot('15-raccoon-escapes');
 
-// the good bot to the end of a season (the first seed it wins: it loses about one in five), then
+// Milestone 3. The first boat: its lesson card, then send mode (the dotted way by water to the point)
+const SLICE = ['firstCatch', 'firstDeploy', 'firstLure'];
+await run((seen) => {
+  const a = window.__app;
+  a.newRun(21);
+  a.freeze();
+  for (const l of seen) a.seen.add(l);
+  // the earlier shots marked every card seen (seen outlives a run)
+  a.seen.delete('firstBoat');
+  const g = a.game;
+  g.money = 200;
+  g.rodTier = 2;
+  a.act({ k: 'buy', item: 'rowboat' });
+}, SLICE);
+await shot('17-first-boat-card');
+await run(() => { const a = window.__app; a.dismissLesson(); a.pickBoat('rowboat'); a.sendBoat('rowboat'); });
+await page.mouse.move(...Object.values(await run(() => window.__app.tileToCss(33, 3))));
+await frames(page, 3);
+await page.screenshot({ path: `${out}/18-send-mode.png` });
+console.log('shot 18-send-mode');
+// the rowboat at the point and the trawler towing in the channel, the fleet panel listing both
+await run(() => {
+  const a = window.__app;
+  a.mode = { k: 'idle' };
+  a.act({ k: 'send', boat: 'rowboat', x: 33, y: 3 });
+  a.act({ k: 'buy', item: 'trawler' });
+  a.act({ k: 'send', boat: 'trawler', x: 10, y: 3 });
+  a.pickBoat('rowboat');
+  a.game.liveWell.fill(null);
+});
+await until("g.boat('rowboat').state === 'fishing' && g.boat('rowboat').hold.length >= 1 && g.boat('trawler').state === 'fishing'", 60 * 120);
+await run(() => { window.__app.toast = null; window.__app.step(30); });
+await shot('19-boats-fishing');
+// home with its catch: the fish leap from the boat into the live well
+await until("g.boat('rowboat').state === 'dock'", 60 * 200);
+await run(() => window.__app.step(4));
+await shot('20-boat-unloads');
+
+// a chum slick: slick mode's preview, its lesson card, then the gull flocks dropping onto it beside two rays
+await run((seen) => {
+  const a = window.__app;
+  a.newRun(22);
+  a.freeze();
+  for (const l of [...seen, 'firstBoat']) a.seen.add(l);
+  a.seen.delete('firstSlick');
+  const g = a.game;
+  g.wave = 4;
+  g.rodTier = 2;
+  g.chum = 3;
+  g.liveWell.fill(null);
+  for (const [s, x, y] of [['ray', 17, 10], ['ray', 20, 10], ['ray', 9, 10], ['puffer', 8, 11]]) { g.liveWell[0] = s; g.act({ k: 'deploy', slot: 0, x, y }); }
+  a.toggleSlick();
+}, SLICE);
+await page.mouse.move(...Object.values(await run(() => window.__app.tileToCss(18, 11))));
+await frames(page, 3);
+await page.screenshot({ path: `${out}/21-slick-mode.png` });
+console.log('shot 21-slick-mode');
+await run(() => { const a = window.__app; a.mode = { k: 'idle' }; a.act({ k: 'slick', x: 18, y: 11 }); });
+await shot('22-first-slick-card');
+await run(() => { const a = window.__app; a.dismissLesson(); a.act({ k: 'call' }); });
+await frames(page, 2);
+await run(() => { window.__app.toast = null; });
+await until("g.thieves.filter((t) => t.kind === 'gull' && t.mode === 'eat').length >= 2", 60 * 60);
+await run(() => { window.__app.step(20); window.__app.toast = null; });
+await shot('23-gulls-at-slick');
+
+// a bear leaves the road and wades out to a slick between two rays
+await run((seen) => {
+  const a = window.__app;
+  a.newRun(23);
+  a.freeze();
+  for (const l of [...seen, 'firstBoat', 'firstSlick']) a.seen.add(l);
+  const g = a.game;
+  g.wave = 5;
+  g.rodTier = 2;
+  g.chum = 3;
+  g.liveWell.fill(null);
+  for (const [s, x, y] of [['ray', 17, 10], ['ray', 20, 10], ['ray', 9, 10], ['turtle', 12, 12]]) { g.liveWell[0] = s; g.act({ k: 'deploy', slot: 0, x, y }); }
+  g.act({ k: 'call' });
+}, SLICE);
+await frames(page, 2);
+await until("g.thieves.some((t) => t.kind === 'bear' && t.mode === 'road' && t.x > 12)", 60 * 90);
+await run(() => { const a = window.__app; a.toast = null; a.act({ k: 'slick', x: 18, y: 11 }); });
+await until("g.thieves.some((t) => t.kind === 'bear' && t.mode === 'eat')", 60 * 30);
+await run(() => window.__app.step(90));
+// between two shocks (a hit flashes the bear white for a twentieth of a second)
+await until("g.thieves.some((t) => t.kind === 'bear' && t.mode === 'eat' && t.hitT > 0.15)", 60);
+await shot('24-bear-at-slick');
+
+// the yard: everything to build, the game paused under it
+await run(() => { window.__app.build = true; });
+await shot('27-the-yard');
+await run(() => { window.__app.build = false; });
+
+// the good bot to the end of a season (the first seed it wins: it loses about one in ten), then
 // the lost season
 const won = await run(() => {
   const a = window.__app;
   for (const s of [3, 1, 2, 4, 5, 6, 7, 8, 9, 10]) {
     a.newRun(s); a.freeze(); a.autoplay('good');
-    for (const l of ['firstCatch', 'firstDeploy', 'firstLure']) a.seen.add(l);
-    for (let i = 0; i < 60 * 60 * 20 && !a.game.over; i++) a.step(1);
+    for (const l of ['firstCatch', 'firstDeploy', 'firstLure', 'firstBoat', 'firstSlick']) a.seen.add(l);
+    for (let i = 0; i < 60 * 60 * 60 && !a.game.over; i++) a.step(1);
     if (a.game.phase === 'won') return s;
   }
   return 3;
 });
 console.log('the good bot wins seed', won);
-await run((s) => { const a = window.__app; a.newRun(s); a.freeze(); a.autoplay('good'); for (const l of ['firstCatch', 'firstDeploy', 'firstLure']) a.seen.add(l); }, won);
-await until("g.wave === 8 && g.phase === 'wave' && g.thieves.filter((t) => t.mode !== 'dead' && t.mode !== 'gone').length > 8", 60 * 60 * 20);
+await run((s) => { const a = window.__app; a.newRun(s); a.freeze(); a.autoplay('good'); for (const l of ['firstCatch', 'firstDeploy', 'firstLure', 'firstBoat', 'firstSlick']) a.seen.add(l); }, won);
+await until("g.wave === 12 && g.phase === 'wave' && g.thieves.filter((t) => t.mode !== 'dead' && t.mode !== 'gone').length > 12", 60 * 60 * 60);
 // (stepped without frames, the run's earlier wave starts fell out of the event queue, so the
-// toast would introduce every kind again; in play it says "Wave 8: ..." for 2.5 s)
+// toast would introduce every kind again; in play it says "Wave 12: ..." for 2.5 s)
 await run(() => { window.__app.toast = null; });
-await shot('10-wave-8-fight');
-await until('g.over', 60 * 60 * 20);
+await shot('10-wave-12-fight');
+await until('g.over', 60 * 60 * 60);
 await shot('11-season-won');
 await run(() => { const a = window.__app; a.newRun(5); a.freeze(); a.autoplay(null); a.game.act({ k: 'call' }); });
-await until('g.over', 60 * 60 * 30);
+await until('g.over', 60 * 60 * 60);
 await shot('12-season-lost');
 
 fs.writeFileSync(`${out}/console.txt`, errors.join('\n'));

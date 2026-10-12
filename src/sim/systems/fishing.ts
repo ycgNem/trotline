@@ -1,10 +1,16 @@
 // Fishing: catch rates, never HP (DESIGN.md §1, §3). Each tick the line rolls rate / 3600 for
 // every species the rod can land in the zone it sits in; the first success is a catch. A catch
 // takes a worm off the hook and goes into the first empty live-well slot. During a wave the rate
-// halves (you're distracted).
+// halves (you're distracted). Then the boats fish (systems/boats.ts, DESIGN.md §12).
 import type { Game } from '../Game';
+import { tickBoats } from './boats';
 
 export function tickFishing(g: Game, dt: number) {
+  rod(g, dt);
+  tickBoats(g, dt);
+}
+
+function rod(g: Game, dt: number) {
   if (g.fishBlock()) return;
   for (const b of g.biteTable()) {
     if (b.rate <= 0) continue;
