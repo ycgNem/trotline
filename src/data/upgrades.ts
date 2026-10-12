@@ -25,6 +25,6 @@ export const UPGRADES: UpgradeNode[] = [
     id: 'rod', name: RODS[1].name, cost: RODS[1].cost,
     fishing: 'Casts to the point, where the rays live (2.5 a minute there, against 0.8 in the bay), and reels 1.5x faster.',
     defense: 'Rays in numbers, and lures that reach the bend.',
-    derivation: 'DESIGN.md §3, §10: 60 money, a 14-tile cast',
+    derivation: 'DESIGN.md §3, §10: 50 money, a 14-tile cast',
   },
 ];

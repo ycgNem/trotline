@@ -23,11 +23,11 @@ export const LESSONS: Lesson[] = [
   },
   {
     on: 'firstDeploy', title: 'A fish on guard',
-    text: 'Thieves walk the road to the smokehouse, take crates and slip away into the woods. Raccoons and bears claw at a fish right beside the road, so keep rays a tile back. Fish heal only a little between waves. Now press L and cast a worm onto the road beside your fish.',
+    text: 'Thieves walk the road to the smokehouse, take crates and slip away into the woods. Raccoons and bears claw at a fish right beside the road, so keep rays a tile back. Fish heal only a little between waves. Now press L and cast a worm on the road a tile or two short of your ray, on the side the thieves come from.',
   },
   {
     on: 'firstLure', title: 'Bait moves trouble',
-    text: 'Raccoons near the worm leave the road and eat one at a time while the rest wait in line, wading out for your fish. A gull swallows a worm whole, bears ignore it, and a worm spoils when the wave ends: cast it where your rays reach, when the raccoons are coming.',
+    text: 'Raccoons near the worm leave the road and eat it one at a time. The rest wait in line behind it and wade out for any fish within 2 tiles: in lure mode the road shows where the line will stand, red for the fish it reaches, gold for the rays that reach the eater. A gull swallows a worm whole, bears ignore it, and it spoils when the wave ends.',
   },
 ];
 

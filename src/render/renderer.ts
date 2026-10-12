@@ -8,6 +8,7 @@ import { Tile, isWater } from '../sim/world';
 import { THIEVES } from '../data/thieves';
 import { DEFENDERS, TURTLE } from '../data/defenders';
 import { BAIT } from '../data/bait';
+import { lurePreview } from '../sim/systems/lures';
 import type { SpeciesId } from '../data/species';
 import type { GameEvent } from '../engine/events';
 import { Ground, TILE, CHUNK, hash2, isSlot } from './ground';
@@ -222,7 +223,24 @@ export class Renderer {
         ctx.fillStyle = rgba(C.rose, 0.2 + 0.2 * pulse);
         ctx.fillRect(p.x * TILE, p.y * TILE, TILE, TILE);
       }
-      if (ov.hover && g.canLure(ov.hover.x, ov.hover.y).ok) this.circle(ov.hover.x + 0.5, ov.hover.y + 0.5, 4, C.rose);
+      if (ov.hover && g.canLure(ov.hover.x, ov.hover.y).ok) {
+        this.circle(ov.hover.x + 0.5, ov.hover.y + 0.5, THIEVES.raccoon.pulledBy.worm ?? 4, C.rose);
+        // where the line would wait behind it, the fish it would wade at (red) and the rays that
+        // reach the one eating (gold): placing a worm is placing a line (DESIGN.md §6)
+        const pv = lurePreview(g, ov.hover.x, ov.hover.y);
+        for (const p of pv.line) {
+          const px = Math.round(p.x * TILE), py = Math.round(p.y * TILE);
+          ctx.fillStyle = C.mud;
+          ctx.fillRect(px - 3, py - 2, 6, 5);
+          ctx.fillStyle = rgba(C.bone, 0.7 + 0.3 * pulse);
+          ctx.fillRect(px - 2, py - 1, 4, 3);
+        }
+        for (const d of g.defenders) {
+          const red = pv.waded.includes(d.id), gold = pv.shocks.includes(d.id);
+          if (red) this.frame(d.x, d.y, 0, rgba(C.red, 0.6 + 0.4 * pulse));
+          if (gold) this.frame(d.x, d.y, red ? 2 : 0, C.gold);
+        }
+      }
     }
     if (ov.range || ov.lure) this.circle(w.angler.x, w.angler.y, g.rod.range, C.bone);
     if (ov.hover && w.inb(ov.hover.x, ov.hover.y)) {
@@ -231,6 +249,14 @@ export class Renderer {
       ctx.fillRect(x * TILE, y * TILE, TILE, 1); ctx.fillRect(x * TILE, y * TILE + 15, TILE, 1);
       ctx.fillRect(x * TILE, y * TILE, 1, TILE); ctx.fillRect(x * TILE + 15, y * TILE, 1, TILE);
     }
+  }
+
+  /** A 1 px frame round a tile, `inset` pixels in. */
+  private frame(x: number, y: number, inset: number, col: string) {
+    const ctx = this.ctx, X = x * TILE + inset, Y = y * TILE + inset, S = TILE - inset * 2;
+    ctx.fillStyle = col;
+    ctx.fillRect(X, Y, S, 1); ctx.fillRect(X, Y + S - 1, S, 1);
+    ctx.fillRect(X, Y, 1, S); ctx.fillRect(X + S - 1, Y, 1, S);
   }
 
   /** A dotted circle in tile units. */

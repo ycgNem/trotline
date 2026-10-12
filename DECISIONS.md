@@ -191,3 +191,31 @@ What the numbers say about §8 now (DESIGN.md §7, 100 seeds): the good bot wins
 13.2 crates in won runs and $26 unspent; it sells 3.5 fish a run and loses 2.2 to claws.
 Taking selling away costs 27 wins, the rod 36, the terrapins 32 (a pace test each). Sell-or-deploy is a decision with a measured
 price on both sides; whether it *feels* like one is the Milestone 2 gate's question.
+
+## The balance audit after the second review (2026-10-12)
+
+The `balance-auditor` recomputed DESIGN.md from `src/data` and ran each pace comparison on five
+100-seed sets. Fixed:
+
+- **Numbers DESIGN.md had wrong**: a bear needs five ray-passes (39 each), not four; a lone ray
+  kills no raccoon on a straight (24 < 40) and a ray and a puffer stop 1 of 6, not 2-3; the
+  deploy-all bot meets wave 1 with ~4.4 fish because it fishes by the reeds, not ~3.4 on open
+  sand; call-early pays $1-6, not $1-12; the point is 11-19 tiles out; 17 raccoons crack a
+  shell. Stale derivations fixed (the rod's "60 money", "§3 money", the bear's unused `eat: 10`,
+  the puffer's never-spent HP). The ray's deploy tip no longer says two tiles out is safe.
+- **Where a worm lands decides what it costs** (DESIGN.md §6). The audit found a worm beside a
+  ray kills the ray by wading in a quarter of wave-1 seeds; measuring every tile showed a worm
+  one or two tiles short of the ray stops all six raccoons and spares it, and beside it the ray
+  dies every time. That is a placement decision the player couldn't see, and the lesson card
+  taught the losing version ("cast a worm beside your fish"). Now: lure mode previews where the
+  line would stand, frames in red the fish it could wade at and in gold the rays that reach the
+  eater, and the status line counts both; the cards say "a tile or two short of your ray, on
+  the side the thieves come from"; the good bot scores worm tiles the same way (`lurePreview`
+  in `systems/lures.ts`, one helper for the overlay and the bot). A deterministic pace test
+  holds the lesson.
+- **The HUD shows the next two waves**: the good bot planned puffers two waves ahead, which a
+  player could not see.
+- **Pace tests that held by seed luck**: the no-terrapin comparison failed on two of five seed
+  sets and the never-sell one measured purchase order as well as selling. The never-sell bot
+  now only stops selling (`noSell`); every threshold clears the worst of the five sets; the
+  money ceiling is $60 (the $150 one could never fail).

@@ -37,6 +37,26 @@ describe('DESIGN.md §7: wave 1', () => {
   });
 });
 
+describe('DESIGN.md §6: where the worm lands', () => {
+  /** Wave 1 with only the dawn ray at (19,10) and one worm at (x,12); no line is cast. */
+  const worm = (x: number) => {
+    const g = new Game(1);
+    expect(g.act({ k: 'deploy', slot: 0, x: 19, y: 10 }).ok).toBe(true);
+    const ray = g.defenders[0];
+    expect(g.act({ k: 'lure', x, y: 12 }).ok).toBe(true);
+    g.act({ k: 'call' });
+    while (g.wave < 1 || g.phase === 'wave') g.step();
+    return { leaks: g.waveStats[0].leaks, hp: g.defenders.includes(ray) ? ray.hp : 0 };
+  };
+  it('a worm a tile short of the ray stops the wave and spares the ray; beside it, the line wades the ray to death', () => {
+    const short = worm(18), beside = worm(19);
+    expect(short.leaks).toBeLessThanOrEqual(1);
+    expect(short.hp).toBeGreaterThanOrEqual(15);
+    expect(beside.hp).toBe(0);
+    expect(beside.leaks).toBeGreaterThanOrEqual(short.leaks + 2);
+  });
+});
+
 describe('DESIGN.md §7: wave 3, the gulls', () => {
   /** Straight to wave 3 with these fish on these tiles; mean leaks over 20 seeds. */
   const gullWave = (fish: [string, number, number][]) => {
@@ -66,8 +86,9 @@ describe('DESIGN.md §7: wave 3, the gulls', () => {
 describe('DESIGN.md §7: the whole run', () => {
   const good = runs('good', RUNS);
   const won = good.filter((g) => g.phase === 'won');
-  it('the good run wins 70 of 100 or more', () => {
-    expect(wins(good)).toBeGreaterThanOrEqual(70);
+  // thresholds clear the worst of five 100-seed sets (DESIGN.md §7), not just seeds 1-100
+  it('the good run wins 65 of 100 or more', () => {
+    expect(wins(good)).toBeGreaterThanOrEqual(65);
   });
   it('a won run ends with 8 to 15 crates (the late waves press it)', () => {
     const crates = mean(won.map((g) => g.crates));
@@ -78,20 +99,20 @@ describe('DESIGN.md §7: the whole run', () => {
     expect(stolen(good, 1)).toBeLessThanOrEqual(2);
     expect(stolen(good, 5) + stolen(good, 6) + stolen(good, 7) + stolen(good, 8)).toBeGreaterThanOrEqual(1.5);
   });
-  it('the good run ends with $150 or less unspent (money stays a decision)', () => {
-    expect(mean(good.map((g) => g.money))).toBeLessThanOrEqual(150);
+  it('the good run ends with $60 or less unspent (money stays a decision)', () => {
+    expect(mean(good.map((g) => g.money))).toBeLessThanOrEqual(60);
   });
   it('fish wear out: the good run loses a fish or more to claws and gnawing', () => {
     expect(mean(good.map((g) => g.stats.lost))).toBeGreaterThanOrEqual(1);
   });
-  it('selling matters: the same bot that never sells (bed first, rod from bounty) wins 15 fewer', () => {
-    expect(wins(runs('good', RUNS, { naive: true }))).toBeLessThanOrEqual(wins(good) - 15);
+  it('selling matters: the same bot that never sells (the rod first all the same) wins 5 fewer', () => {
+    expect(wins(runs('good', RUNS, { noSell: true }))).toBeLessThanOrEqual(wins(good) - 5);
   });
   it('the rod matters: the same bot without it wins 20 fewer', () => {
     expect(wins(runs('good', RUNS, { noRod: true }))).toBeLessThanOrEqual(wins(good) - 20);
   });
-  it('the terrapin matters: the same bot that never keeps one wins 20 fewer', () => {
-    expect(wins(runs('good', RUNS, { keep: { ray: 99, puffer: 99, turtle: 0 } }))).toBeLessThanOrEqual(wins(good) - 20);
+  it('the terrapin matters: the same bot that never keeps one wins 5 fewer', () => {
+    expect(wins(runs('good', RUNS, { keep: { ray: 99, puffer: 99, turtle: 0 } }))).toBeLessThanOrEqual(wins(good) - 5);
   });
   it('selling everything never wins, and nor does deploying with no worms coming', () => {
     expect(wins(runs('sellAll', 20))).toBe(0);

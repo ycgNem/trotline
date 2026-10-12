@@ -62,7 +62,7 @@ Node is not on PATH: in Git Bash, `export PATH="/c/Users/jacks/tools/node-v22.20
 
 ```
 npm run dev          # http://127.0.0.1:5180 (or Play.bat)
-npm run typecheck && npm test     # 139 tests, ~3 minutes (the pace tests play ~1,200 runs)
+npm run typecheck && npm test     # 140 tests, ~3 minutes (the pace tests play ~1,200 runs)
 npm run shots        # e2e/out/shots/*.png, the moments that matter; then Read them
 npm run screens      # HUD overlap audit, 11 states x 3 window sizes
 npm run smoke        # real mouse and keys only

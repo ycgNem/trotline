@@ -59,8 +59,13 @@ await run(() => { window.__app.mode = { k: 'lure' }; });
 await page.mouse.move(...Object.values(await run(() => window.__app.tileToCss(19, 12))));
 await frames(page, 3);
 await page.screenshot({ path: `${out}/05-lure-mode.png` });
-console.log('shot 05-lure-mode');
-await run(() => { const a = window.__app; a.mode = { k: 'idle' }; a.act({ k: 'lure', x: 19, y: 12 }); a.dismissLesson(); a.act({ k: 'call' }); });
+console.log('shot 05-lure-mode (beside the ray: the line would wade at it, red)');
+// a tile short of the ray, on the side thieves come from: the line waits clear of it
+await page.mouse.move(...Object.values(await run(() => window.__app.tileToCss(18, 12))));
+await frames(page, 3);
+await page.screenshot({ path: `${out}/05b-lure-short-of-ray.png` });
+console.log('shot 05b-lure-short-of-ray');
+await run(() => { const a = window.__app; a.mode = { k: 'idle' }; a.act({ k: 'lure', x: 18, y: 12 }); a.dismissLesson(); a.act({ k: 'call' }); });
 await frames(page, 2);
 await run(() => window.__app.dismissLesson());
 await until("g.thieves.some((t) => t.mode === 'toLure')");

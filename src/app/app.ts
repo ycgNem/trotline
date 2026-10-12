@@ -234,7 +234,7 @@ export class App {
     if (this.game.over && this.screen === 'play') this.endRun();
   }
 
-  /** "Wave 3: 10 gulls." plus, the first time a kind shows up this run, what it does. */
+  /** "Wave 3: 5 gulls." plus, the first time a kind shows up this run, what it does. */
   private waveToast(n: number) {
     const w = WAVES[n - 1];
     if (!w) return;

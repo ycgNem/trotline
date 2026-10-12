@@ -43,7 +43,7 @@ export const PUFFER: PoisonDef = {
   species: 'puffer', kind: 'poison', place: 'water', maxRoadDist: 1, hp: 10, regen: 0.1,
   trigger: 1, poison: 24, poisonTime: 3, stun: 4,
   job: 'Bait with a sting: the first thief within 1 tile eats it, stands paralysed 4 s and takes 24 poison. Kills a gull; next to a ray, a raccoon.',
-  derivation: `DESIGN.md §4: snatched by the first thief within 1 tile; tetrodotoxin paralyses, so a 4 s stun and 24 poison over 3 s (a gull's 20 HP; a raccoon's 40 with 4 s in a ray's reach); one use; rests ${REST}`,
+  derivation: `DESIGN.md §4: snatched by the first thief within 1 tile; tetrodotoxin paralyses, so a 4 s stun and 24 poison over 3 s (a gull's 20 HP; a raccoon's 40 with 4 s in a ray's reach); one use. Its 10 HP is never spent: a puffer is snatched whole, never clawed`,
 };
 
 export const RAY: ZapDef = {
@@ -57,7 +57,7 @@ export const TURTLE: ShellDef = {
   species: 'turtle', kind: 'shell', place: 'road', maxRoadDist: 0, hp: 100, regen: 0.1,
   worry: { raccoon: 4, bear: 3 }, gnaw: { raccoon: 1.5 },
   job: 'Shell on the road: each raccoon stops to worry at it for 4 s while the rest wait behind, gnawing it down slowly. A bear takes 3 s to shove it aside; gulls fly over.',
-  derivation: `DESIGN.md §4: raccoons are the terrapin's real predator: each worries it 4 s, gnawing 1.5 HP/s (6 a raccoon, ~16 raccoons a shell); a bear spends 3 s shoving it aside and does it no harm; rests ${REST}`,
+  derivation: `DESIGN.md §4: raccoons are the terrapin's real predator: each worries it 4 s, gnawing 1.5 HP/s (6 a raccoon, 17 raccoons to a shell); a bear spends 3 s shoving it aside and does it no harm; rests ${REST}`,
 };
 
 export const DEFENDERS: Record<SpeciesId, PoisonDef | ZapDef | ShellDef> = { puffer: PUFFER, ray: RAY, turtle: TURTLE };

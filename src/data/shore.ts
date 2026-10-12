@@ -56,5 +56,5 @@ export const SHORE = {
 
 export const ZONES: ZoneDef[] = [
   { id: 'shallows', name: 'The shallows', x: 0, y: 0, r: 0, derivation: 'DESIGN.md §10: every shallow tile is the shallows (light water reads as one zone); the bowl around the dock is inside the tier-1 cast (§3)' },
-  { id: 'point', name: 'The point', x: 31, y: 4, r: 4.5, derivation: 'DESIGN.md §10: open sand off the point\'s tip, 12-15 tiles from the dock end: tier 2 only, rays only (§3)' },
+  { id: 'point', name: 'The point', x: 31, y: 4, r: 4.5, derivation: 'DESIGN.md §10: open sand off the point\'s tip, 11-19 tiles from the dock end: tier 2 (14) reaches its near side only, rays only (§3)' },
 ];

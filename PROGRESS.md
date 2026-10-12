@@ -61,9 +61,9 @@ floaters judged in HUD pixels, and pace tests that compare the same bot with one
   F deploy, L lure (Shift-click for more), N send the wave, Space pause, Tab speed (x1-x3), Esc or
   right-click cancel, WASD/arrows pan, Q/E or the wheel zoom, H hide HUD, M mute, / or F1 help,
   ` debug line.
-- **Tests** (139): data validation (including the trail, that every species bites somewhere the
+- **Tests** (140): data validation (including the trail, that every species bites somewhere the
   surf rod reaches and that the reeds are in tier-1 reach), the sim's rules one by one (30), the
-  pace lessons from DESIGN.md §7 (15: floors, ceilings, and comparisons of the good bot with the
+  pace lessons from DESIGN.md §6-§7 (16: floors, ceilings, and comparisons of the good bot with the
   rod, the selling or the terrapins taken away), sim purity, engine. `npm test` takes ~3 minutes, mostly pace.
 - **e2e**: `npm run shots` (title, first catch, deploy mode, first deploy, lure mode, a raccoon
   leaving the road, eating and the line, after wave 1, raccoons lined up at a terrapin, a

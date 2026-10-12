@@ -16,6 +16,7 @@ import { TITLE, FIRST_HINT } from '../data/lessons';
 import { sheet, drawSprite } from '../render/sprites';
 import { isSlot } from '../render/ground';
 import { Tile, isWater } from '../sim/world';
+import { lurePreview } from '../sim/systems/lures';
 import type { TipLine } from '../ui/ui';
 
 const BAR_H = 18;
@@ -79,7 +80,7 @@ export class Hud {
     const wave = g.phase === 'build'
       ? `Wave ${g.wave + 1}/${WAVES.length} in ${Math.ceil(g.phaseTime)}s`
       : `Wave ${g.wave}/${WAVES.length}: ${g.spawnQueue.length + g.thieves.filter((t) => t.mode !== 'dead' && t.mode !== 'gone').length} thieves`;
-    item(wave, g.phase === 'wave' ? C.ember : C.bone, g.phase === 'build' ? this.nextWaveTip() : 'Thieves are on the road. Fishing runs at half speed while you watch them.');
+    item(wave, g.phase === 'wave' ? C.ember : C.bone, g.phase === 'build' ? this.nextWaveTip() : 'Thieves are on the road. Fishing runs at half speed while you watch them. ' + this.comingTip());
     // right side: call early, pause, speed
     const a = this.app;
     let rx = ui.w - 4;
@@ -100,11 +101,17 @@ export class Hud {
   }
 
   private nextWaveTip(): string {
+    const t = this.comingTip();
+    return t ? t + ' Fish, sell and deploy until the clock runs out.' : '';
+  }
+
+  /** The next two waves, so a player can fish ahead for them (a gull wave wants puffers). */
+  private comingTip(): string {
     const g = this.app.game;
-    const w = WAVES[g.wave];
-    if (!w) return '';
-    const who = w.groups.map(([id, n]) => `${n} ${THIEVES[id].name.toLowerCase()}${n > 1 ? 's' : ''}`).join(', ');
-    return `Next: ${who}. Fish, sell and deploy until the clock runs out.`;
+    const who = (i: number) => WAVES[i]?.groups.map(([id, n]) => `${n} ${THIEVES[id].name.toLowerCase()}${n > 1 ? 's' : ''}`).join(', ');
+    const a = who(g.wave), b = who(g.wave + 1);
+    if (!a) return 'This is the last wave.';
+    return `Next: ${a}.` + (b ? ` Then: ${b}.` : ' Then the season is done.');
   }
 
   // ---------------------------------------------------------------- live well
@@ -162,7 +169,7 @@ export class Hud {
     return d.place === 'road'
       ? 'Deploy (F): put it on any road tile. Raccoons stop to worry it one at a time while the rest wait, gnawing it down; a bear shoves it aside in 3 s. Gulls fly over.'
       : d.kind === 'zap'
-        ? 'Deploy (F): light shallow water within 2 tiles of the road. 1 tile out, walkers claw at it as they pass; 2 tiles out it is safe.'
+        ? 'Deploy (F): light shallow water within 2 tiles of the road. 1 tile out, walkers claw at it as they pass; 2 tiles out only a raccoon waiting in a lure\'s line reaches it, slowly.'
         : `Deploy (F): light shallow water within ${d.maxRoadDist} tile of the road. The lit tiles are where it fits.`;
   }
 
@@ -207,6 +214,14 @@ export class Hud {
       l1 = 'Cast a worm: click a pink road tile.';
       l2 = 'Right-click or Esc to cancel.';
       c1 = C.rose;
+      const h = a.hover;
+      if (h && g.canLure(h.x, h.y).ok) {
+        const pv = lurePreview(g, h.x, h.y);
+        const n = pv.shocks.length, m = pv.waded.length;
+        l1 = n ? `${n} ray${n > 1 ? 's reach' : ' reaches'} the raccoon eating here (gold).` : 'No ray reaches the raccoon eating here.';
+        l2 = m ? `The line waiting behind it can claw ${m} fish (red).` : 'The line waits clear of your fish.';
+        if (m) c1 = C.ember;
+      }
     } else if (!g.fishing) {
       l1 = FIRST_HINT;
     } else {

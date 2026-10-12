@@ -6,7 +6,8 @@ import fs from 'node:fs';
 import { launch, openGame, frames } from './launch.mjs';
 
 const SIZES = [[1280, 720], [1920, 1080], [1024, 640]];
-// each state: a function run in the page that puts the app there (frozen)
+// each state: a function run in the page that puts the app there (frozen); it may return
+// { hover: [x, y] } to put the mouse over that tile instead of the board's top edge
 const STATES = {
   title: () => { const a = window.__app; a.screen = 'title'; },
   build: () => {
@@ -18,6 +19,8 @@ const STATES = {
   },
   deploy: () => { const a = window.__app; a.mode = { k: 'deploy', slot: 1 }; },
   lure: () => { const a = window.__app; a.mode = { k: 'lure' }; a.selected = null; },
+  // hovering a road tile in lure mode: the status line says what the worm would do
+  lureHover: () => { const a = window.__app; a.game.act({ k: 'deploy', slot: 2, x: 19, y: 10 }); a.mode = { k: 'lure' }; return { hover: [19, 12] }; },
   wave: () => {
     const a = window.__app; a.mode = { k: 'idle' }; const g = a.game;
     g.act({ k: 'deploy', slot: 1, x: 19, y: 10 }); g.act({ k: 'lure', x: 19, y: 12 }); g.act({ k: 'call' });
@@ -44,9 +47,10 @@ for (const [w, h] of SIZES) {
   });
   for (const [state, fn] of Object.entries(STATES)) {
     const name = `${w}x${h}-${state}`;
-    await page.evaluate(fn);
-    // hover a slot-free part of the board so no tooltip covers the HUD
-    await page.mouse.move(Math.floor(w / 2), 4);
+    const r = await page.evaluate(fn);
+    // hover a slot-free part of the board so no tooltip covers the HUD, unless the state names a tile
+    if (r?.hover) { const p = await page.evaluate(([x, y]) => window.__app.tileToCss(x, y), r.hover); await page.mouse.move(p.x, p.y); }
+    else await page.mouse.move(Math.floor(w / 2), 4);
     await frames(page, 3);
     await page.screenshot({ path: `${out}/${name}.png` });
     const { issues, k } = await page.evaluate(() => {

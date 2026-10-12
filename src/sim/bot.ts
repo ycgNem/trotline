@@ -7,8 +7,9 @@
 //              coming), then the worm bed; fishes the dock for puffers ahead of a gull wave (and
 //              holds them in the live well through the raccoon wave before it), the reeds for a
 //              terrapin or three, and the sand (the point, once it has the rod) for rays; deploys
-//              puffers where the rays reach and rays clear of claws; casts a lure into the rays'
-//              reach once the gulls are past. `naive` makes it buy the bed first and never sell.
+//              puffers where the rays reach and rays clear of claws; casts a lure where the rays
+//              reach the eater and the line waits clear of them, once the gulls are past. `noSell` takes the
+//              selling away; `naive` also buys the bed first.
 //   idle:      does nothing.
 import { Game } from './Game';
 import { Tile, type Pt } from './world';
@@ -16,6 +17,7 @@ import { DEFENDERS, RAY } from '../data/defenders';
 import type { SpeciesId } from '../data/species';
 import { WAVES } from '../data/waves';
 import { alive } from './systems/thieves';
+import { lurePreview } from './systems/lures';
 
 export type Strategy = 'deployAll' | 'deployBed' | 'sellAll' | 'good' | 'idle';
 
@@ -33,6 +35,10 @@ export interface BotOpts {
   noRod?: boolean;
   /** the good bot without the investing: worm bed first, then the rod from bounty; sells nothing */
   naive?: boolean;
+  /** the good bot without the selling: the rod first all the same, from bounty */
+  noSell?: boolean;
+  /** the good bot casting its worms beside the most rays, blind to the line wading at them */
+  lureBlind?: boolean;
 }
 
 /** The good bot's caps (DESIGN.md §7): every ray and puffer it can place, terrapins up to three;
@@ -147,7 +153,7 @@ export class Bot {
     const n = (sp: SpeciesId) => g.defenders.filter((d) => d.species === sp).length;
     const cap = this.opts.keep ?? KEEP;
     // investing: sell pufferfish toward the rod, unless gulls are coming
-    if (!this.opts.naive && s === 'puffer' && g.rodTier < 2 && !this.opts.noRod && !this.gulls(0) && !this.gulls(1)) return false;
+    if (!this.opts.naive && !this.opts.noSell && s === 'puffer' && g.rodTier < 2 && !this.opts.noRod && !this.gulls(0) && !this.gulls(1)) return false;
     return n(s) < cap[s];
   }
 
@@ -204,14 +210,20 @@ export class Bot {
     if (this.strategy !== 'good' || g.phase !== 'wave' || g.lures.length > 0 || g.worms < 3) return;
     const lurable = g.thieves.some((t) => (t.kind === 'raccoon' || t.kind === 'bear') && t.mode === 'road');
     if (!lurable) return;
-    // the reachable road tile with the most rays around it, that no gull still has to pass
+    // the reachable road tile, that no gull still has to pass, whose eater the most rays reach,
+    // less the fish its line would wade at (DESIGN.md §6: a worm a tile short of a ray)
     const w = g.world;
     const gullsBefore = (i: number) => g.thieves.some((t) => t.kind === 'gull' && alive(t) && t.mode !== 'exit' && t.pathI <= i + 3) || g.spawnQueue.includes('gull');
     let best: Pt | null = null, bs = 0;
     for (const p of w.path) {
       if (!g.canLure(p.x, p.y).ok || gullsBefore(w.pathIndex[w.idx(p.x, p.y)])) continue;
       let s = 0;
-      for (const d of g.defenders) if (d.species === 'ray' && Math.hypot(d.x - p.x, d.y - p.y) <= RAY.range) s++;
+      if (this.opts.lureBlind) {
+        for (const d of g.defenders) if (d.species === 'ray' && Math.hypot(d.x - p.x, d.y - p.y) <= RAY.range) s++;
+      } else {
+        const pv = lurePreview(g, p.x, p.y);
+        s = pv.shocks.length - 0.6 * pv.waded.length;
+      }
       if (s > bs) { bs = s; best = p; }
     }
     if (best) g.act({ k: 'lure', x: best.x, y: best.y });
