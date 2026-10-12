@@ -266,7 +266,7 @@ export class Renderer {
     const f = moving ? frameAt(s, this.time + t.id * 0.21) : eating ? Math.floor(this.time * 5) % s.frames.length : 0;
     const bob = eating ? Math.round(Math.abs(Math.sin(this.time * 9))) : 0;
     let img = s;
-    if (t.hitT < 0.08) img = this.white(s);
+    if (t.hitT < 0.05) img = this.white(s);
     drawSprite(ctx, img, f, t.x * TILE, t.y * TILE + 4 - lift + bob, t.facing < 0);
     if (t.carrying) drawSprite(ctx, sheet('crate'), 0, t.x * TILE - t.facing * 3, t.y * TILE - s.ay + 6 - lift);
     void g;
@@ -324,14 +324,13 @@ export class Renderer {
       const k = e.t / e.life;
       switch (e.kind) {
         case 'zap': {
-          // a jagged bolt from the eel to its target
-          ctx.fillStyle = e.v ? C.gold : C.bone;
+          // a thin jagged bolt from the eel to its target, gold so the target stays readable
+          ctx.fillStyle = e.v ? C.amber : C.gold;
           const x0 = e.x * TILE, y0 = e.y * TILE, x1 = e.x2 * TILE, y1 = e.y2 * TILE - 4;
           const n = Math.max(4, Math.floor(Math.hypot(x1 - x0, y1 - y0) / 3));
           for (let i = 0; i <= n; i++) {
-            const j = i === 0 || i === n ? 0 : (hash2(i, Math.floor(this.time * 30), 5) - 0.5) * 5;
-            const sz = e.v ? 1 : 2;
-            ctx.fillRect(Math.round(x0 + (x1 - x0) * (i / n) + j), Math.round(y0 + (y1 - y0) * (i / n) + j), sz, sz);
+            const j = i === 0 || i === n ? 0 : (hash2(i, Math.floor(this.time * 30), 5) - 0.5) * 4;
+            ctx.fillRect(Math.round(x0 + (x1 - x0) * (i / n) + j), Math.round(y0 + (y1 - y0) * (i / n) + j), 1, 1);
           }
           break;
         }

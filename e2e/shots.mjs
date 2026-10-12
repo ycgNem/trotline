@@ -90,6 +90,8 @@ await frames(page, 2);
 await run(() => window.__app.dismissLesson());
 await until("g.thieves.some((t) => t.kind === 'bear' && t.mode === 'chew')", 60 * 200);
 await run(() => window.__app.step(120));
+// past the bear's hit flash, so it isn't drawn white
+await until("g.thieves.some((t) => t.kind === 'bear' && t.hitT > 0.15)", 60);
 await shot('09-bear-chews-turtle');
 
 // the good bot to the end of a season, then the lost season
