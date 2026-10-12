@@ -139,7 +139,7 @@ describe('the shore (DESIGN.md §10)', () => {
       for (let y = 0; y < w.h && !ok; y++) for (let x = 0; x < w.w && !ok; x++) {
         const i = w.idx(x, y), z = w.zone[i];
         if (!z || !sp.rates[z] || w.castDist(x, y) > rods.RODS[rods.RODS.length - 1].range) continue;
-        const hab = sp.habitat.reedsOnly ? (w.nearReeds[i] ? sp.habitat.near : 0) : w.nearStructure[i] ? sp.habitat.near : sp.habitat.open;
+        const hab = sp.habitat[w.habitat(i)];
         ok = hab > 0;
       }
       expect(ok, s).toBe(true);

@@ -207,6 +207,7 @@ export class App {
         case 'snatch': this.audio.sfx('snatch'); break;
         case 'swallow': this.audio.sfx('gulp'); this.float('Gulp!', e.x!, e.y! - 1, C.rose); break;
         case 'grab': this.audio.sfx('claw', 0.7); break;
+        case 'scare': this.audio.sfx('alarm', 0.6); break;
         // at a zoom below the HUD's scale a +$ over every kill is noise (the top bar counts it)
         case 'kill': this.audio.sfx('kill'); if (this.renderer.cam.zoom >= this.uiScale) this.float('+$' + e.value, e.x!, e.y! - 1, C.gold); break;
         case 'steal': this.audio.sfx('steal'); this.float('-' + e.value + ' crate' + (e.value === 1 ? '' : 's'), e.x!, e.y! - 1, C.ember); break;
@@ -216,7 +217,6 @@ export class App {
         case 'deploy': this.audio.sfx('splash', 0.7); break;
         case 'lure': this.audio.sfx('lure'); break;
         case 'buy': this.audio.sfx('coin'); break;
-        case 'callEarly': if (e.value) this.float('+$' + e.value + ' early', g.world.angler.x, g.world.angler.y - 1, C.gold); break;
         case 'waveStart': this.audio.sfx('wave'); this.save(); this.waveToast(e.value ?? g.wave); break;
         case 'waveEnd': this.save(); break;
         case 'won': this.audio.sfx('win'); this.endRun(); break;
@@ -254,9 +254,10 @@ export class App {
   /** A floating number over the board; one starting near another stacks above it. */
   float(text: string, x: number, y: number, col: string) {
     const k = this.uiScale, r = this.renderer;
-    // a board drawn smaller than the HUD has no room for words over it (the sprites already show a
-    // snatch or a lost fish); numbers ("+$3", "-1 crate") still float
-    if (!/^[+-]?\$?\d/.test(text) && r.cam.zoom < k) return;
+    // a board drawn smaller than the HUD has no room for text over it (DESIGN.md §11): the sprites
+    // show a snatch or a lost fish and the top bar counts the money; only a crate lost still
+    // floats, at the smokehouse door, because that is where the run is lost
+    if (r.cam.zoom < k && !/^-\d+ crate/.test(text)) return;
     // overlap is judged where the text is drawn, in HUD pixels: its width, its line, as it rises
     const box = (f: { text: string; x: number; y: number; t: number }) => {
       const p = r.toScreen(f.x, f.y);

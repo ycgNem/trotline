@@ -12,9 +12,7 @@ export const RULES = {
   startWell: ['ray'] as const,
   /** fishing during a wave runs at this fraction (you're distracted) */
   waveFishing: 0.5,
-  /** calling a wave early pays this share of its bounty, scaled by the build time left */
-  callEarly: 0.25,
-  derivation: 'DESIGN.md §2, §3, §5, §7: 30 money, 20 crates, a 6-slot live well holding a ray caught at dawn, a 60 s first build then 45 s builds, half-rate fishing in waves, 25% call-early bonus',
+  derivation: 'DESIGN.md §2, §3, §5, §7: 30 money, 20 crates, a 6-slot live well holding a ray caught at dawn, a 60 s first build then 45 s builds, half-rate fishing in waves; sending a wave early pays nothing',
 };
 
 /** The bounty a wave pays if every thief in it is stopped. */

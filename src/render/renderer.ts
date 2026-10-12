@@ -51,6 +51,9 @@ export class Renderer {
   private flash = new Map<SpriteSheet, SpriteSheet>();
   /** the trees, drawn once (they never move) */
   private props: HTMLCanvasElement | null = null;
+  private items: { y: number; k: number; ref: Defender | Thief | null }[] = [];
+  private clawed = new Set<number>();
+  private mask: { key: string; cells: Uint8Array } | null = null;
 
   constructor(public ctx: CanvasRenderingContext2D) {}
 
@@ -108,6 +111,7 @@ export class Renderer {
         case 'deploy': this.fx.push({ kind: 'splash', x, y, x2: 0, y2: 0, t: 0, life: 0.5, v: 0 }); break;
         case 'kill': this.fx.push({ kind: 'poof', x, y, x2: 0, y2: 0, t: 0, life: 0.5, v: 0, id: e.id }); break;
         case 'pulled': this.fx.push({ kind: 'bang', x, y, x2: 0, y2: 0, t: 0, life: 0.8, v: 0 }); break;
+        case 'scare': this.fx.push({ kind: 'bang', x, y: y - 0.6, x2: 0, y2: 0, t: 0, life: 0.8, v: 0 }); break;
         case 'defenderLost': this.fx.push({ kind: 'poof', x, y, x2: 0, y2: 0, t: 0, life: 0.6, v: 1 }); break;
       }
     }
@@ -142,19 +146,39 @@ export class Renderer {
     for (const l of g.lures) {
       const s = sheet('worm');
       drawSprite(ctx, s, frameAt(s, this.time), (l.x + 0.5) * TILE, (l.y + 0.5) * TILE + 3);
-      // the lure's food left, as a thin bar
-      this.bar((l.x + 0.5) * TILE, (l.y + 1) * TILE - 1, 10, l.food / BAIT[l.bait].lureFood, C.rose);
     }
 
-    // y-sorted sprites
-    const items: { y: number; f: () => void }[] = [];
-    const sh = sheet('smokehouse');
-    items.push({ y: 15 + 2.95, f: () => { drawSprite(ctx, sh, 0, (35 + 1.5) * TILE, (15 + 3) * TILE); this.crates(g); } });
-    for (const d of g.defenders) items.push({ y: d.y + 0.6, f: () => this.defender(g, d) });
-    for (const t of g.thieves) if (t.mode !== 'dead' && t.mode !== 'gone' && !THIEVES[t.kind].flies) items.push({ y: t.y, f: () => this.thief(g, t) });
-    items.push({ y: w.angler.y + 0.4, f: () => this.angler(g) });
-    items.sort((a, b) => a.y - b.y);
-    for (const it of items) it.f();
+    // y-sorted sprites (a reused list of tagged entries, not a closure per sprite per frame)
+    this.clawed.clear();
+    for (const t of g.thieves) if (t.grabbing) this.clawed.add(t.grabbing);
+    let n = 0;
+    const put = (y: number, k: number, ref: Defender | Thief | null) => {
+      const it = this.items[n] ?? (this.items[n] = { y: 0, k: 0, ref: null });
+      it.y = y; it.k = k; it.ref = ref; n++;
+    };
+    put(15 + 2.95, 0, null);
+    for (const d of g.defenders) put(d.y + 0.6, 1, d);
+    for (const t of g.thieves) if (t.mode !== 'dead' && t.mode !== 'gone' && !THIEVES[t.kind].flies) put(t.y, 2, t);
+    put(w.angler.y + 0.4, 3, null);
+    this.items.length = n;
+    this.items.sort((a, b) => a.y - b.y);
+    for (const it of this.items) {
+      if (it.k === 0) { drawSprite(ctx, sheet('smokehouse'), 0, (35 + 1.5) * TILE, (15 + 3) * TILE); this.crates(g); }
+      else if (it.k === 1) this.defender(g, it.ref as Defender);
+      else if (it.k === 2) this.thief(g, it.ref as Thief);
+      else this.angler(g);
+    }
+
+    // a lure stays readable with a raccoon on it: a pink ring and its food left, over the sprites
+    for (const l of g.lures) {
+      const lx = (l.x + 0.5) * TILE, ly = (l.y + 0.5) * TILE;
+      ctx.fillStyle = rgba(C.rose, 0.85);
+      for (let i = 0; i < 12; i++) {
+        const a = (i / 12) * Math.PI * 2 + this.time;
+        ctx.fillRect(Math.round(lx + Math.cos(a) * 7), Math.round(ly + 2 + Math.sin(a) * 4), 1, 1);
+      }
+      this.bar(lx, (l.y + 1) * TILE - 1, 10, l.food / BAIT[l.bait].lureFood, C.rose);
+    }
 
     // gulls fly above everything, with a shadow on the ground
     for (const t of g.thieves) if (t.mode !== 'dead' && t.mode !== 'gone' && THIEVES[t.kind].flies) {
@@ -201,9 +225,10 @@ export class Renderer {
     const ctx = this.ctx, w = g.world;
     const pulse = 0.5 + 0.5 * Math.sin(this.time * 6);
     if (ov.deploy) {
+      const mask = this.slotMask(g, ov.deploy);
       for (let y = 0; y < w.h; y++)
         for (let x = 0; x < w.w; x++) {
-          if (!g.canDeploy(ov.deploy, x, y).ok) continue;
+          if (!mask[w.idx(x, y)]) continue;
           ctx.fillStyle = rgba(C.bone, 0.18 + 0.18 * pulse);
           ctx.fillRect(x * TILE, y * TILE, TILE, TILE);
           ctx.fillStyle = C.bone;
@@ -215,6 +240,14 @@ export class Renderer {
         const d = DEFENDERS[ov.deploy];
         const r = d.kind === 'zap' ? d.range : d.kind === 'poison' ? d.trigger + 0.5 : 0;
         if (r) this.circle(ov.hover.x + 0.5, ov.hover.y + 0.5, r, C.gold);
+        // a ray: the road it would shock, wet and in reach (DESIGN.md §4: dry ground carries none)
+        if (d.kind === 'zap') {
+          ctx.fillStyle = rgba(C.gold, 0.22 + 0.12 * pulse);
+          for (const p of w.path) {
+            if (!w.wet[w.idx(p.x, p.y)] || Math.hypot(p.x - ov.hover.x, p.y - ov.hover.y) > d.range) continue;
+            ctx.fillRect(p.x * TILE, p.y * TILE, TILE, TILE);
+          }
+        }
       }
     }
     if (ov.lure) {
@@ -249,6 +282,19 @@ export class Renderer {
       ctx.fillRect(x * TILE, y * TILE, TILE, 1); ctx.fillRect(x * TILE, y * TILE + 15, TILE, 1);
       ctx.fillRect(x * TILE, y * TILE, 1, TILE); ctx.fillRect(x * TILE + 15, y * TILE, 1, TILE);
     }
+  }
+
+  /** Where this species can be deployed, recomputed only when a fish or a lure comes or goes. */
+  private slotMask(g: Game, s: SpeciesId): Uint8Array {
+    const w = g.world;
+    let key = s;
+    for (const d of g.defenders) key += ',' + d.id;
+    for (const l of g.lures) key += ';' + l.id;
+    if (this.mask && this.mask.key === key) return this.mask.cells;
+    const cells = new Uint8Array(w.w * w.h);
+    for (let y = 0; y < w.h; y++) for (let x = 0; x < w.w; x++) if (g.canDeploy(s, x, y).ok) cells[w.idx(x, y)] = 1;
+    this.mask = { key, cells };
+    return cells;
   }
 
   /** A 1 px frame round a tile, `inset` pixels in. */
@@ -292,7 +338,7 @@ export class Renderer {
       if (near) s = sheet('puffer_big');
     }
     // being clawed or worried, it shakes; a clawed fish also blinks white (about to be eaten)
-    const clawed = g.thieves.some((t) => t.grabbing === d.id);
+    const clawed = this.clawed.has(d.id);
     const worried = d.worrier !== 0;
     if (def.place === 'water') {
       // a ripple ring so the fish reads against any water (red while it is clawed)
@@ -454,7 +500,9 @@ export class Renderer {
         }
       }
     }
-    this.fx = this.fx.filter((e) => e.t < e.life);
+    let j = 0;
+    for (const e of this.fx) if (e.t < e.life) this.fx[j++] = e;
+    this.fx.length = j;
   }
 
   /** HP bars: thieves when hurt, defenders when hurt (red and blinking when about to be lost). */

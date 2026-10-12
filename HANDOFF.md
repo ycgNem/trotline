@@ -10,13 +10,18 @@ the end of every session.
 continue from a save. `npm run dev` (or `Play.bat`) and click Start. The 3D proof of concept is
 gone (in git history at e6f9a18).
 
-The `indie-critic` reviewed the slice **twice** and both reviews are implemented
-(`DECISIONS.md`, "The critic's first review" and "The critic's second review"). The second one
+The `indie-critic` reviewed the slice **three times** and the `balance-auditor` once; all four
+are implemented (`DECISIONS.md`, "The critic's first review", "second review", "The balance
+audit", "third review"). The second one
 rebuilt the defense model: fish wear out (slow rest, claws as thieves walk past, wading while
 they wait in a line), the ray shocks one walker at a time and never a gull, the pufferfish
 paralyses, raccoons are the terrapin's predator and bears shove it aside, bears ignore worms,
-rays live at the point (the surf rod's job). `DESIGN.md` §2-§7, §10 and §11 describe exactly what
-is built, with the measured numbers. Nothing is half-built.
+rays live at the point (the surf rod's job). The third made the dock, the reeds and the point
+three habitats (puffers, terrapins, rays), the shock travel only through wet ground, gulls come
+in flocks that a puffer's alarm turns back, sending a wave early pay nothing and bait a cost every
+build, and replaced the reference bot with a strong player (it won 191/200 on the old numbers;
+the waves are retuned so it wins ~77%). `DESIGN.md` §2-§7, §10 and §11 describe exactly what is
+built, with the measured numbers. Nothing is half-built.
 
 **Milestone 2, the gate, is next**: the owner plays it, then the critic reviews it against
 `DESIGN.md` §8. Nothing from Milestone 3 until the gate is marked passed in `ROADMAP.md`.
@@ -33,8 +38,9 @@ is built, with the measured numbers. Nothing is half-built.
    rays and diamondback terrapins don't live in a Texas reservoir. `PLAN.md` said "a reservoir
    first"; this is the one line the slice overrides.
 4. **The derivative flags** in `DECISIONS.md` (PvZ's Potato Mine and Wall-nut, Kingdom Rush's
-   Tesla chain): all three are re-derived and the shapes are gone; say if any still reads as
-   borrowed.
+   Tesla chain and early-call gold): re-derived or dropped. **One is open**: the gull alarm call
+   (a puffer snatched by a gull turns its flock back) has the shape of the Potato Mine's splash;
+   it is the animal's behaviour and nothing is hurt, but it is your call.
 5. **Terrapins being sold** (`IDEAS.md`): commercial terrapin harvest is banned or tightly
    limited along most of the Gulf. A "release" that pays in something other than money would be
    truer, but it touches the currency list, so it is your call.
@@ -62,7 +68,7 @@ Node is not on PATH: in Git Bash, `export PATH="/c/Users/jacks/tools/node-v22.20
 
 ```
 npm run dev          # http://127.0.0.1:5180 (or Play.bat)
-npm run typecheck && npm test     # 140 tests, ~3 minutes (the pace tests play ~1,200 runs)
+npm run typecheck && npm test     # 144 tests, ~3 minutes (the pace tests play ~1,200 runs)
 npm run shots        # e2e/out/shots/*.png, the moments that matter; then Read them
 npm run screens      # HUD overlap audit, 11 states x 3 window sizes
 npm run smoke        # real mouse and keys only

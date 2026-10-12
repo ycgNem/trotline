@@ -15,8 +15,12 @@ export function tickWaves(g: Game, dt: number) {
   if (g.spawnQueue.length) {
     g.spawnT -= dt;
     if (g.spawnT <= 0) {
-      spawn(g, g.spawnQueue.shift()!);
-      g.spawnT += WAVES[g.wave - 1].gap ?? SPAWN_GAP.seconds;
+      const kind = g.spawnQueue.shift()!;
+      spawn(g, kind);
+      // a flock's birds come close together; the wave's gap is between flocks (DESIGN.md §5)
+      const k = THIEVES[kind].flock;
+      g.flockN = g.flockN + 1 >= k || g.spawnQueue[0] !== kind ? 0 : g.flockN + 1;
+      g.spawnT += g.flockN > 0 ? SPAWN_GAP.flock : WAVES[g.wave - 1].gap ?? SPAWN_GAP.seconds;
     }
     return;
   }
@@ -31,7 +35,8 @@ export function startWave(g: Game) {
   g.phaseTime = 0;
   g.spawnQueue = w.groups.flatMap(([id, n]) => new Array<ThiefId>(n).fill(id));
   g.spawnT = 0;
-  g.waveStats.push({ wave: g.wave, leaks: 0, stolen: 0, recovered: 0, escaped: 0, killed: 0 });
+  g.flockN = 0;
+  g.waveStats.push({ wave: g.wave, leaks: 0, stolen: 0, recovered: 0, escaped: 0, killed: 0, scared: 0 });
   g.events.push({ type: 'waveStart', tick: g.tick, value: g.wave });
 }
 

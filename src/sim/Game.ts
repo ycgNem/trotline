@@ -121,6 +121,8 @@ export interface WaveStats {
   recovered: number;
   escaped: number;
   killed: number;
+  /** thieves that turned back with nothing (gulls hearing an alarm call) */
+  scared: number;
 }
 
 export class Game {
@@ -153,13 +155,15 @@ export class Game {
   /** thieves still to spawn this wave, in order */
   spawnQueue: ThiefId[] = [];
   spawnT = 0;
+  /** birds of the current flock already spawned (systems/waves) */
+  flockN = 0;
 
   /** catches made this tick, for the catch log system */
   tickCatches: SpeciesId[] = [];
   caught: Record<SpeciesId, number> = { puffer: 0, ray: 0, turtle: 0 };
   firstCatch: Partial<Record<SpeciesId, number>> = {};
   firsts = { deploy: false, lure: false, sell: false };
-  stats = { killed: 0, leaks: 0, stolen: 0, recovered: 0, escaped: 0, sold: 0, deployed: 0, lures: 0, earned: 0, lost: 0 };
+  stats = { killed: 0, leaks: 0, stolen: 0, recovered: 0, escaped: 0, sold: 0, deployed: 0, lures: 0, earned: 0, lost: 0, scared: 0 };
   waveStats: WaveStats[] = [];
 
   /** the player's commands with the tick they were given on: the run's deltas */
@@ -291,10 +295,7 @@ export class Game {
       }
       case 'call': {
         if (this.phase !== 'build') return { ok: false, why: 'A wave is already on.' };
-        const bonus = this.callBonus();
-        this.money += bonus;
-        this.stats.earned += bonus;
-        this.events.push({ type: 'callEarly', tick: this.tick, value: bonus });
+        // no bonus for the time left (DESIGN.md §2): sending it is for when you are ready
         this.phaseTime = 0;
         return { ok: true };
       }
@@ -306,16 +307,6 @@ export class Game {
     if (item === 'wormbed') return this.wormBed ? null : WORMS.bedCost;
     if (item === 'rod') return this.rodTier >= RODS.length ? null : RODS[this.rodTier].cost;
     return WORMS.packCost;
-  }
-
-  /** Money for calling the next wave now (DESIGN.md §2). */
-  callBonus(): number {
-    if (this.phase !== 'build' || this.wave >= WAVES.length) return 0;
-    const w = WAVES[this.wave];
-    let bounty = 0;
-    for (const [id, n] of w.groups) bounty += THIEVES[id].bounty * n;
-    const full = this.wave === 0 ? RULES.firstBuild : RULES.buildTime;
-    return Math.floor(RULES.callEarly * bounty * Math.max(0, this.phaseTime) / full);
   }
 
   canCast(x: number, y: number): Result {
@@ -368,7 +359,7 @@ export class Game {
       const sp = SPECIES[s];
       const base = sp.rates[zone];
       if (!base) continue;
-      const hab = sp.habitat.reedsOnly ? (w.nearReeds[i] ? sp.habitat.near : 0) : w.nearStructure[i] ? sp.habitat.near : sp.habitat.open;
+      const hab = sp.habitat[w.habitat(i)];
       if (hab <= 0) continue;
       if (sizeRank(sp.size) > sizeRank(this.rod.line)) out.push({ s, rate: 0, why: 'line too light' });
       else out.push({ s, rate: base * hab * BAIT.worm.match * this.rod.reel * factor });

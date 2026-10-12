@@ -1,5 +1,5 @@
 // The HUD, drawn with the IMGUI kit over the board in UI pixels: the top bar (money, crates,
-// worms, rod, wave clock, call-early), the live well with sell / deploy, the shop, the status line
+// worms, rod, wave clock, send the wave), the live well with sell / deploy, the shop, the status line
 // (what the line is doing, or what the current mode wants), floating numbers, toasts, lesson cards,
 // tooltips over the board, and the title and end screens.
 import type { App } from './app';
@@ -29,7 +29,7 @@ const HELP: [string, string][] = [
   ['X', 'Sell it for money.'],
   ['F', 'Deploy it: pale water by the road for pufferfish and rays, the road itself for a terrapin.'],
   ['L', 'Cast a worm on the road. Raccoons stop to eat it; a gull swallows it; bears ignore it. Shift-click for more.'],
-  ['N', 'Send the next wave early for a bonus.'],
+  ['N', 'Send the next wave now, when you are ready.'],
   ['Space', 'Pause. Tab speeds up (x1 to x3).'],
   ['Esc', 'Cancel (or right-click).'],
   ['Wheel', 'Zoom (or Q / E); WASD or the arrows pan.'],
@@ -52,7 +52,8 @@ export class Hud {
       this.status();
       this.boardTip();
       if (a.paused && !a.lesson) this.banner('Paused', 'Space to carry on');
-      this.toast(dt);
+      // a card open takes the screen; the toast waits (and keeps its time) until it closes
+      if (!a.lesson && !a.help) this.toast(dt);
       if (a.lesson) this.lessonCard();
       else if (a.help) this.helpCard();
     } else this.endScreen();
@@ -81,7 +82,7 @@ export class Hud {
       ? `Wave ${g.wave + 1}/${WAVES.length} in ${Math.ceil(g.phaseTime)}s`
       : `Wave ${g.wave}/${WAVES.length}: ${g.spawnQueue.length + g.thieves.filter((t) => t.mode !== 'dead' && t.mode !== 'gone').length} thieves`;
     item(wave, g.phase === 'wave' ? C.ember : C.bone, g.phase === 'build' ? this.nextWaveTip() : 'Thieves are on the road. Fishing runs at half speed while you watch them. ' + this.comingTip());
-    // right side: call early, pause, speed
+    // right side: send the wave, pause, speed
     const a = this.app;
     let rx = ui.w - 4;
     const btn = (id: string, w: number, label: string, tip: string, active = false) => {
@@ -94,9 +95,8 @@ export class Hud {
     if (btn('speed', 22, 'x' + a.speed, 'Game speed (Tab).', a.speed > 1)) a.speed = a.speed >= 3 ? 1 : a.speed + 1;
     if (btn('pause', 22, a.paused ? '>' : 'II', 'Pause (Space).', a.paused)) a.paused = !a.paused;
     if (g.phase === 'build') {
-      const bonus = g.callBonus();
-      const label = 'Send wave' + (bonus ? ' +$' + bonus : '');
-      if (btn('call', textWidth(label) + 12, label, 'Start the next wave now (N) and take a bonus for the time left on the clock.')) a.act({ k: 'call' });
+      const label = 'Send wave';
+      if (btn('call', textWidth(label) + 12, label, 'Start the next wave now (N), when you are ready for it.')) a.act({ k: 'call' });
     }
   }
 
@@ -169,7 +169,7 @@ export class Hud {
     return d.place === 'road'
       ? 'Deploy (F): put it on any road tile. Raccoons stop to worry it one at a time while the rest wait, gnawing it down; a bear shoves it aside in 3 s. Gulls fly over.'
       : d.kind === 'zap'
-        ? 'Deploy (F): light shallow water within 2 tiles of the road. 1 tile out, walkers claw at it as they pass; 2 tiles out only a raccoon waiting in a lure\'s line reaches it, slowly.'
+        ? 'Deploy (F): light shallow water within 2 tiles of the road. Its shock reaches the wet road (gold) and not the dry. 1 tile out, walkers claw at it as they pass; 2 tiles out only a raccoon waiting in a lure\'s line reaches it, slowly.'
         : `Deploy (F): light shallow water within ${d.maxRoadDist} tile of the road. The lit tiles are where it fits.`;
   }
 
@@ -218,7 +218,7 @@ export class Hud {
       if (h && g.canLure(h.x, h.y).ok) {
         const pv = lurePreview(g, h.x, h.y);
         const n = pv.shocks.length, m = pv.waded.length;
-        l1 = n ? `${n} ray${n > 1 ? 's reach' : ' reaches'} the raccoon eating here (gold).` : 'No ray reaches the raccoon eating here.';
+        l1 = n ? `${n} ray${n > 1 ? 's reach' : ' reaches'} the raccoon eating here (gold).` : pv.dry ? 'Dry ground: no shock reaches a raccoon eating here.' : 'No ray reaches the raccoon eating here.';
         l2 = m ? `The line waiting behind it can claw ${m} fish (red).` : 'The line waits clear of your fish.';
         if (m) c1 = C.ember;
       }
@@ -267,7 +267,7 @@ export class Hud {
     if (isWater(tile)) {
       const w = g.world, i = w.idx(h.x, h.y);
       const z = w.zone[i];
-      const where = !z ? '' : w.nearReeds[i] ? ', by the reeds' : w.nearStructure[i] ? ', by the dock' : ', open sand';
+      const where = !z ? '' : { dock: ', by the dock', reeds: ', by the reeds', open: ', open sand' }[w.habitat(i)];
       const lines: TipLine[] = [{ text: g.zoneName(z) + where, color: C.ice }];
       const bites = g.biteTable(h);
       if (bites.length) lines.push({ text: 'Bites: ' + bites.map((b) => `${SPECIES[b.s].name} ${b.rate ? b.rate.toFixed(1) + '/min' : '(' + b.why + ')'}`).join(', ') });
@@ -276,7 +276,7 @@ export class Hud {
         const dist = w.roadDist[i];
         lines.push(dist <= 1
           ? { text: 'A slot: pufferfish or ray. Walkers claw at a ray this close.', color: C.lime }
-          : { text: 'A slot: ray only, and safe from claws (pufferfish need the road within 1).', color: C.lime });
+          : { text: 'A slot: ray only. Walkers passing can\'t reach it; a raccoon waiting in a lure\'s line can.', color: C.lime });
       } else if (tile === Tile.Reeds) lines.push({ text: 'Reeds: no room for a fish.', color: C.ash });
       const reach = g.world.castDist(h.x, h.y) <= g.rod.range;
       lines.push({ text: reach ? 'Click to cast here.' : `Out of reach (your rod casts ${g.rod.range} tiles).`, color: reach ? C.bone : C.ember });
@@ -307,10 +307,11 @@ export class Hud {
     if (!a.toast) return;
     a.toast.t += dt;
     if (a.toast.t > a.toast.life) { a.toast = null; return; }
-    const w = Math.min(ui.w - 20, textWidth(a.toast.text) + 14);
+    // under the top bar, over open water: at the bottom it covered the smokehouse and its crates
+    const w = Math.min(ui.w - 20, 360, textWidth(a.toast.text) + 14);
     const lines = wrapText(a.toast.text, w - 10);
     const h = lines.length * LINE_H + 8;
-    const x = Math.floor((ui.w - w) / 2), y = ui.h - PANEL_H - 12 - h;
+    const x = Math.floor((ui.w - w) / 2), y = BAR_H + 6;
     ui.panel(x, y, w, h, 'dark', false);
     lines.forEach((l, i) => ui.text(l, x + 5, y + 5 + i * LINE_H, C.shell));
   }

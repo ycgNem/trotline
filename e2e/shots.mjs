@@ -110,6 +110,21 @@ await until("g.thieves.some((t) => t.stunT > 1.2)", 60 * 60);
 await run(() => window.__app.step(15));
 await shot('13-puffer-snatched');
 
+// a gull flock: the first takes the pufferfish, its alarm turns the other two back north
+await run(() => {
+  const a = window.__app;
+  a.newRun(17);
+  a.freeze();
+  const g = a.game;
+  g.wave = 2;
+  g.liveWell[0] = 'puffer';
+  g.act({ k: 'deploy', slot: 0, x: 8, y: 11 });
+  g.act({ k: 'call' });
+});
+await until('g.stats.scared >= 2', 60 * 30);
+await run(() => { window.__app.step(14); window.__app.toast = null; });
+await shot('16-gull-alarm');
+
 // a ray one tile from the road, clawed by a passing raccoon (the defender about to be eaten)
 await run(() => {
   const a = window.__app;

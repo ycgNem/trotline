@@ -16,6 +16,7 @@ export function isWater(t: Tile) {
 }
 
 export interface Pt { x: number; y: number }
+export type Habitat = 'dock' | 'reeds' | 'open';
 
 export class World {
   w: number;
@@ -36,9 +37,12 @@ export class World {
   /** walkers that took crates leave along this, from the road's end south off the map (tile centres) */
   exitPath: Pt[];
   /** water within a tile of the dock or reeds (puffers like it, rays don't) */
-  nearStructure: Uint8Array;
+  /** water within a tile of the dock's pilings */
+  nearDock: Uint8Array;
   /** water within a tile of reeds (where terrapins bite) */
   nearReeds: Uint8Array;
+  /** water and land touching water (DESIGN.md §4: a ray's shock travels only through wet ground) */
+  wet: Uint8Array;
   /** the smokehouse door: the point thieves walk to (tile centre past the road's last tile) */
   door: Pt;
 
@@ -74,8 +78,25 @@ export class World {
     this.exitPath = [];
     for (let y = last.y + 1; y < this.h; y++) this.exitPath.push({ x: SHORE.exitX + 0.5, y: y + 0.5 });
     this.exitPath.push({ x: SHORE.exitX + 0.5, y: this.h + 1.5 });
-    this.nearStructure = this.near((t) => t === Tile.Dock || t === Tile.Reeds);
+    this.nearDock = this.near((t) => t === Tile.Dock);
     this.nearReeds = this.near((t) => t === Tile.Reeds);
+    this.wet = new Uint8Array(this.w * this.h);
+    for (let y = 0; y < this.h; y++)
+      for (let x = 0; x < this.w; x++) {
+        if (isWater(this.at(x, y))) { this.wet[this.idx(x, y)] = 1; continue; }
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (this.inb(x + dx, y + dy) && isWater(this.at(x + dx, y + dy))) this.wet[this.idx(x, y)] = 1;
+      }
+  }
+
+  /** Where a line sits, for what bites there (DESIGN.md §3): by the dock, by the reeds, or open sand. */
+  habitat(i: number): Habitat {
+    return this.nearDock[i] ? 'dock' : this.nearReeds[i] ? 'reeds' : 'open';
+  }
+
+  /** Is the ground at this point wet: water, or land touching it (the water's edge)? */
+  isWet(x: number, y: number): boolean {
+    const tx = Math.floor(x), ty = Math.floor(y);
+    return this.inb(tx, ty) && this.wet[this.idx(tx, ty)] === 1;
   }
 
   /** Water tiles within a tile (Chebyshev) of a tile matching `f`. */

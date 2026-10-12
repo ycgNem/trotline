@@ -25,10 +25,10 @@ export const WORMS = {
   start: 8,
   /** the worm bed: bought once, then makes a worm every `period` seconds up to `cap` */
   bedCost: 40,
-  period: 15,
+  period: 30,
   cap: 12,
   /** the bait shop's pack when you are out and have no bed */
   packCost: 5,
   packSize: 3,
-  derivation: 'DESIGN.md §3: worm bed 40, a worm per 15 s up to 12 (about what a tier-2 line at the point uses, 3.75 a minute before lures: a saving, not a surplus); a pack of 3 for 5; 8 to start',
+  derivation: 'DESIGN.md §3: worm bed 40, a worm per 30 s up to 12 (half what a tier-2 line at the point uses, 3.75 a minute, before lures: worm packs stay a cost every build, so money always has a use); a pack of 3 for 5; 8 to start',
 };

@@ -3,8 +3,8 @@
 //   deployAll: fishes the best water it reaches and deploys every fish; never sells, buys or lures.
 //   deployBed: deployAll that also buys the worm bed (and worm packs) with its bounties.
 //   sellAll:   fishes and sells everything; buys nothing that defends.
-//   good:      a sensible player: sells pufferfish to buy the surf rod first (unless gulls are
-//              coming), then the worm bed; fishes the dock for puffers ahead of a gull wave (and
+//   good:      a sensible player: sells pufferfish to buy the surf rod and then the worm bed
+//              (except in a wave with gulls), and digs the bed rather than buy packs once it can; fishes the dock for puffers ahead of a gull wave (and
 //              holds them in the live well through the raccoon wave before it), the reeds for a
 //              terrapin or three, and the sand (the point, once it has the rod) for rays; deploys
 //              puffers where the rays reach and rays clear of claws; casts a lure where the rays
@@ -16,8 +16,9 @@ import { Tile, type Pt } from './world';
 import { DEFENDERS, RAY } from '../data/defenders';
 import type { SpeciesId } from '../data/species';
 import { WAVES } from '../data/waves';
+import { THIEVES } from '../data/thieves';
 import { alive } from './systems/thieves';
-import { lurePreview } from './systems/lures';
+import { lurePreview, linePreview } from './systems/lures';
 
 export type Strategy = 'deployAll' | 'deployBed' | 'sellAll' | 'good' | 'idle';
 
@@ -37,6 +38,8 @@ export interface BotOpts {
   naive?: boolean;
   /** the good bot without the selling: the rod first all the same, from bounty */
   noSell?: boolean;
+  /** the good bot casting no worm lures at all */
+  noLure?: boolean;
   /** the good bot casting its worms beside the most rays, blind to the line wading at them */
   lureBlind?: boolean;
 }
@@ -65,9 +68,13 @@ export class Bot {
 
   private fish() {
     const g = this.g;
+    // out of worms with no bed: the good bot digs the bed once the rod is in hand and it can pay
+    // for it, rather than spend the bed's money on packs a few dollars at a time
+    if (g.worms < 1 && !g.wormBed && this.strategy === 'good' && this.invested(true) && g.money >= (g.price('wormbed') ?? 1e9)) g.act({ k: 'buy', item: 'wormbed' });
     if (g.worms < 1 && !g.wormBed && g.money >= 5 && this.strategy !== 'deployAll') g.act({ k: 'buy', item: 'worms' });
-    // the bed can't keep a surf rod fed: the good bot tops up from the bait shop rather than let the line stop
-    if (this.strategy === 'good' && g.wormBed && g.worms < 2 && g.money >= 5 + (g.rodTier < 2 ? g.price('rod') ?? 0 : 0)) g.act({ k: 'buy', item: 'worms' });
+    // the bed can't keep a surf rod fed and a worm on the road: once invested, the good bot keeps
+    // four in the can from the bait shop (selling funds bait, DESIGN.md §3)
+    if (this.strategy === 'good' && g.wormBed && g.worms < 4 && g.money >= 5 + (g.rodTier < 2 && !this.opts.noRod ? g.price('rod') ?? 0 : 0)) g.act({ k: 'buy', item: 'worms' });
     if (this.strategy === 'deployBed' && !g.wormBed && g.money >= 40) g.act({ k: 'buy', item: 'wormbed' });
     const want = this.want();
     const spot = this.castSpot(want);
@@ -82,11 +89,21 @@ export class Bot {
     const g = this.g;
     if (this.strategy !== 'good') return null;
     const have = (s: SpeciesId) => g.defenders.filter((d) => d.species === s).length + g.liveWell.filter((q) => q === s).length;
-    // gulls coming now or next: a pufferfish for each
-    const gulls = Math.max(this.gulls(0), this.gulls(1));
-    if (gulls && have('puffer') < gulls) return 'puffer';
+    // gulls coming now or next: a pufferfish for each flock (its alarm turns the rest back)
+    const flocks = Math.ceil(Math.max(this.gulls(0), this.gulls(1)) / THIEVES.gull.flock);
+    if (flocks && have('puffer') < flocks) return 'puffer';
+    // investing: puffers by the dock, to sell for the rod and the bed
+    if (!this.opts.naive && !this.opts.noSell && !this.invested()) return 'puffer';
     if (have('turtle') < (this.opts.keep ?? KEEP).turtle) return 'turtle';
     return 'ray';
+  }
+
+  /** Has it bought what it invests in: the rod (unless told not to), then the bed? `rodOnly`:
+   * just the rod. */
+  private invested(rodOnly = false): boolean {
+    const g = this.g;
+    const rod = this.opts.noRod || g.rodTier >= 2;
+    return rodOnly ? rod : rod && g.wormBed;
   }
 
   /** Gulls in the wave being fought or about to start (k 0), or the one after it (k 1). */
@@ -143,6 +160,8 @@ export class Bot {
       if (s === 'puffer' && this.holdPuffer()) return;
       const spot = this.bestTile(s);
       if (spot) g.act({ k: 'deploy', slot: i, x: spot.x, y: spot.y });
+      // a terrapin with no ray to shock its line waits in the live well while there is room
+      else if (s === 'turtle' && g.liveWell.filter((q) => !q).length >= 2) return;
       else if (this.strategy === 'good') g.act({ k: 'sell', slot: i });
     });
   }
@@ -152,8 +171,13 @@ export class Bot {
     const g = this.g;
     const n = (sp: SpeciesId) => g.defenders.filter((d) => d.species === sp).length;
     const cap = this.opts.keep ?? KEEP;
-    // investing: sell pufferfish toward the rod, unless gulls are coming
-    if (!this.opts.naive && !this.opts.noSell && s === 'puffer' && g.rodTier < 2 && !this.opts.noRod && !this.gulls(0) && !this.gulls(1)) return false;
+    // investing: sell pufferfish toward the rod and then the bed, except in a wave with gulls and
+    // except the ones the next gull wave's flocks will want
+    if (!this.opts.naive && !this.opts.noSell && s === 'puffer' && !this.invested() && !this.gulls(0)) {
+      const need = Math.ceil(this.gulls(1) / THIEVES.gull.flock);
+      const held = g.liveWell.filter((q) => q === 'puffer').length + n('puffer');
+      if (held > need) return false;
+    }
     return n(s) < cap[s];
   }
 
@@ -172,9 +196,11 @@ export class Bot {
         if (def.kind === 'zap') {
           if (this.opts.raySpot === 'mid') score = -Math.hypot(cx - mid.x, cy - mid.y) - (rd < 2 ? 100 : 0);
           else {
-            for (const p of w.path) if (Math.hypot(p.x + 0.5 - cx, p.y + 0.5 - cy) <= def.range) score++;
-            // 1 tile from the road a ray gets clawed (DESIGN.md §4); the good bot keeps it 2 out
-            if (rd < 2 && this.strategy === 'good') score -= 6;
+            // road it can shock: in reach and wet (DESIGN.md §4: dry ground carries no shock)
+            for (const p of w.path) if (w.wet[w.idx(p.x, p.y)] && Math.hypot(p.x + 0.5 - cx, p.y + 0.5 - cy) <= def.range) score++;
+            // 1 tile from the road a ray gets clawed (DESIGN.md §4): every bot keeps it 2 out, as
+            // the deploy tooltip says
+            if (rd < 2) score -= 6;
           }
         } else if (def.kind === 'poison') {
           // where the most road passes within reach, away from the other puffers
@@ -186,9 +212,12 @@ export class Bot {
           // early on the road, so what it sickens walks past the rays afterwards
           score -= first * 0.02;
         } else {
-          // a terrapin on the road where the most rays reach the line behind it
+          // a terrapin on the road where the most rays shock the raccoon worrying it, and its line
+          // waits clear of them (the same reading as a worm's, DESIGN.md §4, §6)
           if (w.at(x, y) !== Tile.Road) continue;
-          for (const d of g.defenders) if (d.species === 'ray' && Math.hypot(d.x - x, d.y - y) <= RAY.range + 1) score += 3;
+          const pv = linePreview(g, w.pathIndex[w.idx(x, y)], 0.5 + THIEVES.raccoon.len / 2);
+          if (!pv.shocks.length) continue;
+          score += 3 * pv.shocks.length - 2 * pv.waded.length;
           score -= Math.abs(w.pathIndex[w.idx(x, y)] - w.path.length * 0.6) * 0.05;
           for (const d of g.defenders) if (d.species === 'turtle' && Math.abs(d.roadI - w.pathIndex[w.idx(x, y)]) < 3) score -= 20;
         }
@@ -199,6 +228,7 @@ export class Bot {
 
   private lure() {
     const g = this.g;
+    if (this.opts.noLure) return;
     if (this.opts.lureMid) {
       if (g.phase === 'wave' && this.luredWave !== g.wave) {
         this.luredWave = g.wave;
@@ -207,8 +237,8 @@ export class Bot {
       }
       return;
     }
-    if (this.strategy !== 'good' || g.phase !== 'wave' || g.lures.length > 0 || g.worms < 3) return;
-    const lurable = g.thieves.some((t) => (t.kind === 'raccoon' || t.kind === 'bear') && t.mode === 'road');
+    if (this.strategy !== 'good' || g.phase !== 'wave' || g.lures.length > 0 || g.worms < 2) return;
+    const lurable = g.thieves.some((t) => t.kind === 'raccoon' && t.mode === 'road') || g.spawnQueue.includes('raccoon');
     if (!lurable) return;
     // the reachable road tile, that no gull still has to pass, whose eater the most rays reach,
     // less the fish its line would wade at (DESIGN.md §6: a worm a tile short of a ray)

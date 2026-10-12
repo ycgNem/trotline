@@ -18,24 +18,44 @@ export function tickLures(g: Game, _dt: number) {
   });
 }
 
+export interface LinePreview {
+  /** where the raccoon held (eating, or worrying a shell) stands */
+  eater: Pt;
+  /** where the ones waiting behind it stand */
+  line: Pt[];
+  /** fish the waiting ones could wade at (DESIGN.md §4) */
+  waded: number[];
+  /** rays whose shock reaches the one held (none on dry ground: a shock travels through water) */
+  shocks: number[];
+  dry: boolean;
+}
+
 /**
  * What a worm on this road tile would do (DESIGN.md §6): where the raccoon eating it stands,
- * where a line of `n` more would wait behind it, the fish that line could wade at (DESIGN.md
- * §4), and the rays that reach the eater. The lure overlay draws it; the good bot scores by it.
+ * where a line of `n` more would wait behind it, the fish that line could wade at and the rays
+ * that reach the eater. The lure overlay draws it; the good bot scores by it.
  */
-export function lurePreview(g: Game, x: number, y: number, n = 4): { eater: Pt; line: Pt[]; waded: number[]; shocks: number[] } {
-  const w = g.world, i = w.pathIndex[w.idx(x, y)];
+export function lurePreview(g: Game, x: number, y: number, n = 4): LinePreview {
+  return linePreview(g, g.world.pathIndex[g.world.idx(x, y)], 0, n);
+}
+
+/**
+ * The same for a raccoon line at road index `i` whose front animal stands `first` tiles back
+ * from it: 0 at a worm, half a tile plus half a raccoon at a terrapin (systems/thieves).
+ */
+export function linePreview(g: Game, i: number, first: number, n = 4): LinePreview {
+  const w = g.world;
   const r = THIEVES.raccoon;
-  const eater = w.pathPt(i);
+  const eater = w.pathBack(i, first);
   const line: Pt[] = [];
-  for (let k = 1; k <= n; k++) line.push(w.pathBack(i, k * r.len));
+  for (let k = 1; k <= n; k++) line.push(w.pathBack(i, first + k * r.len));
   const waded: number[] = [], shocks: number[] = [];
   for (const d of g.defenders) {
     const def = DEFENDERS[d.species];
     if (d.hp <= 0 || def.place !== 'water') continue;
     const cx = d.x + 0.5, cy = d.y + 0.5;
     if (def.kind !== 'poison' && line.some((p) => Math.max(Math.abs(cx - p.x), Math.abs(cy - p.y)) <= r.wade)) waded.push(d.id);
-    if (def.kind === 'zap' && Math.hypot(cx - eater.x, cy - eater.y) <= def.range) shocks.push(d.id);
+    if (def.kind === 'zap' && w.isWet(eater.x, eater.y) && Math.hypot(cx - eater.x, cy - eater.y) <= def.range) shocks.push(d.id);
   }
-  return { eater, line, waded, shocks };
+  return { eater, line, waded, shocks, dry: !w.isWet(eater.x, eater.y) };
 }

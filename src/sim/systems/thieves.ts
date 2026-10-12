@@ -39,6 +39,7 @@ function backOf(g: Game, ids: number[], first: (len: number) => number, len: num
 }
 
 const atWorm = () => 0;
+
 const atShell = (len: number) => SHELL + len / 2;
 
 export function tickThieves(g: Game, dt: number) {
@@ -70,12 +71,13 @@ export function tickThieves(g: Game, dt: number) {
         break;
       case 'eat': {
         const l = g.lures.find((q) => q.id === t.lure);
-        if (!l || l.food <= 0) { rejoin(g, t); break; }
+        if (!l || l.food <= 0) { if (l) l.queue = l.queue.filter((q) => q !== t.id); rejoin(g, t); break; }
         t.eatLeft -= dt;
         l.food -= dt;
         if (t.eatLeft <= 0 || l.food <= 0) {
           t.fed.push(l.id);
-          l.eater = 0;
+          if (l.eater === t.id) l.eater = 0;
+          l.queue = l.queue.filter((q) => q !== t.id);
           rejoin(g, t);
         }
         break;
@@ -328,6 +330,19 @@ function steal(g: Game, t: Thief) {
   const ws = g.waveStats[g.waveStats.length - 1];
   if (ws) { ws.leaks++; ws.stolen += take; }
   g.events.push({ type: 'steal', tick: g.tick, id: t.kind, x: t.x, y: t.y, value: take });
+}
+
+/** A thief that turns back with nothing (a gull hearing its flockmate's alarm): it leaves the way
+ * its kind leaves, carrying no crates and paying no bounty (DESIGN.md §4). */
+export function scare(g: Game, t: Thief) {
+  t.mode = 'exit';
+  t.exitI = 0;
+  t.lure = 0;
+  t.carrying = 0;
+  g.stats.scared++;
+  const ws = g.waveStats[g.waveStats.length - 1];
+  if (ws) ws.scared++;
+  g.events.push({ type: 'scare', tick: g.tick, id: t.kind, x: t.x, y: t.y });
 }
 
 function escape(g: Game, t: Thief) {

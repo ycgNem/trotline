@@ -3,7 +3,7 @@
 // STYLE.md): the shallows a fish can be put in are the palest water on the board ("clear
 // shallows"); reeds are visibly not a slot; the road is the one warm, flat surface. Imported
 // tile art (src/art/tile_*.png, a strip of variants) is used when present, else code draws it.
-import { C } from '../data/palette';
+import { C, rgba } from '../data/palette';
 import { World, Tile, isWater } from '../sim/world';
 import { DEFENDERS } from '../data/defenders';
 import { sheet, hasArt } from './sprites';
@@ -70,6 +70,25 @@ export class Ground {
     for (let i = 0; i < 4; i++) f(C.sand, 5 + wob + Math.floor(hash2(x, y, 80 + i) * 6), Math.floor(hash2(x, y, 90 + i) * 16), 1, 1);
   }
 
+  /** Road at the water's edge is wet ground, where a ray's shock reaches (DESIGN.md §4): a
+   * dark damp band along each side that touches water, dithered into the dry road. */
+  private damp(ctx: CanvasRenderingContext2D, x: number, y: number, px: number, py: number) {
+    const w = this.world;
+    const water = (dx: number, dy: number) => w.inb(x + dx, y + dy) && isWater(w.at(x + dx, y + dy));
+    ctx.fillStyle = rgba(C.mud, 0.42);
+    for (const [dx, dy] of [[0, -1], [0, 1], [-1, 0], [1, 0]]) {
+      if (!water(dx, dy)) continue;
+      for (let i = 0; i < 16; i++)
+        for (let d = 0; d < 5; d++) {
+          // solid for 3 px, then a checker that fades it out
+          if (d >= 3 && (i + d + x + y) % 2) continue;
+          if (d === 4 && hash2(x * 16 + i, y, 7) < 0.5) continue;
+          const [cx, cy] = dy ? [i, dy < 0 ? d : 15 - d] : [dx < 0 ? d : 15 - d, i];
+          ctx.fillRect(px + cx, py + cy, 1, 1);
+        }
+    }
+  }
+
   private roadArt(x: number, y: number) {
     const w = this.world;
     const v = w.at(x, y - 1) === Tile.Road || w.at(x, y + 1) === Tile.Road;
@@ -90,6 +109,7 @@ export class Ground {
       const s = sheet(art);
       ctx.drawImage(s.frames[Math.floor(hash2(x, y, 91) * s.frames.length)], px, py);
       this.edges(ctx, x, y, px, py);
+      if (t === Tile.Road) this.damp(ctx, x, y, px, py);
       return;
     }
     // short wave dashes, 3-4 px wide, the open-water texture

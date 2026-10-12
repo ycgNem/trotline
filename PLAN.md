@@ -60,8 +60,8 @@ tower shop, the economy, the pathing control and the map.
 
 | Fish | Job | Where | Note |
 |---|---|---|---|
-| Pufferfish | poison: the first thief beside it eats it, stands paralysed and sickening; one use | water or bucket | the cheap first catch; the answer to gulls |
-| Electric ray | shock: one walker within 3 tiles at a time; never a gull in the air | water only | the DPS backbone, wants water near the road |
+| Pufferfish | poison: the first thief beside it eats it, stands paralysed and sickening; one use (a gull's alarm turns its flock) | water or bucket | the cheap first catch; the answer to gulls |
+| Electric ray | shock: one walker within 3 tiles at a time, through water (on the wet road at the water's edge); never a gull in the air | water only | the DPS backbone, wants water near the road |
 | Terrapin | the raccoon's prey: raccoons stop to worry it one at a time; a bear shoves it aside | road (it walks) | the stall; caught by the reeds |
 | Catfish | slap: single target, heavy | water, bottom bait | the big-hitter, needs line strength |
 | Gar | pierce: line attack along the road | water | needs cast range to catch |
@@ -79,7 +79,7 @@ them, otters raid water tiles. Losing a defender hurts because it was a fish you
 
 ## Thieves (first set)
 
-Gull (fast, flies over turtles, low HP, 1 crate), raccoon (medium, 1 crate, loves worms),
+Gull (fast, in flocks, flies over turtles, low HP, 1 crate), raccoon (medium, 1 crate, loves worms),
 otter (swims: takes the water lanes, attacks defenders), heron (ranged, picks off defenders in
 water), bear (tank, 5 crates, comes for fish: worms don't hold it), pelican (swallows a defender whole, then
 is slow), poacher (human, cuts a line, immune to bait). Bosses later: the Old Bear, the

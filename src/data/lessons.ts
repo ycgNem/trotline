@@ -19,7 +19,7 @@ export interface Lesson {
 export const LESSONS: Lesson[] = [
   {
     on: 'firstCatch', title: 'Into the live well',
-    text: 'Every fish is a choice: sell it, or deploy it in the light water beside the road. A pufferfish paralyses and poisons whatever snatches it (a gull dies of it). An electric ray shocks walkers near the road, never a gull in the air. Click the fish in your live well.',
+    text: 'Every fish is a choice: sell it, or deploy it in the light water beside the road. A pufferfish paralyses and poisons whatever snatches it (a gull dies of it, and its flock turns back). An electric ray shocks walkers on the wet road at the water\'s edge, never a gull in the air. Click the fish in your live well.',
   },
   {
     on: 'firstDeploy', title: 'A fish on guard',

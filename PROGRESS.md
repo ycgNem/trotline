@@ -15,6 +15,12 @@ wading), the charge and the chain are gone (single-target ray with lock-on, no s
 a paralysing puffer, terrapins as the raccoon's prey, bears not lured, rays at the point (the
 rod's job), a dawn ray and a 60 s first build, lines spaced by body length, the woods trail drawn,
 floaters judged in HUD pixels, and pace tests that compare the same bot with one thing removed.
+**The balance audit and the critic's third review are in too** (DECISIONS.md): worm placement
+shown in lure mode and taught; the dock, the reeds and the point as three habitats (puffers,
+terrapins, rays); a ray's shock only through wet ground; gull flocks and the alarm call; no bonus
+for sending a wave early; bait a cost every build (the bed makes a worm every 30 s); a strong
+reference bot, and every pace threshold re-set against it over five seed sets; the crowd lure
+tested and rejected.
 
 ## What exists
 
@@ -34,13 +40,15 @@ floaters judged in HUD pixels, and pace tests that compare the same bot with one
   rates per tile), `world.ts` (tiles, the road as a path, distances, zones, the exit path, the
   structure and reed maps), one system per file in the CLAUDE.md order, and `bot.ts` (deploy-all,
   deploy-with-bed, sell-all and "good" players for the pace tests and the browser bot).
+  - Gulls arrive in flocks of three; one that snatches a pufferfish calls the alarm and the
+    flockmates near it turn back with nothing.
   - Thieves: walk the road, go for lures (raccoons eat one at a time, the rest in a line spaced
     by body length; gulls swallow them; bears ignore them), stop at terrapins (raccoons worry
     and gnaw one at a time, bears shove), claw fish within a tile as they walk and wade for them
     while they wait in a line, take crates and leave south down the trail (walkers) or north
     (gulls), stand paralysed when stunned, take poison over time, rejoin the road ahead of them.
   - Defenders: pufferfish snatched and eaten (poison + paralysis; not by a thief already
-    paralysed), rays shock one walker at a time and stay on it, terrapins worried by raccoons and
+    paralysed), rays shock one walker at a time on wet ground and stay on it, terrapins worried by raccoons and
     shoved by bears. A tenth of an HP a second of rest between waves; a fish clawed or gnawed to 0
     is lost.
   - Lures: a gull swallows one whole; they spoil at the wave's end.
@@ -61,23 +69,24 @@ floaters judged in HUD pixels, and pace tests that compare the same bot with one
   F deploy, L lure (Shift-click for more), N send the wave, Space pause, Tab speed (x1-x3), Esc or
   right-click cancel, WASD/arrows pan, Q/E or the wheel zoom, H hide HUD, M mute, / or F1 help,
   ` debug line.
-- **Tests** (140): data validation (including the trail, that every species bites somewhere the
+- **Tests** (144): data validation (including the trail, that every species bites somewhere the
   surf rod reaches and that the reeds are in tier-1 reach), the sim's rules one by one (30), the
-  pace lessons from DESIGN.md §6-§7 (16: floors, ceilings, and comparisons of the good bot with the
-  rod, the selling or the terrapins taken away), sim purity, engine. `npm test` takes ~3 minutes, mostly pace.
+  pace lessons from DESIGN.md §6-§7 (17: floors, ceilings, and comparisons of the good bot with the
+  rod, the selling or the worms taken away, and fixed waves for the gulls and the terrapin), sim purity, engine. `npm test` takes ~3 minutes, mostly pace.
 - **e2e**: `npm run shots` (title, first catch, deploy mode, first deploy, lure mode, a raccoon
   leaving the road, eating and the line, after wave 1, raccoons lined up at a terrapin, a
-  pufferfish snatched, a ray being clawed, a raccoon escaping south, wave 8, won, lost), `npm run screens` (overlap audit, 11 states x 3 sizes), `npm run smoke` (real input
+  pufferfish snatched, a ray being clawed, a raccoon escaping south, a gull flock turned by the alarm, wave 8, won, lost), `npm run screens` (overlap audit, 11 states x 3 sizes), `npm run smoke` (real input
   only), `npm run bot` (three strategies x three seeds, played in the browser).
 
 ## Measured (DESIGN.md §7)
 
-Wave 1 (200 seeds): deploy-all leaks 2.27, sell-all 6.0, a midpoint lure beside the dawn ray
-3.09 → 0.51. Wave 3: three terrapins or four rays leak all 5 gulls; five puffers leak none.
-Whole run (100 seeds): the good bot wins 78/100, won runs end with 13.2 crates, $26 unspent,
-3.5 fish sold and 2.2 lost to claws a run; crates stolen per wave 1.6, 1.1, 0.5, 1.5, 1.0, 0.5,
-0.8, 2.6. The same bot never selling: 51/100. Without the rod: 42/100. Without terrapins: 46/100. Deploy-with-bed ~43/100;
-deploy-all and sell-all 0/20.
+Wave 1 (5 raccoons, 200 seeds): deploy-all leaks 3.0, sell-all 5.0, a midpoint worm beside the
+dawn ray 3.42 → 0.06. A worm a tile short of the ray stops all five and spares it; beside it the
+ray dies; on the dry dock foot nothing is shocked. Wave 3 (two flocks): three terrapins or four
+rays leak all 6; one puffer 3; two puffers none. Wave 6 past four rays: 11 leak, 1 with a
+terrapin. Whole run, the strong good bot over five 100-seed sets: 76, 77, 76, 75, 83 wins, won
+runs 12-15 crates, $42-47 unspent, 1.3 fish lost; never selling 47-58; no rod 28-35; no worms
+25-43; no terrapins 73-80. Crates stolen per wave 1.8, 1.8, 0.0, 2.6, 0.4, 1.1, 0.2, 1.7.
 
 ## Stubbed or missing
 
@@ -87,12 +96,15 @@ deploy-all and sell-all 0/20.
 
 ## Known problems / watch next
 
-- **Calling a wave early is weak** ($1-12 against ~1.8 fish of fishing). Noted in DESIGN.md §2
-  and IDEAS.md; no lesson leans on it.
-- **Wave 8 is the hardest wave** (2.6 crates) and wave 1 next (1.6): the curve dips in the
-  middle (waves 3 and 6 cost ~0.5). Fine for a slice; watch it when Milestone 3 adds sinks.
-- **Lures may still be one recipe** (one worm a wave beside the most rays, after the gulls).
-  Wading makes it cost ray HP; whether it feels like control is the gate's question 2.
+- **Money piles up late** ($42-47 unspent for the strong bot): past the rod and the bed the slice
+  sells only bait. A slice limit; Milestone 3's boats, canals and chum are the sinks (IDEAS.md).
+- **Terrapins do what a worm does** over a whole run (about no wins either way with a worm down
+  every wave), though one turns a fixed wave from 11 leaks to 1. A free, permanent worm; whether
+  that is enough of a role is a question for the gate.
+- **The gull alarm is flagged as possibly derivative** (a one-use fish, then an effect in a
+  radius, like the Potato Mine's splash). The owner should judge it (DECISIONS.md).
+- **Worm placement is a first-waves lesson**: it decides wave 1, but over a whole run with rays in
+  numbers it is worth ~1 win. Whether lures feel like control is the gate's question 2.
 - **In the frozen screenshot scripts** many effects (bolts, "!") from a batch of stepped ticks
   show at once; live play doesn't do that.
 

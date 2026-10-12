@@ -17,13 +17,13 @@ export interface UpgradeNode {
 export const UPGRADES: UpgradeNode[] = [
   {
     id: 'wormbed', name: 'Worm bed', cost: WORMS.bedCost,
-    fishing: 'Bait keeps coming: a worm every 15 s (up to 12), so the line rarely stops for want of one.',
+    fishing: 'Bait keeps coming: a worm every 30 s (up to 12), about half what a busy line uses; the bait shop makes up the rest.',
     defense: 'Spare worms become lures on the road.',
-    derivation: 'DESIGN.md §3: bought once for 40, a worm per 15 s',
+    derivation: 'DESIGN.md §3: bought once for 40, a worm per 30 s',
   },
   {
     id: 'rod', name: RODS[1].name, cost: RODS[1].cost,
-    fishing: 'Casts to the point, where the rays live (2.5 a minute there, against 0.8 in the bay), and reels 1.5x faster.',
+    fishing: 'Casts to the point, where the rays live (2.5 a minute there, against 0.4 in the bay), and reels 1.5x faster.',
     defense: 'Rays in numbers, and lures that reach the bend.',
     derivation: 'DESIGN.md §3, §10: 50 money, a 14-tile cast',
   },

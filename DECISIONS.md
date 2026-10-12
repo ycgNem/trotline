@@ -219,3 +219,70 @@ The `balance-auditor` recomputed DESIGN.md from `src/data` and ran each pace com
   sets and the never-sell one measured purchase order as well as selling. The never-sell bot
   now only stops selling (`noSell`); every threshold clears the worst of the five sets; the
   money ceiling is $60 (the $150 one could never fail).
+
+## The critic's third review, implemented (2026-10-12)
+
+The `indie-critic` reviewed commit b7419a5 as the gate review. Its verdict: ready for the owner
+to play, not ready to pass the gate, because a simple policy (sell puffers until the rod and
+the bed are bought, deploy everything, one worm a wave) won 98/100 with $92 unspent, one reeds
+tile was the whole fishing game, and lures metered thieves rather than placed the fight. Its
+eight findings, and what changed (DESIGN.md §2-§7, §10, §11 rewritten):
+
+- **The reference bot was weak** (finding 1). It bought a worm pack each time it ran dry and
+  never saved for the bed. The good bot is now the critic's strong policy and more (DESIGN.md
+  §7): it invests in the rod then the bed with puffer sales, keeps a worm down and four in the
+  can once invested, plans a puffer per gull flock, places terrapins and worms by where rays
+  shock the line. On the old numbers it won 191/200; every pace threshold is re-set against it,
+  over five seed sets.
+- **Money needed a use every build** (finding 1). The worm bed makes a worm every 30 s, not 15:
+  half what a tier-2 line uses, so bait is bought every build ("selling funds bait", pillar 1).
+  The critic's other option, a worm fed to a deployed fish healing it, was not taken: a new verb
+  for the slice, and feeding a wild fish set in the shallows is not something anglers do. The
+  good bot still ends with $42-47: past the rod and the bed, the slice sells only bait. That is
+  the slice's limit (two purchases); Milestone 3's boats, canals and chum are the sinks. Noted
+  in IDEAS.md; not solved here.
+- **The dock means puffers, the reeds terrapins, the point rays** (finding 2). One "structure"
+  multiplier for the dock and the reeds put the dock's puffers at the reeds too, with the
+  terrapins, so the line sat by the reeds 74% of a run. Now three habitats: puffers ×1.3 by the
+  dock, ×0.8 by reeds and on open sand; rays 0.4 in the bay (a stray; was 0.8), 2.5 at the
+  point; terrapins only by reeds, at 1.0 a minute (was 0.5: diamondbacks are abundant in salt
+  marsh, and at 0.5 a terrapin cost five rays of fishing time).
+- **Lures: the critic's crowd, tested and rejected** (finding 3). Everyone pulled eating at once
+  won 2/200 with wading and 17/200 without, against 85 for the queue: a crowd eats a worm in
+  seconds and a ray shocks one thief at a time. The queue stays. What answers the finding is
+  wet ground (below) and the placement preview: a worm on dry road (the dock's foot) stops
+  nothing; beside a ray it costs the ray; a tile short of it stops wave 1. Over a whole run, with
+  rays in numbers and a worm down every wave, placement is worth ~1 win: it is a lesson of the
+  first waves, said so in DESIGN.md §6.
+- **Gull flocks and the alarm call** (finding 4: one puffer a gull was the Potato Mine's role,
+  moved to gulls, and tied the line to the dock). Gulls arrive in flocks of three, 0.3 s apart;
+  a gull that snatches a pufferfish gives an alarm call and every gull within 2.5 tiles turns
+  back north with nothing. Gull waves are three flocks now (6, 9, 9, 9 gulls). **Flagged as
+  possibly derivative** (CLAUDE.md): a one-use fish followed by an effect in a radius is the
+  shape of the Potato Mine's splash, the shape the first review removed. What differs: nothing
+  is damaged; only gulls react, and only to a gull's distress; they leave with no crate and pay
+  no bounty; it is the animal's behaviour (laughing gulls flock and alarm-call). The owner should
+  judge whether it reads as a mine.
+- **Sending a wave early pays nothing** (finding 5): the bonus for time left on the clock is
+  Kingdom Rush's early-call gold, and it was never worth taking. "Send wave" stays.
+- **A shock travels through water** (finding 6: the ray shocked raccoons on a dry road three
+  tiles off, but a lesser electric ray's discharge works on contact in water). A ray shocks only
+  a thief on wet ground: water, or land touching it. 27 of 39 road tiles are wet; the sand strip
+  by the dock, the dock's foot, the bend's corner and the last approach to the smokehouse are
+  dry. Wet road is drawn with a damp band along the water; deploying a ray tints the wet road it
+  would shock; the lure preview says when the eater would stand on dry ground. The bots place
+  rays by wet road in reach.
+- **Readability at 1x** (finding 7): at a board zoom below the HUD's, only a lost crate floats
+  (money floaters were still drawn at HUD size); a lure keeps a pink ring and its food bar over
+  the sprites (a raccoon eating it hid it); the wave toast sits under the top bar (it covered the
+  smokehouse) and waits while a card is open.
+- **Craft** (finding 8): the renderer's y-sort reuses tagged entries instead of a closure per
+  sprite per frame; clawed fish come from one set a frame, not a scan of every thief per fish;
+  the deploy overlay's lit tiles are cached until a fish or a lure comes or goes; effects are
+  compacted in place. The rod's "60 money" derivation was already fixed.
+- **Wave 1 is five raccoons** and the waves are retuned against the strong bot (DESIGN.md §5):
+  it wins 75-83 of 100 over five seed sets, the first bear and the finale the peaks.
+
+Measured (DESIGN.md §7): selling is worth ~25 wins, the rod ~45, a worm on the road every wave
+~42; terrapins about nothing over a whole run (they do what the worm does) but 11 leaks to 1 in
+a fixed wave, so their pace test is the fixed wave.

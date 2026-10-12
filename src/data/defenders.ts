@@ -2,8 +2,8 @@
 // defenders deal damage; nothing here is a catch rate.
 //   Pufferfish: poisonous to eat (tetrodotoxin paralyses). The first thief that comes within a
 //     tile snatches it, then stands paralysed and sickening. One use.
-//   Electric ray: shocks the nearest walker in reach. A shock needs something wet to travel
-//     through, so it never reaches a gull in the air.
+//   Electric ray: shocks the nearest walker in reach standing on wet ground (in the water or at
+//     its edge): a discharge travels through water, never through dry land or air.
 //   Terrapin: sits on the road. Raccoons (its real predator) stop and worry at it one at a time,
 //     gnawing at the shell, while the rest wait behind; bears shove past; gulls fly over.
 // Fish wear out: a fish heals only a little between waves, so the ones that take the claws need
@@ -49,8 +49,8 @@ export const PUFFER: PoisonDef = {
 export const RAY: ZapDef = {
   species: 'ray', kind: 'zap', place: 'water', maxRoadDist: 2, hp: 20, regen: 0.1,
   range: 3, dps: 6, pulse: 0.5,
-  job: 'Shock: hits the nearest walker within 3 tiles, 6 damage/s. Can\'t reach a gull in the air. 1 tile from the road, walkers claw at it.',
-  derivation: `DESIGN.md §4: 6 damage/s in 0.5 s pulses at one walker within 3 tiles (the nearest, kept while it stays in reach); no chain, no shock through air (gulls); rests ${REST}`,
+  job: 'Shock: hits the nearest walker within 3 tiles standing at the water\'s edge, 6 damage/s. Not on dry ground, not a gull in the air. 1 tile from the road, walkers claw at it.',
+  derivation: `DESIGN.md §4: 6 damage/s in 0.5 s pulses at one walker within 3 tiles (the nearest, kept while it stays in reach); no chain; the shock travels through water, so only a thief on wet ground (water or land touching it), never on dry land or a gull in the air; rests ${REST}`,
 };
 
 export const TURTLE: ShellDef = {
