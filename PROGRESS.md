@@ -76,10 +76,11 @@ run (40 seeds): the good bot wins 36/40 with 14.6 crates and $78 left; deploy-wi
 
 - **Two pace checks sit at their edge**: the good run's 36/40 wins (floor 36) and 14.6 crates
   (ceiling 15). Any change to fishing rates, ray numbers or waves should re-run `npm test` first.
-- **Sell-or-deploy is close, not strong** (DESIGN.md §7, DECISIONS.md): selling until the bed is
-  bought is as good as deploying everything. Play will say whether it feels like a decision.
-- **The rod comes late** for the good bot (wave ~5.7 from bounty alone): it misses the wave-4 bear
-  with no terrapin. A smarter bot might sell one or two fish for it; that is the decision.
+- **Sell-or-deploy is weak past the first waves** (DESIGN.md §7, IDEAS.md): a bot that sells
+  just enough for the rod does no better than one that deploys everything (36/40 both); selling
+  for the bed too does worse (33/40). Past the bed and the rod there is nothing to buy, so a fish
+  is worth more on the board. The sinks are Milestone 3's (boats, canals, chum).
+- **The rod comes late** for the good bot (wave ~6 from bounty alone), after the wave-4 bear.
 - **In the frozen screenshot scripts** many effects (bolts, "!") from a batch of stepped ticks show
   at once; live play doesn't do that.
 
