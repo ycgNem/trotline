@@ -198,8 +198,10 @@ export class App {
         case 'catch': this.audio.sfx('catch'); this.float('+' + SPECIES[e.id as SpeciesId].name, g.world.angler.x, g.world.angler.y - 1, C.ice); break;
         case 'cast': this.audio.sfx('cast'); break;
         case 'zap': if (!e.value) this.audio.sfx('zap', 0.6); break;
-        case 'snatch': this.audio.sfx('puff'); this.float('Poisoned!', e.x2!, e.y2! - 1, C.lime); break;
-        case 'swallow': this.audio.sfx('steal', 0.6); this.float('Gulp!', e.x!, e.y! - 1, C.rose); break;
+        case 'snatch': this.audio.sfx('snatch'); this.float('Poisoned!', e.x2!, e.y2! - 1, C.lime); break;
+        case 'swallow': this.audio.sfx('gulp'); this.float('Gulp!', e.x!, e.y! - 1, C.rose); break;
+        case 'grab': this.audio.sfx('claw', 0.7); break;
+        case 'spent': this.audio.sfx('spent', 0.6); break;
         // at a zoom below the HUD's scale a +$ over every kill is noise (the top bar counts it)
         case 'kill': this.audio.sfx('kill'); if (this.renderer.cam.zoom >= this.uiScale) this.float('+$' + e.value, e.x!, e.y! - 1, C.gold); break;
         case 'steal': this.audio.sfx('steal'); this.float('-' + e.value + ' crate' + (e.value === 1 ? '' : 's'), e.x!, e.y! - 1, C.ember); break;

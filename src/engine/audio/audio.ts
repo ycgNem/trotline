@@ -139,6 +139,14 @@ export class Audio {
       case 'zap': this.tone(110 * r(), 'sawtooth', { a: 0.002, d: 0.07 }, 0.025 * v, B, 0, 2.4); break;
       case 'puff': this.noise(0.25, 0.22 * v, 'lowpass', 900, 1, 0, 0.2); this.tone(180, 'square', { a: 0.003, d: 0.12 }, 0.05 * v, B, 0, 0.4); break;
       case 'kill': this.tone(520 * r(), 'triangle', { a: 0.003, d: 0.09 }, 0.05 * v, B, 0, 1.6); break;
+      // a thief gulps a pufferfish, then retches: a falling blub and a low buzz
+      case 'snatch': this.tone(320 * r(), 'sine', { a: 0.004, d: 0.12 }, 0.07 * v, B, 0, 0.35); this.tone(130, 'square', { a: 0.02, d: 0.3 }, 0.035 * v, B, 0.14, 0.7); break;
+      // a laughing gull takes the worm: two quick falling chirps
+      case 'gulp': this.tone(980 * r(), 'triangle', { a: 0.003, d: 0.06 }, 0.04 * v, B, 0, 0.75); this.tone(900 * r(), 'triangle', { a: 0.003, d: 0.07 }, 0.04 * v, B, 0.08, 0.7); break;
+      // claws on a fish: two short scratches
+      case 'claw': this.noise(0.05, 0.08 * v, 'bandpass', 3200, 3, 0, 1); this.noise(0.05, 0.07 * v, 'bandpass', 2600, 3, 0.07, 1); break;
+      // a ray spent: a falling fizz
+      case 'spent': this.tone(700, 'sawtooth', { a: 0.004, d: 0.22 }, 0.02 * v, B, 0, 0.25); break;
       case 'steal': this.tone(220, 'square', { a: 0.005, d: 0.2 }, 0.05 * v, B, 0, 0.6); break;
       case 'coin': this.tone(1320, 'square', { a: 0.002, d: 0.06 }, 0.03 * v, B); this.tone(1760, 'square', { a: 0.002, d: 0.09 }, 0.03 * v, B, 0.05); break;
       case 'wave': this.tone(196, 'triangle', { a: 0.02, d: 0.5 }, 0.07 * v, B, 0, 1.05); this.tone(147, 'triangle', { a: 0.02, d: 0.6 }, 0.05 * v, B, 0.12); break;
