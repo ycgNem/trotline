@@ -159,3 +159,8 @@ decision, why, what it rules out.
 - **Derivative check (review)**: nothing in Milestone 0 copies a shipped game; a pixel-3D fishing
   look will remind people of Webfishing at a glance, and the sonar returns are what set Trotline
   apart, so they stay the brightest thing on the water.
+
+- 2026-10-12: **Deployed: a public GitHub repo `trotline` with Pages from the workflow**, on the
+  owner's yes. The live link lives in the repo's About box, never in a file (the Last Watt rule).
+  Why: Prompt 0 item 9. The name is still the working title; `PLAN.md`'s name check comes before
+  anything beyond this proof of concept is shared.

@@ -4,13 +4,14 @@ What exists, what is stubbed, what is next. Updated at the end of every session.
 
 ## Status (2026-10-12, first session)
 
-**Milestone 0, the proof of concept, is built: items 1-8 of `ROADMAP.md` are done and checked;
-item 9 (the GitHub Pages deploy) waits for the owner's yes** (it publishes under the working
-title, and `PLAN.md` asks for a name check first). `indie-critic` reviewed the first pass (12
+**Milestone 0, the proof of concept, is done: all nine items of `ROADMAP.md`, checked.** It is
+live on GitHub Pages (the link is in the repo's About box), deployed by the workflow on every push
+to `main` after `npm test` passes. `indie-critic` reviewed the first pass (12
 findings, all fixed: `DECISIONS.md`, "The first indie-critic review"). Next is the owner's
 evening with it and the four questions in `START-HERE.md`; then `DESIGN.md`.
 
-**How to run:** double-click `Play.bat`, or `npm run dev` and open http://127.0.0.1:5180.
+**How to run:** the live build (repo About box), or double-click `Play.bat`, or `npm run dev` and
+open http://127.0.0.1:5180.
 Keys: 1-4 camera presets, drag to orbit, right-drag to pan, wheel to zoom, P pixel pass on/off,
 V sonar view / all fish, H HUD, Space pause, hold Shift for a fast clock. URL options: `?pixel=0`,
 `?pixels=int` (integer upscale), `?cam=dock`, `?fish=2000`, `?seed=2`.
@@ -82,7 +83,7 @@ line (66.7 ms); its average is 15.2 fps. In play the sonar keeps most fish undra
 
 ## Not done / waiting
 
-- **Deploy (Prompt 0 item 9)**: needs the owner's yes and a name check; the workflow is ready.
+- **The name check** (itch.io, Steam, the domain) before anything beyond this proof of concept.
 - **Lake 1 notes** in `PLAN.md`: the owner's.
 - No sound design yet (a ping and a water bed); no meshopt compression (nothing to compress yet).
 
