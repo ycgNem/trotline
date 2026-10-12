@@ -232,7 +232,15 @@ export class App {
 
   /** A floating number over the board; one starting near another stacks above it. */
   float(text: string, x: number, y: number, col: string) {
-    while (this.floaters.some((f) => f.t < 0.6 && Math.abs(f.x - x) < 2 && Math.abs(f.y - y) < 0.55)) y -= 0.6;
+    const near = this.floaters.filter((f) => f.t < 0.8 && Math.abs(f.x - x) < 2.5 && Math.abs(f.y - y) < 2);
+    // money near money adds up into one number instead of a tower of them
+    const money = /^\+\$(\d+)$/.exec(text);
+    if (money) {
+      const m = near.find((f) => /^\+\$\d+$/.test(f.text));
+      if (m) { m.text = '+$' + (Number(m.text.slice(2)) + Number(money[1])); m.t = 0; return; }
+    }
+    if (near.length >= 3) return;
+    while (near.some((f) => Math.abs(f.y - y) < 0.55)) y -= 0.6;
     this.floaters.push({ text, x, y, t: 0, col });
   }
 
