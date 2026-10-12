@@ -16,6 +16,7 @@ import { TILE } from '../render/ground';
 import { LESSONS, type Lesson } from '../data/lessons';
 import { SPECIES, type SpeciesId } from '../data/species';
 import { THIEVES } from '../data/thieves';
+import { WAVES } from '../data/waves';
 import { C } from '../data/palette';
 import { Hud } from './hud';
 
@@ -48,7 +49,9 @@ export class App {
   help = false;
   debug = false;
   floaters: Floater[] = [];
-  toast: { text: string; t: number } | null = null;
+  toast: { text: string; t: number; life: number } | null = null;
+  /** thief kinds this run has met (the wave toast explains a new one once) */
+  private met = new Set<string>();
   hover: { x: number; y: number } | null = null;
   uiScale = 2;
   ready = false;
@@ -104,6 +107,7 @@ export class App {
     this.selected = null;
     this.floaters = [];
     this.toast = null;
+    this.met.clear();
     this.renderer.fx = [];
     this.paused = false;
     this.lesson = null;
@@ -212,7 +216,7 @@ export class App {
         case 'lure': this.audio.sfx('lure'); break;
         case 'buy': this.audio.sfx('coin'); break;
         case 'callEarly': if (e.value) this.float('+$' + e.value + ' early', g.world.angler.x, g.world.angler.y - 1, C.gold); break;
-        case 'waveStart': this.audio.sfx('wave'); this.save(); break;
+        case 'waveStart': this.audio.sfx('wave'); this.save(); this.waveToast(e.value ?? g.wave); break;
         case 'waveEnd': this.save(); break;
         case 'won': this.audio.sfx('win'); this.endRun(); break;
         case 'lost': this.audio.sfx('lose'); this.endRun(); break;
@@ -227,6 +231,17 @@ export class App {
     }
     if (!this.lesson && this.lessonQueue.length) this.lesson = this.lessonQueue.shift()!;
     if (this.game.over && this.screen === 'play') this.endRun();
+  }
+
+  /** "Wave 3: 10 gulls." plus, the first time a kind shows up this run, what it does. */
+  private waveToast(n: number) {
+    const w = WAVES[n - 1];
+    if (!w) return;
+    const who = w.groups.map(([id, n]) => `${n} ${THIEVES[id].name.toLowerCase()}${n > 1 ? 's' : ''}`).join(', ');
+    const fresh = w.groups.map(([id]) => id).filter((id) => !this.met.has(id));
+    for (const id of fresh) this.met.add(id);
+    const notes = n > 1 ? fresh.map((id) => THIEVES[id].note) : [];
+    this.say(`Wave ${n}: ${who}.` + (notes.length ? ' ' + notes.join(' ') : ''), notes.length ? 6 : 2.5);
   }
 
   private endRun() {
@@ -249,8 +264,8 @@ export class App {
     this.floaters.push({ text, x, y, t: 0, col });
   }
 
-  say(text: string) {
-    this.toast = { text, t: 0 };
+  say(text: string, life = 2.5) {
+    this.toast = { text, t: 0, life };
   }
 
   /** Give the sim a command; say why not if it can't. */

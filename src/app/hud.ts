@@ -292,7 +292,7 @@ export class Hud {
     const a = this.app, { ui } = a;
     if (!a.toast) return;
     a.toast.t += dt;
-    if (a.toast.t > 2.5) { a.toast = null; return; }
+    if (a.toast.t > a.toast.life) { a.toast = null; return; }
     const w = Math.min(ui.w - 20, textWidth(a.toast.text) + 14);
     const lines = wrapText(a.toast.text, w - 10);
     const h = lines.length * LINE_H + 8;
