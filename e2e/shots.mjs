@@ -110,15 +110,16 @@ await until("g.thieves.some((t) => t.stunT > 1.2)", 60 * 60);
 await run(() => window.__app.step(15));
 await shot('13-puffer-snatched');
 
-// a gull flock: the first takes the pufferfish and drops onto the water; the other two land round it to rob it
+// a gull flock: the first takes the pufferfish (between two rays) and drops onto the water; the
+// other two land round it to rob it, where the rays shock them
 await run(() => {
   const a = window.__app;
   a.newRun(17);
   a.freeze();
   const g = a.game;
   g.wave = 2;
-  g.liveWell[0] = 'puffer';
-  g.act({ k: 'deploy', slot: 0, x: 8, y: 11 });
+  g.liveWell.fill(null);
+  for (const [s, x, y] of [['ray', 7, 10], ['ray', 10, 10], ['puffer', 8, 11]]) { g.liveWell[0] = s; g.act({ k: 'deploy', slot: 0, x, y }); }
   g.act({ k: 'call' });
 });
 await until('g.stats.mobbed >= 2', 60 * 30);
@@ -142,7 +143,7 @@ await shot('14-ray-clawed');
 await until("g.thieves.some((t) => t.mode === 'exit' && t.y > 18)", 60 * 120);
 await shot('15-raccoon-escapes');
 
-// the good bot to the end of a season (the first seed it wins: it loses about one in six), then
+// the good bot to the end of a season (the first seed it wins: it loses about one in five), then
 // the lost season
 const won = await run(() => {
   const a = window.__app;

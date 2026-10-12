@@ -42,7 +42,7 @@ const REST = 'a tenth of an HP a second between waves (fish wear out)';
 export const PUFFER: PoisonDef = {
   species: 'puffer', kind: 'poison', place: 'water', maxRoadDist: 1, hp: 10, regen: 0.1,
   trigger: 1, poison: 24, poisonTime: 3, stun: 4,
-  job: 'Bait with a sting: the first thief within 1 tile eats it, stands paralysed 4 s and takes 24 poison. Kills a gull; next to a ray, a raccoon.',
+  job: 'Bait with a sting: the first thief within 1 tile eats it, stands paralysed 4 s and takes 24 poison. Kills a gull, and its flock lands round it where rays can reach; next to a ray, a raccoon.',
   derivation: `DESIGN.md §4: snatched by the first thief within 1 tile; tetrodotoxin paralyses, so a 4 s stun and 24 poison over 3 s (a gull's 20 HP; a raccoon's 40 with 4 s in a ray's reach); one use. Its 10 HP is never spent: a puffer is snatched whole, never clawed`,
 };
 

@@ -17,6 +17,7 @@ import { sheet, drawSprite } from '../render/sprites';
 import { isSlot } from '../render/ground';
 import { Tile, isWater } from '../sim/world';
 import { lurePreview } from '../sim/systems/lures';
+import { pufferRays } from '../sim/systems/defenders';
 import type { TipLine } from '../ui/ui';
 
 const BAR_H = 18;
@@ -170,7 +171,7 @@ export class Hud {
       ? 'Deploy (F): put it on any road tile. Raccoons stop to worry it one at a time while the rest wait, gnawing it down; a bear shoves it aside in 3 s. Gulls fly over.'
       : d.kind === 'zap'
         ? 'Deploy (F): light shallow water within 2 tiles of the road. Its shock reaches the wet road (gold) and not the dry. 1 tile out, walkers claw at it as they pass; 2 tiles out only a raccoon waiting in a lure\'s line reaches it, slowly.'
-        : `Deploy (F): light shallow water within ${d.maxRoadDist} tile of the road. The lit tiles are where it fits.`;
+        : `Deploy (F): light shallow water within ${d.maxRoadDist} tile of the road. Set it between rays: a gull flock lands round it, and the rays framed in gold reach them.`;
   }
 
   // ---------------------------------------------------------------- shop
@@ -210,6 +211,11 @@ export class Hud {
       l1 = `Deploy the ${SPECIES[s].name.toLowerCase()}: click a lit tile.`;
       l2 = 'Right-click or Esc to cancel.';
       c1 = C.gold;
+      const h = a.hover;
+      if (s === 'puffer' && h && g.canDeploy(s, h.x, h.y).ok) {
+        const n = pufferRays(g, h.x, h.y).length;
+        l1 = n ? `${n} ray${n > 1 ? 's reach' : ' reaches'} where a gull flock lands round it (gold).` : 'No ray reaches where a gull flock would land round it.';
+      }
     } else if (a.mode.k === 'lure') {
       l1 = 'Cast a worm: click a pink road tile.';
       l2 = 'Right-click or Esc to cancel.';
@@ -230,7 +236,9 @@ export class Hud {
       if (block) { l2 = block + '.'; c1 = C.ember; }
       else l2 = g.biteTable().map((b) => `${SPECIES[b.s].name} ${b.rate ? b.rate.toFixed(1) + '/min' : '(' + b.why + ')'}`).join(', ');
     }
-    const lines = [...wrapText(l1, W - 10), ...(l2 ? wrapText(l2, W - 10) : [])].slice(0, 4);
+    // every line is drawn: one that doesn't fit spills out of the panel, where the overlap audit
+    // (npm run screens) catches it, rather than being dropped unseen
+    const lines = [...wrapText(l1, W - 10), ...(l2 ? wrapText(l2, W - 10) : [])];
     lines.forEach((s, i) => ui.text(s, left + 5, y + 4 + i * LINE_H, i === 0 ? c1 : C.ash));
   }
 

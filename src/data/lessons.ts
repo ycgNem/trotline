@@ -32,4 +32,4 @@ export const LESSONS: Lesson[] = [
 ];
 
 /** What the status line says before the player has done anything. */
-export const FIRST_HINT = 'A ray caught at dawn waits in your live well. Hover the water to see what bites, click to cast. Thieves come when the timer runs out.';
+export const FIRST_HINT = 'Deploy the ray caught at dawn, or sell it toward the surf rod. Hover the water to see what bites; click to cast.';

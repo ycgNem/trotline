@@ -23,7 +23,8 @@ export function tickLures(g: Game, _dt: number) {
 export interface LinePreview {
   /** where the raccoon held (eating, or worrying a shell) stands */
   eater: Pt;
-  /** where the ones waiting behind it stand */
+  /** where the ones waiting behind it stand (only the places on the road: no line forms back past
+   * its start, so the rest of `n` walk on) */
   line: Pt[];
   /** fish the waiting ones could wade at (DESIGN.md §4) */
   waded: number[];
@@ -66,7 +67,8 @@ export function linePreview(g: Game, i: number, first: number, n = 4): LinePrevi
   const r = THIEVES.raccoon;
   const eater = w.pathBack(i, first);
   const line: Pt[] = [];
-  for (let k = 1; k <= n; k++) line.push(w.pathBack(i, first + k * r.len));
+  // only the places that stand on the road: a line never forms back past its start
+  for (let k = 1; k <= n && i - (first + k * r.len) >= 0; k++) line.push(w.pathBack(i, first + k * r.len));
   const waded: number[] = [], shocks: number[] = [];
   for (const d of g.defenders) {
     const def = DEFENDERS[d.species];

@@ -343,3 +343,53 @@ wins 50-68 against 78-85 (gaps of 13-34 over five sets); the lesson is intact wh
 near-forced**: never selling wins 1-4 of 100, no rod none. The rod is the slice's one
 investment and selling is how it comes in time; that is the sell-or-deploy decision at its
 sharpest, but it makes the opening a line rather than a choice. Flagged for the next review.
+
+## The gate review, implemented (2026-10-12)
+
+The critic reviewed 85cd508 as the Milestone 2 gate (DESIGN.md §8, the pillars, the not-list)
+and tried to beat the tuning with its own policies. Findings and what was done:
+
+- **1. Two worms on the road beat the reference bot** (88-92 wins against 78-85; raccoon
+  steals in waves 5-8 to zero). A worm at $5 returned its price several times in bounty, so a
+  second kill zone was free. **Done**: the reference bot keeps two worms on the road (at least
+  5 road tiles apart) and six in the can; a pack of 3 costs 8. Bait is now what selling pays for
+  after the rod: the bot sells ~5.9 fish a run (was 3.4), ends with $21-22 (was $50-55), and wins
+  80-86 over five seed sets; one worm on the road wins 61-75. This also answers most of the
+  re-gate review's G (money with no use after the rod); the bed still buys nothing.
+- **2. Wave 8 was a puffer count** (five flocks in waves 7 and 8 back to back; five puffers
+  needed from a build that gives 2.9). **Done**: wave 8 is 9 gulls, 22 raccoons and 3 bears; it is
+  won by where the rays are. It is still the peak (3.6 of ~8.5 crates).
+- **3. Terrapin lines ran off the map** (the lure's guard was never given to the terrapin).
+  **Done**: a raccoon joins a terrapin's line only if its place stands on the road; the rest walk
+  round. The preview draws only places on the road, and the bot sets a terrapin only where a
+  line of six fits. **This had been holding up a pace test**: "a terrapin cuts wave 6 from 18
+  leaks to 2" was a terrapin at road tile 6 holding the wave off-board. Re-measured with the
+  terrapin set by hand between the rays: 18 to 5, its twelve-long line wading two rays to death.
+  The test now says that.
+- **4. The mob didn't read, and the shot never showed it.** **Done**: the shot has a puffer
+  between two rays; a landed gull's HP bar sits on it; the "!" shows where it lands; the flock
+  lands in a shallow V (0.85 tile either side, 0.3 out). The critic asked for a full tile apart;
+  measured, that put gulls out of the rays' reach often enough to cost 4 wins, so 0.85. The
+  critic also read the rays as "tan discs beside tan sand"; they sit on light water with an ink
+  outline and read at 2x (`e2e/out/shots/16-gull-mob.png`). Left for the art-director's next pass.
+- **5. Puffer placement wasn't taught where you place it.** **Done**: deploying a puffer frames
+  in gold the rays that reach where a flock would land, and the status line counts them ("2 rays
+  reach where a gull flock lands round it"), as the lure preview does. The puffer's job text and
+  deploy tip say so. The bot scores puffer tiles by the same reading.
+- **6. The opening** (the critic: the rod is forced; a real fork exists: sell the dawn ray).
+  **Done**: the first hint names it ("Deploy the ray caught at dawn, or sell it toward the surf rod"); the bot has a
+  `sellRay` option; selling the ray wins 78-90 against 80-86 for deploying it; a pace test keeps
+  the two within 8. The rod stays the build order.
+- **7. Stale text.** **Done**: the waves' header and wave 4/6 notes, the worm derivation, the
+  mob sound renamed "squabble", the shots script's loss rate, the old shot deleted. IDEAS.md
+  numbers updated.
+
+**The bait threshold is back at 25 wins** (the re-gate review had moved it to 10): with two
+worms on the road, never casting one wins 44-51 against 80-86.
+
+The critic's answers to §8, for the owner: sell-or-deploy is a decision in the first build and,
+with bait at 8, again whenever the can runs low; lures are control in waves 1-2 and placement
+after (two kill zones); catching beats buying for rays and puffers (choosing the tile is choosing
+the defender), and a terrapin is worth a crate, not a win. The mob is ours: a decoy that moves a
+flock into the rays' water (nearest shipped neighbour: PvZ's Ice-shroom, one use then others
+kill; it differs in being local, only gulls, and moving them rather than freezing them).

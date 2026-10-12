@@ -10,6 +10,8 @@ const SIZES = [[1280, 720], [1920, 1080], [1024, 640]];
 // { hover: [x, y] } to put the mouse over that tile instead of the board's top edge
 const STATES = {
   title: () => { const a = window.__app; a.screen = 'title'; },
+  // a run's first frame: the status line's first hint, before anything is caught
+  start: () => { const a = window.__app; a.newRun(7); a.freeze(); for (const l of ['firstCatch', 'firstDeploy', 'firstLure']) a.seen.add(l); a.toast = null; },
   build: () => {
     const a = window.__app; a.newRun(7); a.freeze(); const g = a.game;
     for (const l of ['firstCatch', 'firstDeploy', 'firstLure']) a.seen.add(l);

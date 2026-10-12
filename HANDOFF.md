@@ -10,8 +10,9 @@ the end of every session.
 continue from a save. `npm run dev` (or `Play.bat`) and click Start. The 3D proof of concept is
 gone (in git history at e6f9a18).
 
-The `indie-critic` reviewed the slice **four times** (three reviews and a re-gate) and the
-`balance-auditor` once; all five are implemented (`DECISIONS.md`, one section each). The second
+The `indie-critic` reviewed the slice **five times** (three reviews, a re-gate and the gate
+review) and the `balance-auditor` once; all six are implemented (`DECISIONS.md`, one section
+each). The second
 rebuilt the defense model: fish wear out (slow rest, claws as thieves walk past, wading while
 they wait in a line), the ray shocks one walker at a time and never a gull in the air, the
 pufferfish paralyses, raccoons are the terrapin's predator and bears shove it aside, bears ignore
@@ -23,8 +24,14 @@ grew and came closer until it wins 78-85. It also re-derived the gull answer: a 
 snatches a puffer drops onto the water and its flock lands round it for 6 s to rob it, where
 rays reach them (the old alarm call read as the Potato Mine). A lure's meal is taken when it
 starts and its line never runs off the map; the lure preview counts the raccoons coming;
-terrapins now pay (after eight rays, never where their line wades a ray). `DESIGN.md` §2-§7,
-§10 and §11 describe exactly what is built, with the measured numbers. Nothing is half-built.
+terrapins now pay (after eight rays, never where their line wades a ray). **The gate review**
+found two worms on the road beat the bot, so the bot keeps two down and a pack costs 8 (money
+now goes on bait: $21-22 left at the end, ~6 fish sold a run); wave 8 leans on bears instead of
+five gull flocks; a terrapin's line stops at the road's start (it had been holding a wave off the
+map, and a pace test with it); deploying a puffer frames the rays that reach where a flock lands;
+the first hint names the opening's fork (sell the dawn ray, or deploy it: within 6 wins of each
+other). The bot wins 80-86 of 100. `DESIGN.md` §2-§7, §10 and §11 describe exactly what is
+built, with the measured numbers. Nothing is half-built.
 
 **Milestone 2, the gate, is next**: the owner plays it, then the critic reviews it against
 `DESIGN.md` §8. Nothing from Milestone 3 until the gate is marked passed in `ROADMAP.md`.
@@ -33,13 +40,12 @@ terrapins now pay (after eight rays, never where their line wades a ray). `DESIG
 
 1. **Play the slice** and answer `DESIGN.md` §8's three questions (is sell-or-deploy a
    decision, is a lure control or a chore, does catching a fish beat buying a tower).
-2. **Money after the rod** (the re-gate review's G): the strong bot ends with $50-55 unspent and
-   the worm bed measures the same as never buying it. The critic suggested a heavy surf rod at
-   ~100 (a third rod tier is Milestone 3 scope) or giving the bed a job packs can't do.
-   `IDEAS.md` has both.
-3. **The opening is close to a line**: never selling wins 1-4 of 100, no rod none. Selling for
-   the rod is the sell-or-deploy decision at its sharpest, but there is no second road to the
-   rays. Say whether the gate wants one (`IDEAS.md`).
+2. **The worm bed buys nothing**: the strong bot wins the same runs without it. Money itself now
+   has a use (bait at $8 a pack, two worms on the road), so what is left is the bed's job: give
+   it one packs can't do, or drop it, or add a third rod tier (Milestone 3 scope). `IDEAS.md`.
+3. **The rod is the build order**: never selling wins none, no rod 0-2 of 100. The choice is how
+   to reach it (sell the dawn ray, or deploy it and sell puffers), and the first hint names it.
+   Say whether the gate wants more than that (`IDEAS.md`).
 4. **The palette**: Apollo is provisional. Compare `pixel-art/palette-test/contact_both.png`
    against ENDESGA 32 (`DECISIONS.md`).
 5. **Back Bay instead of a reservoir** for the first shore (`DECISIONS.md`): puffers, electric

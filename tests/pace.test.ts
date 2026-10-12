@@ -6,7 +6,7 @@
 // weak bot shows isn't one. If one fails, don't loosen it: change the model in DESIGN.md, say why
 // in DECISIONS.md, then change the data.
 import { describe, expect, it } from 'vitest';
-import { playRun, Bot, type Strategy, type BotOpts } from '../src/sim/bot';
+import { playRun, type Strategy, type BotOpts } from '../src/sim/bot';
 import { Game } from '../src/sim/Game';
 import { WAVES } from '../src/data/waves';
 
@@ -61,21 +61,14 @@ describe('DESIGN.md §6: where the worm lands', () => {
   });
 });
 
-/** Straight to wave `n` with these fish on these tiles (the good bot's placement where no tile is
- * given); mean leaks over `seeds` seeds. */
-const fixedWave = (n: number, fish: [string, number, number][], terrapins = 0, seeds = 20) => {
+/** Straight to wave `n` with these fish on these tiles; mean leaks over `seeds` seeds. */
+const fixedWave = (n: number, fish: [string, number, number][], seeds = 20) => {
   const leaks: number[] = [];
   for (let s = 1; s <= seeds; s++) {
     const g = new Game(s);
     g.wave = n - 1;
     g.liveWell.fill(null);
     for (const [sp, x, y] of fish) { g.liveWell[0] = sp as 'ray'; expect(g.act({ k: 'deploy', slot: 0, x, y }).ok, `${sp} at ${x},${y}`).toBe(true); }
-    const bot = new Bot(g, 'good');
-    for (let k = 0; k < terrapins; k++) {
-      const p = bot.bestTile('turtle')!;
-      g.liveWell[0] = 'turtle';
-      expect(g.act({ k: 'deploy', slot: 0, x: p.x, y: p.y }).ok).toBe(true);
-    }
     g.act({ k: 'call' });
     while (g.wave < n || g.phase === 'wave') g.step();
     leaks.push(g.waveStats[0].leaks);
@@ -102,8 +95,8 @@ describe('DESIGN.md §7: wave 3, the gulls (two flocks of three)', () => {
 });
 
 describe('DESIGN.md §7: a terrapin holds the line', () => {
-  it('wave 6 past four rays: one terrapin where they shock its line cuts leaks by 5 or more (measured: 18 of 20 to 2)', () => {
-    expect(fixedWave(6, FOUR_RAYS, 0, 10) - fixedWave(6, FOUR_RAYS, 1, 10)).toBeGreaterThanOrEqual(5);
+  it('wave 6 past four rays: a terrapin between them cuts leaks by 5 or more (measured: 18 of 20 to 5, its long line wading two rays to death)', () => {
+    expect(fixedWave(6, FOUR_RAYS, 10) - fixedWave(6, [...FOUR_RAYS, ['turtle', 16, 12]], 10)).toBeGreaterThanOrEqual(5);
   });
 });
 
@@ -135,8 +128,11 @@ describe('DESIGN.md §7: the whole run', () => {
   it('the rod matters: the same bot without it wins 30 fewer', () => {
     expect(wins(runs('good', RUNS, { noRod: true }))).toBeLessThanOrEqual(wins(good) - 30);
   });
-  it('bait matters: the same bot that never casts a worm wins 10 fewer', () => {
-    expect(wins(runs('good', RUNS, { noLure: true }))).toBeLessThanOrEqual(wins(good) - 10);
+  it('bait matters: the same bot that never casts a worm wins 25 fewer', () => {
+    expect(wins(runs('good', RUNS, { noLure: true }))).toBeLessThanOrEqual(wins(good) - 25);
+  });
+  it('two openings: selling the ray caught at dawn toward the rod wins within 8 of deploying it', () => {
+    expect(Math.abs(wins(runs('good', RUNS, { sellRay: true })) - wins(good))).toBeLessThanOrEqual(8);
   });
   it('terrapins matter once the rays are down: the same bot without them loses half a crate more in waves 5-8', () => {
     const noTerr = runs('good', RUNS, { keep: { ray: 99, puffer: 99, turtle: 0 } });

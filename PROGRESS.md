@@ -25,7 +25,12 @@ plays the critic's winning line; waves 4-8 grew by about half to meet it; a gull
 puffer lands its flock on the water round it, where rays reach (the alarm call, flagged as the
 Potato Mine, is gone); a lure's meal is taken when it starts and its line never runs off the map;
 the lure preview counts the raccoons coming; terrapins after eight rays and never where their
-line wades a ray (they help now); DESIGN's pool numbers re-measured.
+line wades a ray (they help now); DESIGN's pool numbers re-measured. **And the gate review**
+(DECISIONS.md, "The gate review"): the bot keeps two worms on the road and a pack costs 8 (bait
+is what selling pays for after the rod); wave 8 leans on bears instead of five gull flocks; a
+terrapin's line stops at the start of the road (it had been holding wave 6 off the map, and a
+pace test with it); deploying a puffer frames the rays that reach where a flock lands; the flock
+lands in a shallow V; the first hint names the opening's fork (sell the dawn ray, or deploy it).
 
 ## What exists
 
@@ -59,7 +64,8 @@ line wades a ray (they help now); DESIGN's pool numbers re-measured.
     is lost.
   - Lures: a raccoon takes its whole meal when it starts eating and the lure stays until that
     meal is done; no one is pulled whose place in line would be off the map; a gull swallows one
-    whole; they spoil at the wave's end. The lure-mode preview counts the raccoons coming.
+    whole; they spoil at the wave's end. The lure-mode preview counts the raccoons coming. A
+    terrapin's line, like a lure's, never stands back past the start of the road.
 - **Render** (`src/render/`): integer-zoom camera that fits the whole shore, ground baked into
   chunks, trees baked once into a props layer, y-sorted sprites, gulls above with shadows,
   effects from sim events (1 px shock bolts, splashes, the fish leaping to the angler, poofs,
@@ -78,10 +84,10 @@ line wades a ray (they help now); DESIGN's pool numbers re-measured.
   right-click cancel, WASD/arrows pan, Q/E or the wheel zoom, H hide HUD, M mute, / or F1 help,
   ` debug line.
 - **Tests**: data validation (including the trail, that every species bites somewhere the
-  surf rod reaches and that the reeds are in tier-1 reach), the sim's rules one by one (34), the
-  pace lessons from DESIGN.md §6-§7 (19: floors, ceilings, and comparisons of the good bot with the
-  rod, the selling, the worms or the terrapins taken away, and fixed waves for the gulls and the
-  terrapin), sim purity, engine. `npm test` takes several minutes, mostly pace.
+  surf rod reaches and that the reeds are in tier-1 reach), the sim's rules one by one (35), the
+  pace lessons from DESIGN.md §6-§7 (20: floors, ceilings, and comparisons of the good bot with the
+  rod, the selling, the worms or the terrapins taken away, the two openings, and fixed waves for
+  the gulls and the terrapin), sim purity, engine. `npm test` takes ~5 minutes, mostly pace.
 - **e2e**: `npm run shots` (title, first catch, deploy mode, first deploy, lure mode, a raccoon
   leaving the road, eating and the line, after wave 1, raccoons lined up at a terrapin, a
   pufferfish snatched, a ray being clawed, a raccoon escaping south, a gull flock landing round a puffer, wave 8, won, lost), `npm run screens` (overlap audit, 11 states x 3 sizes), `npm run smoke` (real input
@@ -93,11 +99,12 @@ Wave 1 (5 raccoons, 200 seeds): deploy-all leaks 3.0, sell-all 5.0, a midpoint w
 dawn ray 3.42 → 0.06. A worm a tile short of the ray stops all five and spares it; beside it the
 ray dies; on the dry dock foot nothing is shocked. Wave 3 (two flocks): three terrapins or four
 rays leak all 6; two puffers alone 4; a puffer between two rays for each flock, none. Whole run,
-the good bot (the critic's line) over five 100-seed sets: 81, 78, 81, 84, 85 wins, won runs
-12.8-14.3 crates, $50-55 unspent, ~2.2 fish lost; never selling 1-4; no rod 0; no worms 50-68;
-no terrapins 82-84 wins but 0.6-1.8 more crates stolen in waves 5-8; never digging the bed: the
-same. Wave 6 past four rays: 18 of 20 leak, 2 with a terrapin. Crates stolen per wave 0.0, 0.1,
-0.4, 0.1, 0.6, 2.0, 1.5, 4.8.
+the good bot (two worms on the road) over five 100-seed sets: 80, 83, 83, 86, 84 wins, won runs
+12.6-14.5 crates, $21-22 unspent, ~5.9 fish sold, ~1.6 lost; selling the dawn ray instead 78-90;
+one worm on the road 61-75; no worms 44-51; never selling 0; no rod 0-2; no terrapins 73-85 wins
+and 0.7-2.4 more crates stolen in waves 5-8; never digging the bed: the same. Wave 6 past four
+rays: 18 of 20 leak, 5 with a terrapin between them (two rays waded to death). Crates stolen per
+wave 0.0, 0.1, 0.5, 0.5, 0.9, 2.1, 0.7, 3.6.
 
 ## Stubbed or missing
 
@@ -107,14 +114,15 @@ same. Wave 6 past four rays: 18 of 20 leak, 2 with a terrapin. Crates stolen per
 
 ## Known problems / watch next
 
-- **Money piles up late** ($50-55 unspent for the strong bot) and **the bed buys nothing**: the
-  same bot never digging it wins the same runs. The owner's call (the re-gate review's G:
-  a third rod, or a job for the bed; IDEAS.md).
-- **The opening is close to a line**: never selling wins 1-4 of 100, no rod 0. Selling for the
+- **The bed buys nothing**: the same bot never digging it wins the same runs (money now goes on
+  bait at $8 a pack; $21-22 is left at the end). The owner's call (a job for the bed, or a third
+  rod; IDEAS.md).
+- **The rod is the build order**: never selling wins none, no rod 0-2. The fork is how to reach it
+  (sell the dawn ray, or deploy it and sell puffers), within 6 wins of each other. Selling for the
   rod is the decision at its sharpest, but there is no second road to the rays (IDEAS.md).
-- **Wave 8 is a spike** (4.8 of the good bot's ~9.5 stolen crates a run), and **a run can die in
+- **Wave 8 is the peak** (3.6 of the good bot's ~8.5 stolen crates a run), and **a run can die in
   its opening**: with few early catches and the rod bought down to the last dollars, a player
-  can have no worms and no money for a pack; selling a fish is the way out (the bot does), and a
+  can have no worms and less than $8; selling a fish is the way out (the bot does), and a
   player with an empty live well waits on bounties. DESIGN §3 says a broke player is never stuck;
   that holds only with a fish to sell.
 - **Worm placement is a first-waves lesson**: it decides wave 1, but over a whole run with rays in

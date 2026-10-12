@@ -209,7 +209,7 @@ export class App {
         case 'snatch': this.audio.sfx('snatch'); break;
         case 'swallow': this.audio.sfx('gulp'); this.float('Gulp!', e.x!, e.y! - 1, C.rose); break;
         case 'grab': this.audio.sfx('claw', 0.7); break;
-        case 'mob': this.audio.sfx('alarm', 0.6); break;
+        case 'mob': this.audio.sfx('squabble', 0.6); break;
         // at a zoom below the HUD's scale a +$ over every kill is noise (the top bar counts it)
         case 'kill': this.audio.sfx('kill'); if (this.renderer.cam.zoom >= this.uiScale) this.float('+$' + e.value, e.x!, e.y! - 1, C.gold); break;
         case 'steal': this.audio.sfx('steal'); this.float('-' + e.value + ' crate' + (e.value === 1 ? '' : 's'), e.x!, e.y! - 1, C.ember); break;

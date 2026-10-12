@@ -187,9 +187,12 @@ function stopAtTurtle(g: Game, t: Thief): boolean {
   let best: Defender | null = null, bestLeft = 1e9;
   for (const q of g.defenders) {
     if (q.hp <= 0 || DEFENDERS[q.species].kind !== 'shell' || q.roadI < t.pathI || t.fed.includes(q.id)) continue;
-    // road left to walk to the terrapin's centre, against how far back the next place stands
+    // road left to walk to the terrapin's centre, against how far back the next place stands; a
+    // line never stands back past the start of the road (the rest go round it, DESIGN.md §6)
+    const back = backOf(g, shellLine(q), atShell, len);
+    if (q.roadI - back < 0) continue;
     const left = toNext + (q.roadI - t.pathI);
-    if (left <= backOf(g, shellLine(q), atShell, len) + ARRIVE && left < bestLeft) { best = q; bestLeft = left; }
+    if (left <= back + ARRIVE && left < bestLeft) { best = q; bestLeft = left; }
   }
   if (!best) return false;
   t.mode = 'wait';
@@ -358,7 +361,7 @@ export function mob(g: Game, t: Thief, of: Thief, x: number, y: number) {
   g.stats.mobbed++;
   const ws = g.waveStats[g.waveStats.length - 1];
   if (ws) ws.mobbed++;
-  g.events.push({ type: 'mob', tick: g.tick, id: t.kind, x: t.x, y: t.y });
+  g.events.push({ type: 'mob', tick: g.tick, id: t.kind, x, y });
 }
 
 /** Sitting on the water (mobbing, or retching up a pufferfish there): a gull a ray can reach. */

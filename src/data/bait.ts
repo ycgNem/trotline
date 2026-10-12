@@ -28,7 +28,7 @@ export const WORMS = {
   period: 30,
   cap: 12,
   /** the bait shop's pack when you are out and have no bed */
-  packCost: 5,
+  packCost: 8,
   packSize: 3,
-  derivation: 'DESIGN.md §3: worm bed 40, a worm per 30 s up to 12 (half what a tier-2 line at the point uses, 3.75 a minute, before lures: worm packs stay a cost every build, so money always has a use); a pack of 3 for 5; 8 to start',
+  derivation: 'DESIGN.md §3: worm bed 40, a worm per 30 s up to 12 (half what a tier-2 line at the point uses, 3.75 a minute, before lures: worm packs stay a cost every build); a pack of 3 for 8 (the gate review: at 5 a worm on two kill zones every wave cost nothing and the strong player ended with $52 unspent; at 8 bait is what selling pays for, §7); 8 to start',
 };

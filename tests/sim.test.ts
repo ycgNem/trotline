@@ -323,6 +323,18 @@ describe('defenders (DESIGN.md §4)', () => {
     expect(rs.every((t) => t.mode === 'road' && t.x > 13)).toBe(true);
     expect(TURTLE.hp - tur.hp).toBeCloseTo(3 * 4 * TURTLE.gnaw.raccoon!, 0);
   });
+  it('a line at a terrapin never stands back past the start of the road: the rest walk round it', () => {
+    const g = waveGame();
+    fish(g, 'turtle', 4, 12);
+    const x0 = g.world.pathPt(0).x;
+    let west = 0;
+    for (let k = 0; k < 8; k++) {
+      put(g, 'raccoon', 0);
+      for (let i = 0; i < 60; i++) { g.step(); west = Math.min(west, ...g.thieves.map((t) => t.x - x0)); }
+    }
+    expect(west).toBeGreaterThan(-0.01);
+    expect(g.thieves.some((t) => t.mode === 'road' && t.x > 5)).toBe(true);
+  });
   it('a bear shoves a terrapin aside in 3 s and does it no harm; a gull flies over', () => {
     const g = waveGame();
     const tur = fish(g, 'turtle', 12, 12);

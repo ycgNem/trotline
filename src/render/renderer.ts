@@ -9,6 +9,7 @@ import { THIEVES } from '../data/thieves';
 import { DEFENDERS, TURTLE } from '../data/defenders';
 import { BAIT } from '../data/bait';
 import { lurePreview } from '../sim/systems/lures';
+import { pufferRays } from '../sim/systems/defenders';
 import type { SpeciesId } from '../data/species';
 import type { GameEvent } from '../engine/events';
 import { Ground, TILE, CHUNK, hash2, isSlot } from './ground';
@@ -255,6 +256,11 @@ export class Renderer {
         const d = DEFENDERS[ov.deploy];
         const r = d.kind === 'zap' ? d.range : d.kind === 'poison' ? d.trigger + 0.5 : 0;
         if (r) this.circle(ov.hover.x + 0.5, ov.hover.y + 0.5, r, C.gold);
+        // a puffer: the rays that reach where a gull flock would come down round it (gold)
+        if (d.kind === 'poison') {
+          const rays = pufferRays(g, ov.hover.x, ov.hover.y);
+          for (const q of g.defenders) if (rays.includes(q.id)) this.frame(q.x, q.y, 0, C.gold);
+        }
         // a ray: the road it would shock, wet and in reach (DESIGN.md §4: dry ground carries none)
         if (d.kind === 'zap') {
           ctx.fillStyle = rgba(C.gold, 0.22 + 0.12 * pulse);
@@ -524,7 +530,8 @@ export class Renderer {
   private bars(g: Game) {
     for (const t of g.thieves) {
       if (t.mode === 'dead' || t.mode === 'gone') continue;
-      const lift = THIEVES[t.kind].flies ? 10 : 0;
+      // a gull in the air carries its bars up with it; one sitting on the water has them on it
+      const lift = THIEVES[t.kind].flies && t.mode !== 'mob' && t.stunT <= 0 ? 10 : 0;
       const s = sheet(t.kind);
       if (t.hp < t.maxHp) this.bar(t.x * TILE, t.y * TILE - s.ay + 1 - lift, Math.min(16, s.w - 2), t.hp / t.maxHp, C.ember);
       if (t.mode === 'eat') this.bar(t.x * TILE, t.y * TILE - s.ay - 2 - lift, 10, t.eatLeft / THIEVES[t.kind].eat, C.rose);

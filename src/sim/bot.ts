@@ -16,6 +16,7 @@
 import { Game } from './Game';
 import { Tile, type Pt } from './world';
 import { DEFENDERS, RAY } from '../data/defenders';
+import { pufferRays } from './systems/defenders';
 import type { SpeciesId } from '../data/species';
 import { WAVES } from '../data/waves';
 import { THIEVES } from '../data/thieves';
@@ -34,6 +35,12 @@ export interface BotOpts {
   untilWave?: number;
   /** the good bot's keep caps: deployed rays, puffers and terrapins it wants before it sells */
   keep?: { ray: number; puffer: number; turtle: number };
+  /** worms the good bot keeps on the road at once, at least 5 road tiles apart (default 2) */
+  lures?: number;
+  /** worms it keeps in the can once the rod is bought (default 6) */
+  can?: number;
+  /** sell the ray caught at dawn at once, toward the rod (the other opening, DESIGN.md §7) */
+  sellRay?: boolean;
   /** rays it has before it fishes puffers for the gull flocks (default 4) */
   gullRays?: number;
   /** rays deployed before the good bot fishes for terrapins (default 8) */
@@ -60,6 +67,7 @@ export const KEEP = { ray: 99, puffer: 99, turtle: 3 };
 
 export class Bot {
   private luredWave = -1;
+  private soldDawn = false;
   constructor(public g: Game, public strategy: Strategy, public opts: BotOpts = {}) {}
 
   /** Look at the game and act; call it every few ticks. */
@@ -80,9 +88,9 @@ export class Bot {
     const g = this.g;
     const pack = g.price('worms') ?? 5;
     if (g.worms < 1 && !g.wormBed && g.money >= pack && this.strategy !== 'deployAll') g.act({ k: 'buy', item: 'worms' });
-    // once the rod is bought the good bot keeps four worms in the can from the bait shop, for the
-    // line and a worm on the road (selling funds bait, DESIGN.md §3)
-    if (this.strategy === 'good' && this.invested() && g.worms < 4 && g.money >= pack) g.act({ k: 'buy', item: 'worms' });
+    // once the rod is bought the good bot keeps six worms in the can from the bait shop, for the
+    // line and two worms on the road (selling funds bait, DESIGN.md §3)
+    if (this.strategy === 'good' && this.invested() && g.worms < (this.opts.can ?? 6) && g.money >= pack) g.act({ k: 'buy', item: 'worms' });
     if (this.strategy === 'deployBed' && !g.wormBed && g.money >= 40) g.act({ k: 'buy', item: 'wormbed' });
     const want = this.want();
     const spot = this.castSpot(want);
@@ -163,6 +171,12 @@ export class Bot {
 
   private deploy() {
     const g = this.g;
+    // the other opening: sell the ray caught at dawn toward the rod rather than deploy it
+    if (this.opts.sellRay && !this.soldDawn) {
+      this.soldDawn = true;
+      const i = g.liveWell.indexOf('ray');
+      if (i >= 0) g.act({ k: 'sell', slot: i });
+    }
     // broke with an empty can: sell a fish for bait rather than stop fishing (every catch takes a
     // worm, DESIGN.md §3)
     if (this.strategy === 'good' && !this.opts.noSell && g.worms < 1 && !g.wormBed && g.money < (g.price('worms') ?? 5)) {
@@ -223,8 +237,10 @@ export class Bot {
           let first = w.path.length;
           w.path.forEach((p, i) => { if (Math.max(Math.abs(p.x - x), Math.abs(p.y - y)) <= def.trigger) { score++; first = Math.min(first, i); } });
           for (const d of g.defenders) if (d.species === 'puffer' && Math.max(Math.abs(d.x - x), Math.abs(d.y - y)) <= 3) score -= 10;
-          // where the rays reach, so the thief it paralyses stands in their fire (DESIGN.md §4)
-          for (const d of g.defenders) if (d.species === 'ray' && Math.hypot(d.x - x, d.y - y) <= RAY.range) score += 2;
+          // where the rays reach, so the thief it paralyses (and a gull flock landing round it)
+          // stands in their fire: the deploy preview's reading (DESIGN.md §4)
+          for (const d of g.defenders) if (d.species === 'ray' && Math.hypot(d.x - x, d.y - y) <= RAY.range) score += 1;
+          score += pufferRays(g, x, y).length;
           // early on the road, so what it sickens walks past the rays afterwards
           score -= first * 0.02;
         } else {
@@ -232,8 +248,11 @@ export class Bot {
           // waits clear of them (the same reading as a worm's, DESIGN.md §4, §6)
           if (w.at(x, y) !== Tile.Road) continue;
           const ri = w.pathIndex[w.idx(x, y)];
-          const pv = linePreview(g, ri, 0.5 + THIEVES.raccoon.len / 2, comingRaccoons(g, ri));
+          const coming = comingRaccoons(g, ri);
+          const pv = linePreview(g, ri, 0.5 + THIEVES.raccoon.len / 2, coming);
           if (!pv.shocks.length) continue;
+          // a terrapin near the road's start holds a short line and the rest walk round it
+          if (pv.line.length < Math.min(coming, 6)) continue;
           // never where the line waiting behind it would wade out to a ray and claw it (a line wades
           // 2 tiles: DESIGN.md §4): a terrapin that costs a ray is worth less than none
           if (pv.waded.length && !this.opts.wadeOk) continue;
@@ -257,7 +276,7 @@ export class Bot {
       }
       return;
     }
-    if (this.strategy !== 'good' || g.phase !== 'wave' || g.lures.length > 0 || g.worms < 2) return;
+    if (this.strategy !== 'good' || g.phase !== 'wave' || g.lures.length >= (this.opts.lures ?? 2) || g.worms < 2) return;
     const lurable = g.thieves.some((t) => t.kind === 'raccoon' && t.mode === 'road') || g.spawnQueue.includes('raccoon');
     if (!lurable) return;
     // the reachable road tile, that no gull still has to pass, whose eater the most rays reach,
@@ -266,7 +285,10 @@ export class Bot {
     const gullsBefore = (i: number) => g.thieves.some((t) => t.kind === 'gull' && alive(t) && t.mode !== 'exit' && t.pathI <= i + 3) || g.spawnQueue.includes('gull');
     let best: Pt | null = null, bs = 0;
     for (const p of w.path) {
-      if (!g.canLure(p.x, p.y).ok || gullsBefore(w.pathIndex[w.idx(p.x, p.y)])) continue;
+      const ri = w.pathIndex[w.idx(p.x, p.y)];
+      if (!g.canLure(p.x, p.y).ok || gullsBefore(ri)) continue;
+      // a second worm goes on another kill zone, clear of the first one's line
+      if (g.lures.some((l) => Math.abs(l.roadI - ri) < 5)) continue;
       let s = 0;
       if (this.opts.lureBlind) {
         for (const d of g.defenders) if (d.species === 'ray' && Math.hypot(d.x - p.x, d.y - p.y) <= RAY.range) s++;
