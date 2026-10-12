@@ -16,8 +16,8 @@ room on the road, the trawl brings up what lives where it tows, a raccoon finds 
 tile from the road, readability and craft fixes. **Then the re-measurement** found a stronger
 reference twice (worms only in the opening; rays past three sold for a rowboat by wave 3, which
 won 96-99 of 100), and the season was sized again against it: the reference now wins 74-90 of
-100, and each opening has its own danger (DESIGN.md §7). Not yet pushed: the live build at
-https://ycgnem.github.io/trotline/ is still the slice.
+100, and each opening has its own danger (DESIGN.md §7). **Live**: pushed with the owner's yes
+at the end of the session; https://ycgnem.github.io/trotline/ is the 12-wave season.
 
 **What is weak, for the next review** (DESIGN.md §7, DECISIONS.md): money has nothing to buy past
 the fleet ($128-140 at the finale's start); terrapins are worth nothing over a run; the late board
@@ -27,8 +27,8 @@ denser now that the finale is fifty bears and twenty-two flocks; the finale last
 The slice's history (Milestones 0-2), kept for reference:
 
 
-**Live**: https://ycgnem.github.io/trotline/ (pushed with the owner's yes at the end of the
-session; every push to `main` runs the tests and redeploys).
+(The slice went live at the end of the overnight session; every push to `main` runs the tests
+and redeploys GitHub Pages.)
 
 **Milestone 0 (2D foundation) is done** except the owner's palette pick (Apollo is provisional).
 **Milestone 1 (the

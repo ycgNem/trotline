@@ -67,7 +67,7 @@ with its reason in DESIGN.md §12 and DECISIONS.md: buckets (Milestone 6), more 
 landing), crickets (live shrimp in Milestone 4), scraps from kills. The reference wins 74-90 of
 100 with three openings and two lines viable (DESIGN.md §7). Open for the next review: money has
 nothing to buy past the fleet, terrapins are worth nothing over a run, and the late board is a
-lawn row (PROGRESS.md). Not pushed yet.
+lawn row (PROGRESS.md). Pushed and live, 2026-10-12.
 
 ## Milestone 4 — The catch log and the roster
 

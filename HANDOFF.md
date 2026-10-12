@@ -7,7 +7,8 @@ the end of every session.
 
 **Milestone 2's gate passed** (the owner: "looks good, see if you can get started on the next
 milestones to make this game more expansive"). **Milestone 3, the fleet and the works, is built,
-reviewed and re-measured, and committed but not pushed**: the live build is still the slice.
+reviewed and re-measured, committed and pushed** with the owner's yes: the live build at
+https://ycgnem.github.io/trotline/ is the 12-wave season.
 
 What is in: three boats (the rowboat, the skiff with an inshore rod, the trawler that tows a net
 and brings up chum) that fish where they are sent and bring the catch home or sell it, kind by
@@ -33,8 +34,8 @@ nothing over a run, and the late board is a solid row of rays and puffers (the "
 
 ## Waiting on the owner
 
-1. **Push Milestone 3?** It is committed on `main` locally. A push runs the tests and redeploys
-   GitHub Pages with the 12-wave season. Say yes when you have played it.
+1. **Play the 12-wave season** (live, or `Play.bat`) and say whether the three openings feel like
+   choices: the rod first, the dawn ray deployed, the rowboat first (`DESIGN.md` §7).
 2. **A late money sink** (`IDEAS.md`): past the skiff there is nothing to buy but bait. A second
    boat of a kind, a third rod tier or Milestone 4's roster are the candidates; each is a design
    call (a new tree needs a `DECISIONS.md` entry naming its pillar).
@@ -53,10 +54,11 @@ nothing over a run, and the late board is a solid row of rays and puffers (the "
 
 ## State of things outside the code
 
-- **Git**: Milestone 3 is committed on `main` and **not pushed**. Every push to `main` runs the
-  tests and redeploys GitHub Pages, so a push needs the owner's yes each time (`CLAUDE.md`).
-  **Live**: https://ycgnem.github.io/trotline/ (the slice). The pace tests play ~1,000 seasons:
-  ~3 minutes locally on 32 threads, longer on CI's four cores.
+- **Git**: everything is committed and pushed to `origin/main` (the owner said yes at the end of
+  the session). Every push to `main` runs the tests and redeploys GitHub Pages, so a push needs
+  the owner's yes each time (`CLAUDE.md`). **Live**: https://ycgnem.github.io/trotline/ (the
+  12-wave season with the fleet). The pace tests play ~1,000 seasons: ~3 minutes locally on 32
+  threads, longer on CI's four cores.
 - **PixelLab**: 0 of the session's 100 generations spent. All art is drawn with the
   pixel-art-studio skill (user level, `~/.claude/skills/pixel-art-studio`): build scripts in
   `pixel-art/<name>/build.py`, PNG strips plus JSON in `src/art/`. Never SpriteCook.
