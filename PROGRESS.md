@@ -83,8 +83,12 @@ line (66.7 ms); its average is 15.2 fps. In play the sonar keeps most fish undra
 
 ## Not done / waiting
 
+- **The owner's evening** with it and the four questions in `START-HERE.md`; then `DESIGN.md`,
+  written together. Milestone 1 code waits for it. (`HANDOFF.md` lists everything open.)
 - **The name check** (itch.io, Steam, the domain) before anything beyond this proof of concept.
 - **Lake 1 notes** in `PLAN.md`: the owner's.
+- **Two look choices for the owner**: the integer upscale (`?pixels=int`) or not, and where the
+  rod's butt sits in the 1-px rod line (holder mouth now, or the cork joint).
 - No sound design yet (a ping and a water bed); no meshopt compression (nothing to compress yet).
 
 ## PixelLab budget

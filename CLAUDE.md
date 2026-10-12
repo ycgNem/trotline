@@ -16,7 +16,7 @@ low-poly meshes with pixel textures through `RenderPixelatedPass` at **480×270*
 fixed 60 Hz pure simulation decoupled from a rAF renderer · HUD on a 2D canvas overlay drawn
 with the immediate-mode UI kit and the bitmap font · Web Audio (procedural + jsfxr bank) ·
 localStorage saves with versioned migrations · Vitest for the sim · Playwright + headless
-Chromium (SwiftShader, flags in `e2e/launch.mjs`) for screenshots, perf and bot play ·
+Chrome (GPU, or SwiftShader with the flags in `e2e/launch.mjs`) for screenshots, perf and bot play ·
 Blender through the MCP for every model, as scripts · GitHub Pages via the workflow ·
 Electron packaging later.
 
@@ -111,7 +111,9 @@ apply (`PLAN.md` not-list).
   currency list, the pinned three version, the palette (once `STYLE.md` fixes it), or the
   milestone order. Everything else: decide, write it down, move on.
 - **Nothing public without the owner's yes**: creating the GitHub repo, pushing, or deploying
-  the Pages build. `PLAN.md` asks for a name check before the first public build.
+  the Pages build. `PLAN.md` asks for a name check before the first public build. The repo and
+  Pages exist since 2026-10-12 (the owner's yes); every push to `main` redeploys, so a push still
+  needs a yes.
 
 ## Agents (in `.claude/agents/`)
 
@@ -133,7 +135,9 @@ Blender 5.2.2 LTS at `C:\Program Files (x86)\Steam\steamapps\common\Blender\blen
 drive the live instance with the **blender-assets** MCP (`mcp__blender-assets__*`: execute code,
 `look`), and build in a scene of the script's own (`trotline_rigs`), never in the owner's open
 scene. Asset scripts also run headless: `blender.exe --background --factory-startup --python
-art/<family>/build_<asset>.py`. Playwright 1.48.2's Chromium is already downloaded
-(`ms-playwright/chromium-1140`). The repo will be public: no tokens, account names or emails in
-any file. PixelLab (`mcp__pixellab__*`) is available for 2D textures if a script can't draw one;
+art/<family>/build_<asset>.py`. Playwright 1.48.2's bundled Chromium
+(`ms-playwright/chromium-1140`) does not start here (`spawn UNKNOWN`), so `e2e/launch.mjs` uses the
+installed Chrome (`channel: 'chrome'`); headless it renders on the GPU unless given the SwiftShader
+flags. The repo is public: no tokens, account names or emails in any file (the live link lives in
+the repo's About box, not in a file). PixelLab (`mcp__pixellab__*`) is available for 2D textures if a script can't draw one;
 say what you spent in `PROGRESS.md`.

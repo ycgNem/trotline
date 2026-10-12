@@ -164,3 +164,9 @@ decision, why, what it rules out.
   owner's yes. The live link lives in the repo's About box, never in a file (the Last Watt rule).
   Why: Prompt 0 item 9. The name is still the working title; `PLAN.md`'s name check comes before
   anything beyond this proof of concept is shared.
+- 2026-10-12: **`rod_butt` is where the rod leaves the holder tube** (0.30 m up the rod from its
+  butt end), not the cork joint above the reel. Why: the 1-px rod polyline should start where the
+  rod is visible. Provisional: the art agent raised it and it is the owner's call; the cork joint
+  is one constant in `art/rigs/build_rod_station.py`.
+- 2026-10-12: **`HANDOFF.md`** is rewritten at the end of every session and read first. Why: the
+  owner clears sessions between evenings; the next session starts from it, not from memory.
